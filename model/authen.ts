@@ -11,3 +11,8 @@ export interface RefreshToken {
     sessionUUID: string
     type: 'refresh'
 }
+
+export interface Profile {
+    userType: string
+    userUUID: string
+}
