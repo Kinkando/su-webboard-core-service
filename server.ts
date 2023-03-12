@@ -1,16 +1,10 @@
-import { config } from 'dotenv';
-import express, { Application, NextFunction, Request, Response } from 'express';
+import conf from "@config/config";
+import initRouter from "@router/router";
 
-config();
+async function init() {
+    const PORT = process.env.PORT || conf.app.port;
+    const app = await initRouter(conf)
+    app.listen(PORT, () => console.log(`Server is listening on port http://localhost:${PORT}`));
+}
 
-const app: Application = express();
-
-app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    res.send('Express server with TypeScript');
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-});
+init()
