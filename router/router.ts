@@ -21,9 +21,7 @@ export default async function init(config: Configuration) {
 
     api.use(express.json());
     api.use(express.urlencoded({ extended: false }));
-
-    const apiWithJWT = [...[api]][0];
-    apiWithJWT.use(useJWT(config.app.jwtSecretKey))
+    api.use(useJWT(config.app.jwtSecretKey))
 
     const mongoDB = await newConnection(config.mongo)
 
@@ -38,7 +36,7 @@ export default async function init(config: Configuration) {
 
     // define handler
     newAuthenHandler(api, config.app.apiKey, authenService, userService)
-    newUserHandler(apiWithJWT, userService)
+    newUserHandler(api, userService)
 
     return api
 }
