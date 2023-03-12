@@ -11,7 +11,7 @@ import { useJWT } from './middleware/middleware';
 
 export default async function init(config: Configuration) {
     const api = express();
-    api.use((req, res, next) => {
+    api.use((_, res, next) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
