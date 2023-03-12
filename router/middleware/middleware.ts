@@ -1,10 +1,10 @@
 import HTTP from '@common/http';
-import { AccessToken } from '@model/authen';
+import { AccessToken, Profile } from '@model/authen';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface CustomRequest extends Request {
-    profile: AccessToken
+    profile: Profile
 }
 
 export function useJWT(jwtSecretKey: string) {
@@ -23,7 +23,10 @@ export function useJWT(jwtSecretKey: string) {
                     return res.status(HTTP.StatusUnauthorized).send({ error: 'invalid JWT token: invalid access token' })
                 }
 
-                (req as CustomRequest).profile = jwtDecode
+                (req as CustomRequest).profile = {
+                    userUUID: jwtDecode.userUUID,
+                    userType: jwtDecode.userType,
+                }
             } catch (error) {
                 return res.status(HTTP.StatusUnauthorized).send({ error: (error as Error).message })
             }

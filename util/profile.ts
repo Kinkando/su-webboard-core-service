@@ -1,5 +1,5 @@
-import { AccessToken } from "@model/authen";
+import { Profile } from "@model/authen";
 import { CustomRequest } from "@router/middleware/middleware";
 import { Request } from "express";
 
-export const getProfile = (req: Request): AccessToken => (req as CustomRequest).profile
+export const getProfile = (req: Request): Profile => (req as CustomRequest).profile
