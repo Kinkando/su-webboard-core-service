@@ -9,15 +9,17 @@ export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) 
 }
 
 interface Service {
-    verifyToken(idToken: string): Promise<string | undefined>
-    genJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
+    verifyFirebaseToken(idToken: string): Promise<string | undefined>
+    encodeJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
+    decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
+    verifyJWT(token: string): void
 }
 
 export class AuthenService implements Service {
     constructor(private jwtSecretKey: Secret, private firebase: admin.app.App) {}
 
-    async verifyToken(idToken: string) {
-        logger.info("Start service.authen.verifyToken", idToken)
+    async verifyFirebaseToken(idToken: string) {
+        logger.info("Start service.authen.verifyFirebaseToken", idToken)
 
         try {
             const client = this.firebase.auth()
@@ -25,7 +27,7 @@ export class AuthenService implements Service {
             if (!token) {
                 throw new Error("idToken is invalid")
             }
-            logger.info("End service.authen.verifyToken", token.uid)
+            logger.info("End service.authen.verifyFirebaseToken", token.uid)
             return token.uid
 
         } catch (error) {
@@ -34,8 +36,8 @@ export class AuthenService implements Service {
         }
     }
 
-    genJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string } {
-        logger.info("Start service.authen.genJWT")
+    encodeJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string } {
+        logger.info("Start service.authen.encodeJWT", userUUID, userType)
 
         const accessJWT: AccessToken = {
             userType,
@@ -59,7 +61,34 @@ export class AuthenService implements Service {
             expiresIn: '7d',
         })
 
-        logger.info("Start service.authen.genJWT", accessToken, refreshToken)
+        logger.info("Start service.authen.encodeJWT", accessToken, refreshToken)
         return { accessToken, refreshToken }
+    }
+
+    decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
+        logger.info("Start service.authen.decodeJWT", token, type)
+
+        let jsonWebToken: AccessToken | RefreshToken
+        if (type === 'access') {
+            jsonWebToken = jwt.decode(token) as AccessToken
+        } else {
+            jsonWebToken = jwt.decode(token) as RefreshToken
+        }
+
+        logger.info("End service.authen.decodeJWT", jsonWebToken)
+        return jsonWebToken
+    }
+
+    verifyJWT(token: string) {
+        logger.info("Start service.authen.verifyJWT", token)
+
+        try {
+            jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
+            logger.info("End service.authen.verifyJWT")
+        } catch (error) {
+            logger.error(error)
+            throw Error(`unable to verify jwt: ${(error as Error).message}`)
+        }
+
     }
 }
