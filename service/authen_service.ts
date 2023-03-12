@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import {v4 as uuidv4} from 'uuid';
-import jwt, { Secret, JwtPayload } from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken } from "@model/authen";
 import logger from "@util/logger";
 
@@ -12,7 +12,6 @@ interface Service {
     verifyFirebaseToken(idToken: string): Promise<string | undefined>
     encodeJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
     decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
-    verifyJWT(token: string): void
 }
 
 export class AuthenService implements Service {
@@ -68,6 +67,8 @@ export class AuthenService implements Service {
     decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
         logger.info("Start service.authen.decodeJWT", token, type)
 
+        jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
+
         let jsonWebToken: AccessToken | RefreshToken
         if (type === 'access') {
             jsonWebToken = jwt.decode(token) as AccessToken
@@ -77,18 +78,5 @@ export class AuthenService implements Service {
 
         logger.info("End service.authen.decodeJWT", jsonWebToken)
         return jsonWebToken
-    }
-
-    verifyJWT(token: string) {
-        logger.info("Start service.authen.verifyJWT", token)
-
-        try {
-            jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
-            logger.info("End service.authen.verifyJWT")
-        } catch (error) {
-            logger.error(error)
-            throw Error(`unable to verify jwt: ${(error as Error).message}`)
-        }
-
     }
 }

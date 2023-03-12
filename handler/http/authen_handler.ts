@@ -57,7 +57,6 @@ class AuthenHandler implements Handler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "refreshToken is required" })
             }
 
-            this.authenService.verifyJWT(refreshToken)
             const jwtDecode = this.authenService.decodeJWT(refreshToken, 'refresh')
             if (!jwtDecode || jwtDecode.type !== 'refresh') {
                 throw Error('accept only refreshToken')
