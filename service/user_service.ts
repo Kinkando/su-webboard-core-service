@@ -1,3 +1,4 @@
+import { FilterUser, User } from "@model/user";
 import { UserRepository } from "@repository/mongo/user_repository";
 import logger from "@util/logger";
 
@@ -5,19 +6,19 @@ export function newUserService(userRepository: UserRepository) {
     return new UserService(userRepository)
 }
 
-interface UserSrv {
-    getUser(): any
+interface Service {
+    getUser(filter: FilterUser): Promise<User>
 }
 
-export class UserService implements UserSrv {
+export class UserService implements Service {
     constructor(private repository: UserRepository) {}
 
-    async getUser() {
-        logger.info("Start service.user")
+    async getUser(filter: FilterUser) {
+        logger.info("Start service.user.getUser")
 
-        const user = await this.repository.getUser();
+        let user = await this.repository.getUser(filter);
 
-        logger.info("End service.user", JSON.stringify(user))
+        logger.info("End service.user.getUser", JSON.stringify(user))
         return user
     }
 }

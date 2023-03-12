@@ -4,6 +4,9 @@ import newConnection from '@repository/mongo/mongo';
 import { newUserRepository } from '@repository/mongo/user_repository';
 import { newUserHandler } from '@handler/http/user_handler';
 import { newUserService } from '@service/user_service';
+import { newFirebaseAppWithServiceAccount } from '@cloud/google/firebase';
+import { newAuthenService } from '@service/authen_service';
+import { newAuthenHandler } from '@handler/http/authen_handler';
 
 export default async function init(config: Configuration) {
     const app = express();
@@ -20,13 +23,17 @@ export default async function init(config: Configuration) {
 
     const mongoDB = await newConnection(config.mongo)
 
+    const firebaseApp = newFirebaseAppWithServiceAccount(config.firebaseCredential)
+
     // define repo
     const userRepository = newUserRepository(mongoDB)
 
     // define service
     const userService = newUserService(userRepository)
+    const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
 
     // define handler
+    newAuthenHandler(app, config.app.apiKey, authenService, userService)
     newUserHandler(app, userService)
 
     return app

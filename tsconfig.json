@@ -104,6 +104,7 @@
     "skipLibCheck": true,                                /* Skip type checking all .d.ts files. */
     "baseUrl": "",
     "paths": {
+      "@cloud/*": ["cloud/*"],
       "@common/*": ["common/*"],
       "@config/*": ["config/*"],
       "@handler/*": ["handler/*"],

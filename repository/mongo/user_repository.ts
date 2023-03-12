@@ -1,6 +1,6 @@
+import { FilterUser, User } from "@model/user";
 import logger from "@util/logger";
 import * as mongoDB from "mongodb";
-import { ObjectId } from "mongodb";
 export function newUserRepository(db: mongoDB.Db) {
     return new UserRepository(db)
 }
@@ -8,18 +8,17 @@ export function newUserRepository(db: mongoDB.Db) {
 const userCollection = "User"
 
 interface UserRepo {
-    getUser(): void
+    getUser(filter: FilterUser): Promise<User>
 }
 
 export class UserRepository implements UserRepo {
     constructor(private db: mongoDB.Db) {}
-    async getUser() {
-        logger.info("Start mongo.user")
+    async getUser(filter: FilterUser) {
+        logger.info("Start mongo.user.getUser")
 
-        const query = { _id: new ObjectId('640d6b852ee4e26814384218') };
-        const user = await this.db.collection(userCollection).findOne(query)
+        const user = await this.db.collection<User>(userCollection).findOne(filter)
 
-        logger.info("End mongo.user", JSON.stringify(user))
-        return user
+        logger.info("End mongo.user.getUser", JSON.stringify(user))
+        return user as User
     }
 }
