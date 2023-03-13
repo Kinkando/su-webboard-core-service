@@ -51,6 +51,7 @@ class UserHandler implements Handler {
         try {
             const profile = getProfile(req)
             if (req.files && req.files.length > 1) {
+                logger.error('file is limit at 1')
                 return res.status(HTTP.StatusBadRequest).send({ error: "file is limit at 1" })
             }
             const data = JSON.parse(req.body.data);

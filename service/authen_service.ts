@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
-import { AccessToken, RefreshToken } from "@model/authen";
+import { AccessToken, RefreshToken, UserType } from "@model/authen";
 import logger from "@util/logger";
 
 export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) {
@@ -35,7 +35,7 @@ export class AuthenService implements Service {
         }
     }
 
-    encodeJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string } {
+    encodeJWT(userUUID: string, userType: UserType): { accessToken: string, refreshToken: string } {
         logger.info(`Start service.authen.encodeJWT, "input": {"userUUID": "%s", "userType": "%s"}`, userUUID, userType)
 
         const accessJWT: AccessToken = {

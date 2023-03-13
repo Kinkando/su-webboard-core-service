@@ -9,6 +9,8 @@ import { newAuthenService } from '@service/authen_service';
 import { newAuthenHandler } from '@handler/http/authen_handler';
 import { useJWT } from './middleware/middleware';
 import { newCloudStorage } from '@cloud/google/storage';
+import { newAdminService } from '@service/admin_service';
+import { newAdminHandler } from '@handler/http/admin_handler';
 
 export default async function init(config: Configuration) {
     const api = express();
@@ -34,10 +36,12 @@ export default async function init(config: Configuration) {
     const userRepository = newUserRepository(mongoDB)
 
     // define service
-    const userService = newUserService(userRepository)
+    const adminService = newAdminService(userRepository, firebaseApp)
     const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
+    const userService = newUserService(userRepository)
 
     // define handler
+    api.use('/admin', newAdminHandler(adminService, storage))
     api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))
 

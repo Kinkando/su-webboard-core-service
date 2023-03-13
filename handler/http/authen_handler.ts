@@ -67,7 +67,7 @@ class AuthenHandler implements Handler {
                 throw Error('accept only refreshToken')
             }
 
-            const jwt = this.authenService.encodeJWT(jwtDecode.userUUID, jwtDecode.userUUID)
+            const jwt = this.authenService.encodeJWT(jwtDecode.userUUID, jwtDecode.userType)
 
             logger.info("End http.authen.verifyToken")
             return res.status(HTTP.StatusOK).send(jwt)

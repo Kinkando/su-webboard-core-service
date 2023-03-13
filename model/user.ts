@@ -1,6 +1,8 @@
+import { UserType } from "./authen"
+
 export interface User {
     userUUID: string
-    userType?: string
+    userType?: UserType
     userDisplayName?: string
     userFullName?: string
     userEmail?: string
