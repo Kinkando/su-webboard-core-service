@@ -11,13 +11,13 @@ export function newUserService(repository: UserRepository, firebase: admin.app.A
 }
 
 interface Service {
-    getUser(filter: FilterUser): Promise<User>
-    getUsers(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
-    createUser(user: User): void
-    updateUser(user: User): void
-    deleteUser(userUUID: string): void
-    isExistEmail(email: string): Promise<boolean>
-    resetPassword(tokenID: string): void
+    getUserSrv(filter: FilterUser): Promise<User>
+    getUsersSrv(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
+    createUserSrv(user: User): void
+    updateUserSrv(user: User): void
+    deleteUserSrv(userUUID: string): void
+    isExistEmailSrv(email: string): Promise<boolean>
+    resetPasswordSrv(tokenID: string): void
 }
 
 export class UserService implements Service {
@@ -28,34 +28,26 @@ export class UserService implements Service {
         private sendgrid: SendGrid,
     ) {}
 
-    async getUser(filter: FilterUser) {
-        logger.info(`Start service.user.getUser, "input": %s`, JSON.stringify(filter))
+    async getUserSrv(filter: FilterUser) {
+        logger.info(`Start service.user.getUserSrv, "input": %s`, JSON.stringify(filter))
 
-        let user = await this.repository.getUser(filter);
+        let user = await this.repository.getUserRepo(filter);
 
-        logger.info(`End service.user.getUser, "output": %s`, JSON.stringify(user))
+        logger.info(`End service.user.getUserSrv, "output": %s`, JSON.stringify(user))
         return user
     }
 
-    async resetPassword(tokenID: string) {
-        logger.info(`Start service.user.resetPassword, "input": {"tokenID": "%s"}`, tokenID)
+    async getUsersSrv(search: string, limit: number, offset: number) {
+        logger.info(`Start service.user.getUsersSrv, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
 
-        this.sendgrid.sendEmailTemplate("")
+        const users = await this.repository.getUsersRepo(search, limit, offset)
 
-        logger.info(`End service.user.resetPassword`)
-    }
-
-    async getUsers(search: string, limit: number, offset: number) {
-        logger.info(`Start service.user.getUsers, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
-
-        const users = await this.repository.getUsers(search, limit, offset)
-
-        logger.info(`End service.user.getUsers, "output": {"total": %d, "data.length": %d}`, users?.total || 0, users?.data?.length || 0)
+        logger.info(`End service.user.getUsersSrv, "output": {"total": %d, "data.length": %d}`, users?.total || 0, users?.data?.length || 0)
         return users
     }
 
-    async createUser(user: User) {
-        logger.info(`Start service.user.createUser, "input": %s`, JSON.stringify(user))
+    async createUserSrv(user: User) {
+        logger.info(`Start service.user.createUserSrv, "input": %s`, JSON.stringify(user))
 
         const firebaseUser = await this.firebase.auth().createUser({
             email: user.userEmail,
@@ -66,38 +58,38 @@ export class UserService implements Service {
         user.userImageURL = this.storage.publicURL("user/avatar-1.png")
         user.isAnonymous = false
         user.firebaseID = firebaseUser.uid
-        await this.repository.createUser(user);
+        await this.repository.createUserRepo(user);
 
-        logger.info(`End service.user.createUser`)
+        logger.info(`End service.user.createUserSrv`)
         return user
     }
 
-    async updateUser(user: User) {
-        logger.info(`Start service.user.updateUser, "input": %s`, JSON.stringify(user))
+    async updateUserSrv(user: User) {
+        logger.info(`Start service.user.updateUserSrv, "input": %s`, JSON.stringify(user))
 
-        const u = await this.repository.getUser({ userUUID: user.userUUID })
+        const u = await this.repository.getUserRepo({ userUUID: user.userUUID })
         if (!u || !u.userUUID) {
             throw Error('user is not found')
         }
 
         if (user.userEmail && u.userEmail! !== user.userEmail!) {
-            const isExistEmail = await this.repository.isExistEmail(user.userEmail!)
+            const isExistEmail = await this.repository.isExistEmailRepo(user.userEmail!)
             if (isExistEmail) {
                 throw Error(`email: ${user.userEmail} is exist`)
             }
             await this.firebase.auth().updateUser(u.firebaseID!, { email: user.userEmail })
         }
 
-        await this.repository.updateUser(user);
+        await this.repository.updateUserRepo(user);
 
-        logger.info(`End service.user.updateUser`)
+        logger.info(`End service.user.updateUserSrv`)
         return user
     }
 
-    async deleteUser(userUUID: string) {
-        logger.info(`Start service.user.deleteUser, "input": %s`, userUUID)
+    async deleteUserSrv(userUUID: string) {
+        logger.info(`Start service.user.deleteUserSrv, "input": %s`, userUUID)
 
-        const u = await this.repository.getUser({ userUUID })
+        const u = await this.repository.getUserRepo({ userUUID })
         if (!u || !u.userUUID) {
             throw Error('user is not found')
         }
@@ -106,17 +98,25 @@ export class UserService implements Service {
 
         await this.firebase.auth().deleteUser(u.firebaseID!)
 
-        await this.repository.deleteUser(userUUID);
+        await this.repository.deleteUserRepo(userUUID);
 
-        logger.info(`End service.user.deleteUser`)
+        logger.info(`End service.user.deleteUserSrv`)
     }
 
-    async isExistEmail(email: string) {
-        logger.info(`Start service.user.isExistEmail, "input": "%s"`, email)
+    async isExistEmailSrv(email: string) {
+        logger.info(`Start service.user.isExistEmailSrv, "input": "%s"`, email)
 
-        const isExist = await this.repository.isExistEmail(email);
+        const isExist = await this.repository.isExistEmailRepo(email);
 
-        logger.info(`End service.user.isExistEmail, "output": ${isExist}`)
+        logger.info(`End service.user.isExistEmailSrv, "output": ${isExist}`)
         return isExist
+    }
+
+    async resetPasswordSrv(tokenID: string) {
+        logger.info(`Start service.user.resetPasswordSrv, "input": {"tokenID": "%s"}`, tokenID)
+
+        this.sendgrid.sendEmailTemplate("")
+
+        logger.info(`End service.user.resetPasswordSrv`)
     }
 }

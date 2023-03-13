@@ -6,25 +6,26 @@ import { getProfile } from '@util/profile';
 import { User } from '@model/user';
 import { bind, validate } from '@util/validate';
 import { UserService } from '@service/user_service';
+import { CategoryService } from '@service/category_service';
+import { Category } from '@model/category';
 
-export function newAdminHandler(userService: UserService) {
-    const adminHandler = new AdminHandler(userService)
+export function newAdminHandler(userService: UserService, categoryService: CategoryService) {
+    const adminHandler = new AdminHandler(userService, categoryService)
 
     const adminRouter = Router()
 
-    const userRouter = adminRouter.use('/user', adminRouter)
-    userRouter.get('', (req, res, next) => adminHandler.getUsers(req, res, next))
-    userRouter.post('/:userType', (req, res, next) => adminHandler.createUser(req, res, next))
-    userRouter.patch('', (req, res, next) => adminHandler.updateUser(req, res, next))
-    userRouter.delete('', (req, res, next) => adminHandler.deleteUser(req, res, next))
+    adminRouter.get('/user', (req, res, next) => adminHandler.getUsers(req, res, next))
+    adminRouter.post('/user/:userType', (req, res, next) => adminHandler.createUser(req, res, next))
+    adminRouter.patch('/user', (req, res, next) => adminHandler.updateUser(req, res, next))
+    adminRouter.delete('/user', (req, res, next) => adminHandler.deleteUser(req, res, next))
 
-    const categoryRouter = adminRouter.use('/category', adminRouter)
+    adminRouter.put('/category', (req, res, next) => adminHandler.upsertCategory(req, res, next))
 
     return adminRouter
 }
 
 class AdminHandler {
-    constructor(private userService: UserService) {}
+    constructor(private userService: UserService, private categoryService: CategoryService) {}
 
     async getUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.admin.getUsers")
@@ -41,7 +42,7 @@ class AdminHandler {
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
-            const users = await this.userService.getUsers(filter.search, filter.limit, filter.offset)
+            const users = await this.userService.getUsersSrv(filter.search, filter.limit, filter.offset)
             if (!users || !users.total || !users.data) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -99,16 +100,16 @@ class AdminHandler {
                 user.studentID = req.body.studentID
             }
 
-            const isExistEmail = await this.userService.isExistEmail(user.userEmail!)
+            const isExistEmail = await this.userService.isExistEmailSrv(user.userEmail!)
             if (isExistEmail) {
                 logger.error(`email: ${user.userEmail!} is exist`)
                 return res.status(HTTP.StatusBadRequest).send({ error: `email: ${user.userEmail!} is exist` })
             }
 
-            await this.userService.createUser(user)
+            await this.userService.createUserSrv(user)
 
             logger.info("End http.admin.createUser")
-            return res.status(HTTP.StatusCreated).send();
+            return res.status(HTTP.StatusCreated).send({ message: "success" });
 
         } catch (error) {
             logger.error(error)
@@ -144,7 +145,7 @@ class AdminHandler {
 
             const user: User = bind(req.body, schemas)
 
-            await this.userService.updateUser(user)
+            await this.userService.updateUserSrv(user)
 
             logger.info("End http.admin.updateUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
@@ -171,10 +172,48 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: 'userUUID is required' })
             }
 
-            await this.userService.deleteUser(userUUID)
+            await this.userService.deleteUserSrv(userUUID)
 
             logger.info("End http.admin.deleteUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async upsertCategory(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.upsertCategory")
+        try {
+
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const isUpdate = req.body.categoryID != undefined
+
+            const schemas = [
+                {field: "categoryID", type: "number", required: isUpdate},
+                {field: "categoryName", type: "string", required: !isUpdate},
+                {field: "categoryHexColor", type: "hexColor", required: !isUpdate},
+            ]
+
+            try {
+                validate(schemas, req.body)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const category: Category = bind(req.body, schemas)
+
+            await this.categoryService.upsertCategorySrv(category)
+
+            logger.info("End http.admin.upsertCategory")
+            return res.status(HTTP.StatusCreated).send({ message: "success" });
 
         } catch (error) {
             logger.error(error)

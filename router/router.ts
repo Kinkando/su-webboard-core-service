@@ -11,6 +11,8 @@ import { useJWT } from './middleware/middleware';
 import { newCloudStorage } from '@cloud/google/storage';
 import { newAdminHandler } from '@handler/http/admin_handler';
 import { newSendGrid } from '@cloud/sendgrid/sendgrid';
+import { newCategoryRepository } from '@repository/mongo/category_repository';
+import { newCategoryService } from '@service/category_service';
 
 export default async function init(config: Configuration) {
     const api = express();
@@ -35,14 +37,16 @@ export default async function init(config: Configuration) {
     const sendgrid = newSendGrid(config.sendgrid)
 
     // define repo
+    const categoryRepository = newCategoryRepository(mongoDB)
     const userRepository = newUserRepository(mongoDB)
 
     // define service
     const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
+    const categoryService = newCategoryService(categoryRepository)
     const userService = newUserService(userRepository, firebaseApp, storage, sendgrid)
 
     // define handler
-    api.use('/admin', newAdminHandler(userService))
+    api.use('/admin', newAdminHandler(userService, categoryService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))
 

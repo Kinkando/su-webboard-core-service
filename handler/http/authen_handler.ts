@@ -33,13 +33,13 @@ class AuthenHandler {
                 throw new Error("apiKey is invalid")
             }
             const idToken = req.body.idToken!
-            const firebaseID = await this.authenService.verifyFirebaseToken(idToken)
-            const user = await this.userService.getUser({ firebaseID })
+            const firebaseID = await this.authenService.verifyFirebaseTokenSrv(idToken)
+            const user = await this.userService.getUserSrv({ firebaseID })
             if (!user) {
                 throw Error("user not found")
             }
 
-            const jwt = this.authenService.encodeJWT(user.userUUID!, user.userType!)
+            const jwt = this.authenService.encodeJWTSrv(user.userUUID!, user.userType!)
 
             logger.info("End http.authen.verifyToken")
             return res.status(HTTP.StatusOK).send(jwt)
@@ -59,12 +59,12 @@ class AuthenHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "refreshToken is required" })
             }
 
-            const jwtDecode = this.authenService.decodeJWT(refreshToken, 'refresh')
+            const jwtDecode = this.authenService.decodeJWTSrv(refreshToken, 'refresh')
             if (!jwtDecode || jwtDecode.type !== 'refresh') {
                 throw Error('accept only refreshToken')
             }
 
-            const jwt = this.authenService.encodeJWT(jwtDecode.userUUID, jwtDecode.userType)
+            const jwt = this.authenService.encodeJWTSrv(jwtDecode.userUUID, jwtDecode.userType)
 
             logger.info("End http.authen.refreshToken")
             return res.status(HTTP.StatusOK).send(jwt)
@@ -79,7 +79,7 @@ class AuthenHandler {
         logger.info("Start http.authen.resetPassword")
 
         try {
-            await this.userService.resetPassword("tokenID ???")
+            await this.userService.resetPasswordSrv("tokenID ???")
 
             logger.info("End http.authen.resetPassword")
             return res.status(HTTP.StatusOK).send({ message: "success" })

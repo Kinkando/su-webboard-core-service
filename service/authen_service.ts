@@ -9,9 +9,9 @@ export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) 
 }
 
 interface Service {
-    verifyFirebaseToken(idToken: string): Promise<string | undefined>
-    encodeJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
-    decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
+    verifyFirebaseTokenSrv(idToken: string): Promise<string | undefined>
+    encodeJWTSrv(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
+    decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
 }
 
 export class AuthenService implements Service {
@@ -20,8 +20,8 @@ export class AuthenService implements Service {
         private firebase: admin.app.App,
     ) {}
 
-    async verifyFirebaseToken(idToken: string) {
-        logger.info("Start service.authen.verifyFirebaseToken", idToken)
+    async verifyFirebaseTokenSrv(idToken: string) {
+        logger.info("Start service.authen.verifyFirebaseTokenSrv", idToken)
 
         try {
             const client = this.firebase.auth()
@@ -29,7 +29,7 @@ export class AuthenService implements Service {
             if (!token) {
                 throw new Error("idToken is invalid")
             }
-            logger.info("End service.authen.verifyFirebaseToken", token.uid)
+            logger.info("End service.authen.verifyFirebaseTokenSrv", token.uid)
             return token.uid
 
         } catch (error) {
@@ -38,8 +38,8 @@ export class AuthenService implements Service {
         }
     }
 
-    encodeJWT(userUUID: string, userType: UserType): { accessToken: string, refreshToken: string } {
-        logger.info(`Start service.authen.encodeJWT, "input": {"userUUID": "%s", "userType": "%s"}`, userUUID, userType)
+    encodeJWTSrv(userUUID: string, userType: UserType): { accessToken: string, refreshToken: string } {
+        logger.info(`Start service.authen.encodeJWTSrv, "input": {"userUUID": "%s", "userType": "%s"}`, userUUID, userType)
 
         const accessJWT: AccessToken = {
             userType,
@@ -63,12 +63,12 @@ export class AuthenService implements Service {
             expiresIn: '7d',
         })
 
-        logger.info(`End service.authen.encodeJWT, "output": {"accessToken": "%s", "refreshToken": "%s"}`, accessToken, refreshToken)
+        logger.info(`End service.authen.encodeJWTSrv, "output": {"accessToken": "%s", "refreshToken": "%s"}`, accessToken, refreshToken)
         return { accessToken, refreshToken }
     }
 
-    decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
-        logger.info(`Start service.authen.decodeJWT, "input": {"token": "%s", "type": "%s"}`, token, type)
+    decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
+        logger.info(`Start service.authen.decodeJWTSrv, "input": {"token": "%s", "type": "%s"}`, token, type)
 
         jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
 
@@ -79,7 +79,7 @@ export class AuthenService implements Service {
             jsonWebToken = jwt.decode(token) as RefreshToken
         }
 
-        logger.info(`End service.authen.decodeJWT, "output": %s`, JSON.stringify(jsonWebToken))
+        logger.info(`End service.authen.decodeJWTSrv, "output": %s`, JSON.stringify(jsonWebToken))
         return jsonWebToken
     }
 }

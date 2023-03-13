@@ -28,7 +28,7 @@ class UserHandler {
 
         try {
             const profile = getProfile(req)
-            const user = await this.userService.getUser({ userUUID: profile.userUUID })
+            const user = await this.userService.getUserSrv({ userUUID: profile.userUUID })
             if (!user) {
                 throw Error("user not found")
             }
@@ -59,7 +59,7 @@ class UserHandler {
             if (data.isAnonymous && typeof data.isAnonymous === 'boolean') {
                 user.isAnonymous = data.isAnonymous
             }
-            await this.userService.updateUser(user)
+            await this.userService.updateUserSrv(user)
 
             logger.info("End http.user.updateProfile")
             return res.status(HTTP.StatusCreated).send();
