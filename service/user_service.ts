@@ -1,10 +1,12 @@
 import * as admin from 'firebase-admin';
-import { CloudStorage } from '@cloud/google/storage';
+import { CloudStorage, File } from '@cloud/google/storage';
 import { SendGrid } from "@cloud/sendgrid/sendgrid";
 import { FilterUser, User } from "@model/user";
 import { UserRepository } from "@repository/mongo/user_repository";
 import logger from "@util/logger";
 
+const storageFolder = "user"
+const defaultImageURL = `${storageFolder}/avatar-1.png`
 
 export function newUserService(repository: UserRepository, firebase: admin.app.App, storage: CloudStorage, sendgrid: SendGrid) {
     return new UserService(repository, firebase, storage, sendgrid)
@@ -13,7 +15,7 @@ export function newUserService(repository: UserRepository, firebase: admin.app.A
 interface Service {
     // user
     getUserSrv(filter: FilterUser): Promise<User>
-    updateUserProfileSrv(user: User): void
+    updateUserProfileSrv(user: User, image: File): void
     resetPasswordSrv(tokenID: string): void
 
     getUsersSrv(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
@@ -36,12 +38,27 @@ export class UserService implements Service {
 
         let user = await this.repository.getUserRepo(filter);
 
+        if (user.userImageURL) {
+            user.userImageURL = await this.storage.signedURL(user.userImageURL!)
+        }
+
         logger.info(`End service.user.getUserSrv, "output": %s`, JSON.stringify(user))
         return user
     }
 
-    async updateUserProfileSrv(user: User) {
+    async updateUserProfileSrv(user: User, image: File) {
         logger.info(`Start service.user.updateUserProfileSrv, "input": %s`, JSON.stringify(user))
+
+        if (image) {
+            const u = await this.repository.getUserRepo({ userUUID: user.userUUID })
+            if (!u || !u.userUUID) {
+                throw Error('user is not found')
+            }
+            user.userImageURL = this.storage.uploadFile(image, storageFolder)
+            if (u.userImageURL !== defaultImageURL) {
+                this.storage.deleteFile(u.userImageURL!)
+            }
+        }
 
         await this.repository.updateUserRepo(user);
 
@@ -67,7 +84,7 @@ export class UserService implements Service {
         })
 
         user.userDisplayName = user.userFullName
-        user.userImageURL = this.storage.publicURL("user/avatar-1.png")
+        user.userImageURL = defaultImageURL
         user.isAnonymous = false
         user.firebaseID = firebaseUser.uid
         await this.repository.createUserRepo(user);

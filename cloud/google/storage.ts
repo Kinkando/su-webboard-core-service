@@ -1,12 +1,28 @@
 import { StorageConfiguration } from '@config/config';
 import * as admin from 'firebase-admin';
+import stream, { Readable } from 'stream';
+import { v4 as uuid } from 'uuid';
 
 export function newCloudStorage(firebase: admin.app.App, config: StorageConfiguration) {
     return new CloudStorage(firebase.storage(), config)
 }
 
+export interface File {
+    fieldname: string
+    originalname: string
+    encoding: string
+    mimetype: string
+    size: number
+    stream: Readable
+    destination: string
+    filename: string
+    path: string
+    buffer: Buffer
+}
+
 interface Service {
-    upload(): void
+    uploadFile(file: File, folder: string): string
+    deleteFile(fileName: string): void
     signedURL(fileName: string): Promise<string>
     publicURL(fileName: string): string
 }
@@ -19,8 +35,19 @@ export class CloudStorage implements Service {
         this.expireTime = config.expireTime
     }
 
-    upload() {
+    uploadFile(file: File, folder: string): string {
+        const fileName = `${folder}/${uuid()}.${file.originalname.substring(file.originalname.lastIndexOf(".")+1)}`
 
+        const passthroughStream = new stream.PassThrough()
+        passthroughStream.write(file.buffer)
+        passthroughStream.end()
+        passthroughStream.pipe(this.storage.bucket(this.bucketName).file(fileName).createWriteStream())
+
+        return fileName
+    }
+
+    deleteFile(fileName: string) {
+        this.storage.bucket(this.bucketName).file(fileName).delete()
     }
 
     async signedURL(fileName: string) {

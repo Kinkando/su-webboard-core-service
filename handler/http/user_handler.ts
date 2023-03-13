@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
-import { CloudStorage } from '@cloud/google/storage';
+import { CloudStorage, File } from '@cloud/google/storage';
 import HTTP from '@common/http';
 import { User } from '@model/user';
 import { UserService } from "@service/user_service";
@@ -59,10 +59,10 @@ class UserHandler {
             if (data.isAnonymous != undefined && typeof data.isAnonymous === 'boolean') {
                 user.isAnonymous = data.isAnonymous
             }
-            await this.userService.updateUserProfileSrv(user)
+            await this.userService.updateUserProfileSrv(user, (req.files as any)[0] as File)
 
             logger.info("End http.user.updateProfile")
-            return res.status(HTTP.StatusCreated).send();
+            return res.status(HTTP.StatusCreated).send({ message: 'success' });
 
         } catch (error) {
             logger.error(error)
