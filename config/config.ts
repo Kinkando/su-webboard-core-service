@@ -5,6 +5,7 @@ export interface Configuration {
     readonly app: AppConfiguration
     readonly mongo: DatabaseConfiguration
     readonly google: GoogleConfiguration
+    readonly sendgrid: SendGridConfiguration
 }
 
 export interface AppConfiguration {
@@ -49,6 +50,11 @@ export interface FirebaseCredentialConfiguration {
     readonly clientX509CertUrl: string
 }
 
+export interface SendGridConfiguration {
+    readonly apiKey: string
+    readonly senderEmail: string
+}
+
 const config: Configuration = {
     app: {
         port: Number(process.env.APP_PORT!),
@@ -80,7 +86,11 @@ const config: Configuration = {
             authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL!,
             clientX509CertUrl: process.env.FIREBASE_CLIENT_CERT_URL!,
         },
-    }
+    },
+    sendgrid: {
+        apiKey: process.env.SENDGRID_API_KEY!,
+        senderEmail: process.env.SENDGRID_SENDER_EMAIL!,
+    },
 }
 config.mongo.connectString = config.mongo.connectString.replace("${USERNAME}", config.mongo.auth.username).replace("${PASSWORD}", config.mongo.auth.password)
 

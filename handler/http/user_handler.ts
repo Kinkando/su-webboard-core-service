@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
-import { CloudStorage } from '@cloud/google/storage';
+import { CloudStorage, File } from '@cloud/google/storage';
 import HTTP from '@common/http';
 import { User } from '@model/user';
 import { UserService } from "@service/user_service";
@@ -11,19 +11,16 @@ const upload = multer()
 export function newUserHandler(userService: UserService, storage: CloudStorage) {
     const userHandler = new UserHandler(userService, storage)
 
-    const router = Router()
-    router.use('/profile', router)
-    router.get('', (req, res, next) => userHandler.getProfile(req, res, next));
-    router.patch('', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
+    const userRouter = Router()
 
-    return router
+    const profileRouter = userRouter.use('/profile', userRouter)
+    profileRouter.get('', (req, res, next) => userHandler.getProfile(req, res, next))
+    profileRouter.patch('', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
+
+    return userRouter
 }
 
-interface Handler {
-    getProfile(req: Request, res: Response, next: NextFunction): any
-}
-
-class UserHandler implements Handler {
+class UserHandler {
     constructor(private userService: UserService, private storage: CloudStorage) {}
 
     async getProfile(req: Request, res: Response, next: NextFunction) {
@@ -31,7 +28,7 @@ class UserHandler implements Handler {
 
         try {
             const profile = getProfile(req)
-            const user = await this.userService.getUser({ userUUID: profile.userUUID })
+            const user = await this.userService.getUserSrv({ userUUID: profile.userUUID })
             if (!user) {
                 throw Error("user not found")
             }
@@ -59,13 +56,13 @@ class UserHandler implements Handler {
             if (data.userDisplayName && typeof data.userDisplayName === 'string') {
                 user.userDisplayName = data.userDisplayName
             }
-            if (data.isAnonymous && typeof data.isAnonymous === 'boolean') {
+            if (data.isAnonymous != undefined && typeof data.isAnonymous === 'boolean') {
                 user.isAnonymous = data.isAnonymous
             }
-            await this.userService.updateUser(user)
+            await this.userService.updateUserProfileSrv(user, (req.files as any)[0] as File)
 
             logger.info("End http.user.updateProfile")
-            return res.status(HTTP.StatusCreated).send();
+            return res.status(HTTP.StatusCreated).send({ message: 'success' });
 
         } catch (error) {
             logger.error(error)

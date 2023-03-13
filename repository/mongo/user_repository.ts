@@ -2,26 +2,27 @@ import { FilterUser, User } from "@model/user";
 import logger from "@util/logger";
 import * as mongoDB from "mongodb";
 import { v4 as uuid } from "uuid";
+
 export function newUserRepository(db: mongoDB.Db) {
     return new UserRepository(db)
 }
 
 const userCollection = "User"
 
-interface UserRepo {
-    getUsers(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
-    getUser(filter: FilterUser): Promise<User>
-    createUser(user: User): void
-    updateUser(user: User): void
-    deleteUser(userUUID: string): void
-    isExistEmail(email: string): Promise<boolean>
+interface Repository {
+    getUsersRepo(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
+    getUserRepo(filter: FilterUser): Promise<User>
+    createUserRepo(user: User): void
+    updateUserRepo(user: User): void
+    deleteUserRepo(userUUID: string): void
+    isExistEmailRepo(email: string): Promise<boolean>
 }
 
-export class UserRepository implements UserRepo {
+export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getUsers(search: string, limit: number, offset: number) {
-        logger.info(`Start mongo.user.getUsers, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
+    async getUsersRepo(search: string, limit: number, offset: number) {
+        logger.info(`Start mongo.user.getUsersRepo, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
 
         const filter = { $regex: `.*${search}.*`, $options: "i" }
         const users = (await this.db.collection(userCollection).aggregate([
@@ -51,53 +52,53 @@ export class UserRepository implements UserRepo {
             }}
         ]).map(doc => { return { total: Number(doc.total), data: doc.data as User[] } }).toArray())[0];
 
-        logger.info(`End mongo.user.getUsers, "output": %s`, JSON.stringify(users))
+        logger.info(`End mongo.user.getUsersRepo, "output": %s`, JSON.stringify(users))
         return users
     }
 
-    async getUser(filter: FilterUser) {
-        logger.info(`Start mongo.user.getUser, "input": %s`, JSON.stringify(filter))
+    async getUserRepo(filter: FilterUser) {
+        logger.info(`Start mongo.user.getUserRepo, "input": %s`, JSON.stringify(filter))
 
         const user = await this.db.collection<User>(userCollection).findOne(filter)
 
-        logger.info(`End mongo.user.getUser, "output": %s`, JSON.stringify(user))
+        logger.info(`End mongo.user.getUserRepo, "output": %s`, JSON.stringify(user))
         return user as User
     }
 
-    async createUser(user: User) {
-        logger.info(`Start mongo.user.updateUser, "input": %s`, JSON.stringify(user))
+    async createUserRepo(user: User) {
+        logger.info(`Start mongo.user.createUserRepo, "input": %s`, JSON.stringify(user))
 
         // add validate unique student id
         user.userUUID = uuid()
         await this.db.collection(userCollection).insertOne({...user, createdAt: new Date()})
 
-        logger.info(`End mongo.user.updateUser`)
+        logger.info(`End mongo.user.createUserRepo`)
     }
 
-    async updateUser(user: User) {
-        logger.info(`Start mongo.user.updateUser, "input": %s`, JSON.stringify(user))
+    async updateUserRepo(user: User) {
+        logger.info(`Start mongo.user.updateUserRepo, "input": %s`, JSON.stringify(user))
 
         // add validate unique student id
         await this.db.collection(userCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
 
-        logger.info(`End mongo.user.updateUser`)
+        logger.info(`End mongo.user.updateUserRepo`)
     }
 
-    async deleteUser(userUUID: string) {
-        logger.info(`Start mongo.user.deleteUser, "input": %s`, userUUID)
+    async deleteUserRepo(userUUID: string) {
+        logger.info(`Start mongo.user.deleteUserRepo, "input": %s`, userUUID)
 
         await this.db.collection(userCollection).deleteOne({ userUUID })
 
-        logger.info(`End mongo.user.deleteUser`)
+        logger.info(`End mongo.user.deleteUserRepo`)
     }
 
-    async isExistEmail(email: string) {
-        logger.info(`Start mongo.user.isExistEmail, "input": "%s"`, email)
+    async isExistEmailRepo(email: string) {
+        logger.info(`Start mongo.user.isExistEmailRepo, "input": "%s"`, email)
 
         const count = await this.db.collection(userCollection).countDocuments({ userEmail: email })
         const isExist = count > 0
 
-        logger.info(`End mongo.user.isExistEmail, "output": ${isExist}`)
+        logger.info(`End mongo.user.isExistEmailRepo, "output": ${isExist}`)
         return isExist
     }
 }

@@ -1,5 +1,5 @@
 const email: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-
+const hexColor: RegExp =/^#([0-9a-f]{3}){1,2}$/i;
 export interface Schema {
     field: string
     type: string
@@ -14,6 +14,8 @@ export function validate(schemas: Schema[], req: any) {
         if (req[schema.field]) {
             if (schema.type === 'email') {
                 if (!email.test(req[schema.field])) throw Error(`${schema.field} is invalid`);
+            } else if (schema.type === 'hexColor') {
+                if (!hexColor.test(req[schema.field])) throw Error(`${schema.field} is invalid`);
             } else if (typeof req[schema.field] !== schema.type) {
                 throw Error(`type ${typeof req[schema.field]} unable to assign to type ${schema.type}`)
             }
