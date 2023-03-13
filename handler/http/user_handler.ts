@@ -56,7 +56,7 @@ class UserHandler {
             if (data.userDisplayName && typeof data.userDisplayName === 'string') {
                 user.userDisplayName = data.userDisplayName
             }
-            if (data.isAnonymous && typeof data.isAnonymous === 'boolean') {
+            if (data.isAnonymous != undefined && typeof data.isAnonymous === 'boolean') {
                 user.isAnonymous = data.isAnonymous
             }
             await this.userService.updateUserSrv(user)
