@@ -4,7 +4,7 @@ dotenv.config();
 export interface Configuration {
     readonly app: AppConfiguration
     readonly mongo: DatabaseConfiguration
-    readonly firebaseCredential: FirebaseCredentialConfiguration
+    readonly google: GoogleConfiguration
 }
 
 export interface AppConfiguration {
@@ -24,6 +24,16 @@ export interface AuthConfiguration {
     readonly dbName: string
     readonly username: string
     readonly password: string
+}
+
+export interface GoogleConfiguration {
+    readonly storage: StorageConfiguration
+    readonly firebaseCredential: FirebaseCredentialConfiguration
+}
+
+export interface StorageConfiguration {
+    readonly bucketName: string
+    readonly expireTime: number
 }
 
 export interface FirebaseCredentialConfiguration {
@@ -53,18 +63,24 @@ const config: Configuration = {
             password: process.env.MONGO_PASSWORD!,
         }
     },
-    firebaseCredential: {
-        type: process.env.FIREBASE_TYPE!,
-        projectId: process.env.FIREBASE_PROJECT_ID!,
-        privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID!,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY!,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-        clientId: process.env.FIREBASE_CLIENT_ID!,
-        authUri: process.env.FIREBASE_AUTH_URI!,
-        tokenUri: process.env.FIREBASE_TOKEN_URI!,
-        authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL!,
-        clientX509CertUrl: process.env.FIREBASE_CLIENT_CERT_URL!,
-    },
+    google: {
+        storage: {
+            bucketName: process.env.FIREBASE_STORAGE_BUCKET_NAME!,
+            expireTime: Number(process.env.FIREABSE_STORAGE_EXPIRE_TIME),
+        },
+        firebaseCredential: {
+            type: process.env.FIREBASE_TYPE!,
+            projectId: process.env.FIREBASE_PROJECT_ID!,
+            privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID!,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY!,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+            clientId: process.env.FIREBASE_CLIENT_ID!,
+            authUri: process.env.FIREBASE_AUTH_URI!,
+            tokenUri: process.env.FIREBASE_TOKEN_URI!,
+            authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL!,
+            clientX509CertUrl: process.env.FIREBASE_CLIENT_CERT_URL!,
+        },
+    }
 }
 config.mongo.connectString = config.mongo.connectString.replace("${USERNAME}", config.mongo.auth.username).replace("${PASSWORD}", config.mongo.auth.password)
 

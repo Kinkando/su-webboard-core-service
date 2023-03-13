@@ -42,7 +42,7 @@ class AuthenHandler implements Handler {
                 throw Error("user not found")
             }
 
-            const jwt = this.authenService.encodeJWT(user.userUUID, user.userType)
+            const jwt = this.authenService.encodeJWT(user.userUUID, user.userType!)
 
             logger.info("End http.authen.verifyToken")
             return res.status(HTTP.StatusOK).send(jwt)
