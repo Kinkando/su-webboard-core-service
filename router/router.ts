@@ -35,8 +35,8 @@ export default async function init(config: Configuration) {
     const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
 
     // define handler
-    newAuthenHandler(api, config.app.apiKey, authenService, userService)
-    newUserHandler(api, userService)
+    api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
+    api.use('/user', newUserHandler(userService))
 
     return api
 }

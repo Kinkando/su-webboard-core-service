@@ -14,11 +14,11 @@ interface UserRepo {
 export class UserRepository implements UserRepo {
     constructor(private db: mongoDB.Db) {}
     async getUser(filter: FilterUser) {
-        logger.info("Start mongo.user.getUser")
+        logger.info(`Start mongo.user.getUser, "input": %s`, JSON.stringify(filter))
 
         const user = await this.db.collection<User>(userCollection).findOne(filter)
 
-        logger.info("End mongo.user.getUser", JSON.stringify(user))
+        logger.info(`End mongo.user.getUser, "output": %s`, JSON.stringify(user))
         return user as User
     }
 }

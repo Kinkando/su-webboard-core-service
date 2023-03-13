@@ -1,12 +1,16 @@
-import { Application, NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { UserService } from "@service/user_service";
 import HTTP from '@common/http';
 import logger from '@util/logger';
 import { getProfile } from '@util/profile';
 
-export function newUserHandler(app: Application, userService: UserService) {
+export function newUserHandler(userService: UserService) {
     const userHandler = new UserHandler(userService)
-    app.get('/user/profile', (req, res, next) => userHandler.getProfile(req, res, next));
+
+    const router = Router()
+    router.get('/profile', (req, res, next) => userHandler.getProfile(req, res, next));
+
+    return router
 }
 
 interface Handler {

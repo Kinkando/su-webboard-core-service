@@ -1,13 +1,18 @@
-import { Application, NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import HTTP from '@common/http';
 import { AuthenService } from "@service/authen_service";
 import { UserService } from '@service/user_service';
 import logger from '@util/logger';
 
-export function newAuthenHandler(app: Application, apiKey: string, authenService: AuthenService, userService: UserService) {
+export function newAuthenHandler(apiKey: string, authenService: AuthenService, userService: UserService) {
     const authenHandler = new AuthenHandler(apiKey, authenService, userService)
-    app.post('/authen/token/verify', (req, res, next) => authenHandler.verifyToken(req, res, next));
-    app.post('/authen/token/refresh', (req, res, next) => authenHandler.refreshToken(req, res, next));
+
+    const router = Router()
+    router.use('/token', router)
+    router.post('/verify', (req, res, next) => authenHandler.verifyToken(req, res, next));
+    router.post('/refresh', (req, res, next) => authenHandler.refreshToken(req, res, next));
+
+    return router
 }
 
 interface Handler {

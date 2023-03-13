@@ -36,7 +36,7 @@ export class AuthenService implements Service {
     }
 
     encodeJWT(userUUID: string, userType: string): { accessToken: string, refreshToken: string } {
-        logger.info("Start service.authen.encodeJWT", userUUID, userType)
+        logger.info(`Start service.authen.encodeJWT, "input": {"userUUID": "%s", "userType": "%s"}`, userUUID, userType)
 
         const accessJWT: AccessToken = {
             userType,
@@ -60,12 +60,12 @@ export class AuthenService implements Service {
             expiresIn: '7d',
         })
 
-        logger.info("Start service.authen.encodeJWT", accessToken, refreshToken)
+        logger.info(`End service.authen.encodeJWT, "output": {"accessToken": "%s", "refreshToken": "%s"}`, accessToken, refreshToken)
         return { accessToken, refreshToken }
     }
 
     decodeJWT(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
-        logger.info("Start service.authen.decodeJWT", token, type)
+        logger.info(`Start service.authen.decodeJWT, "input": {"token": "%s", "type": "%s"}`, token, type)
 
         jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
 
@@ -76,7 +76,7 @@ export class AuthenService implements Service {
             jsonWebToken = jwt.decode(token) as RefreshToken
         }
 
-        logger.info("End service.authen.decodeJWT", jsonWebToken)
+        logger.info(`End service.authen.decodeJWT, "output": %s`, JSON.stringify(jsonWebToken))
         return jsonWebToken
     }
 }
