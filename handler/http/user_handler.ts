@@ -59,7 +59,7 @@ class UserHandler {
             if (data.isAnonymous != undefined && typeof data.isAnonymous === 'boolean') {
                 user.isAnonymous = data.isAnonymous
             }
-            await this.userService.updateUserSrv(user)
+            await this.userService.updateUserProfileSrv(user)
 
             logger.info("End http.user.updateProfile")
             return res.status(HTTP.StatusCreated).send();

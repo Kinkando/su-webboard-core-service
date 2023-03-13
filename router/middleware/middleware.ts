@@ -13,16 +13,14 @@ export function useJWT(jwtSecretKey: string) {
             try {
                 const bearerToken = req.headers.authorization
                 if (!bearerToken || !bearerToken.startsWith('Bearer ')) {
-                    next();
-                    return res.status(HTTP.StatusUnauthorized).send({ error: 'invalid JWT token: token contains an invalid number of segments' })
+                    throw Error('invalid JWT token: token contains an invalid number of segments')
                 }
 
                 const token = bearerToken!.split(" ")[1]
                 jwt.verify(token!, jwtSecretKey, { algorithms: ['HS256'] })
                 const jwtDecode = jwt.decode(token!) as AccessToken
                 if (!jwtDecode || jwtDecode.type !== 'access') {
-                    next();
-                    return res.status(HTTP.StatusUnauthorized).send({ error: 'invalid JWT token: invalid access token' })
+                    throw Error('invalid JWT token: invalid access token')
                 }
 
                 (req as CustomRequest).profile = {
@@ -30,7 +28,6 @@ export function useJWT(jwtSecretKey: string) {
                     userType: jwtDecode.userType,
                 }
             } catch (error) {
-                next();
                 return res.status(HTTP.StatusUnauthorized).send({ error: (error as Error).message })
             }
         }

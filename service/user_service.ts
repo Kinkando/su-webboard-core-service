@@ -11,13 +11,16 @@ export function newUserService(repository: UserRepository, firebase: admin.app.A
 }
 
 interface Service {
+    // user
     getUserSrv(filter: FilterUser): Promise<User>
+    updateUserProfileSrv(user: User): void
+    resetPasswordSrv(tokenID: string): void
+
     getUsersSrv(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
     createUserSrv(user: User): void
     updateUserSrv(user: User): void
     deleteUserSrv(userUUID: string): void
     isExistEmailSrv(email: string): Promise<boolean>
-    resetPasswordSrv(tokenID: string): void
 }
 
 export class UserService implements Service {
@@ -34,6 +37,15 @@ export class UserService implements Service {
         let user = await this.repository.getUserRepo(filter);
 
         logger.info(`End service.user.getUserSrv, "output": %s`, JSON.stringify(user))
+        return user
+    }
+
+    async updateUserProfileSrv(user: User) {
+        logger.info(`Start service.user.updateUserProfileSrv, "input": %s`, JSON.stringify(user))
+
+        await this.repository.updateUserRepo(user);
+
+        logger.info(`End service.user.updateUserProfileSrv`)
         return user
     }
 
