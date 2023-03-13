@@ -66,7 +66,7 @@ const config: Configuration = {
     google: {
         storage: {
             bucketName: process.env.FIREBASE_STORAGE_BUCKET_NAME!,
-            expireTime: Number(process.env.FIREABSE_STORAGE_EXPIRE_TIME),
+            expireTime: Number(process.env.FIREBASE_STORAGE_EXPIRE_TIME),
         },
         firebaseCredential: {
             type: process.env.FIREBASE_TYPE!,

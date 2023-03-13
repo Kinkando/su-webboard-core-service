@@ -7,7 +7,7 @@ export function newCloudStorage(firebase: admin.app.App, config: StorageConfigur
 
 interface Service {
     upload(): void
-    signedURL(): string
+    signedURL(fileName: string): Promise<string>
     publicURL(fileName: string): string
 }
 
@@ -23,8 +23,12 @@ export class CloudStorage implements Service {
 
     }
 
-    signedURL(): string {
-        return ""
+    async signedURL(fileName: string) {
+        const res = await this.storage.bucket(this.bucketName).file(fileName).getSignedUrl({
+            action: 'read',
+            expires: Date.now() + 1000 * 60 * this.expireTime,
+        })
+        return res.toString()
     }
 
     publicURL(fileName: string): string {
