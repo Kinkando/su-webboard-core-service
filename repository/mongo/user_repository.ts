@@ -13,6 +13,7 @@ interface UserRepo {
     getUser(filter: FilterUser): Promise<User>
     createUser(user: User): void
     updateUser(user: User): void
+    isExistEmail(email: string): Promise<boolean>
 }
 
 export class UserRepository implements UserRepo {
@@ -77,5 +78,15 @@ export class UserRepository implements UserRepo {
         await this.db.collection(userCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
 
         logger.info(`End mongo.user.updateUser`)
+    }
+
+    async isExistEmail(email: string) {
+        logger.info(`Start mongo.user.isExistEmail, "input": "%s"`, email)
+
+        const count = await this.db.collection(userCollection).countDocuments({ userEmail: email })
+        const isExist = count > 0
+
+        logger.info(`End mongo.user.isExistEmail, "output": ${isExist}`)
+        return isExist
     }
 }

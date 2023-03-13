@@ -8,7 +8,7 @@ export function newCloudStorage(firebase: admin.app.App, config: StorageConfigur
 interface Service {
     upload(): void
     signedURL(): string
-    publicURL(): string
+    publicURL(fileName: string): string
 }
 
 export class CloudStorage implements Service {
@@ -27,7 +27,8 @@ export class CloudStorage implements Service {
         return ""
     }
 
-    publicURL(): string {
-        return ""
+    publicURL(fileName: string): string {
+        const baseURL = "https://storage.googleapis.com"
+        return `${baseURL}/${this.bucketName}/${fileName}`
     }
 }

@@ -36,12 +36,12 @@ export default async function init(config: Configuration) {
     const userRepository = newUserRepository(mongoDB)
 
     // define service
-    const adminService = newAdminService(userRepository, firebaseApp)
+    const adminService = newAdminService(userRepository, firebaseApp, storage)
     const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
     const userService = newUserService(userRepository)
 
     // define handler
-    api.use('/admin', newAdminHandler(adminService, storage))
+    api.use('/admin', newAdminHandler(adminService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))
 

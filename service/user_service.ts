@@ -32,3 +32,5 @@ export class UserService implements Service {
         return user
     }
 }
+
+export { UserRepository };

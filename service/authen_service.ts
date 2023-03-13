@@ -3,6 +3,7 @@ import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken, UserType } from "@model/authen";
 import logger from "@util/logger";
+import { UserRepository } from "@repository/mongo/user_repository";
 
 export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) {
     return new AuthenService(jwtSecretKey as Secret, firebase)
@@ -15,7 +16,10 @@ interface Service {
 }
 
 export class AuthenService implements Service {
-    constructor(private jwtSecretKey: Secret, private firebase: admin.app.App) {}
+    constructor(
+        private jwtSecretKey: Secret,
+        private firebase: admin.app.App,
+    ) {}
 
     async verifyFirebaseToken(idToken: string) {
         logger.info("Start service.authen.verifyFirebaseToken", idToken)
