@@ -15,17 +15,12 @@ export function newAdminHandler(adminService: AdminService) {
     router.get('', (req, res, next) => adminHandler.getUsers(req, res, next));
     router.post('/:userType', (req, res, next) => adminHandler.createUser(req, res, next));
     router.patch('', (req, res, next) => adminHandler.updateUser(req, res, next));
+    router.delete('', (req, res, next) => adminHandler.deleteUser(req, res, next));
 
     return router
 }
 
-interface Handler {
-    getUsers(req: Request, res: Response, next: NextFunction): any
-    createUser(req: Request, res: Response, next: NextFunction): any
-    updateUser(req: Request, res: Response, next: NextFunction): any
-}
-
-class AdminHandler implements Handler {
+class AdminHandler {
     constructor(private adminService: AdminService) {}
 
     async getUsers(req: Request, res: Response, next: NextFunction) {
@@ -149,6 +144,33 @@ class AdminHandler implements Handler {
             await this.adminService.updateUser(user)
 
             logger.info("End http.admin.updateUser")
+            return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async deleteUser(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.deleteUser")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const userUUID = req.body.userUUID
+            if (!userUUID) {
+                logger.error('userUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'userUUID is required' })
+            }
+
+            await this.adminService.deleteUser(userUUID)
+
+            logger.info("End http.admin.deleteUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
 
         } catch (error) {

@@ -12,6 +12,7 @@ interface Service {
     getUsers(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
     createUser(user: User): void
     updateUser(user: User): void
+    deleteUser(userUUID: string): void
     isExistEmail(email: string): Promise<boolean>
 }
 
@@ -69,6 +70,23 @@ export class AdminService implements Service {
 
         logger.info(`End service.admin.updateUser`)
         return user
+    }
+
+    async deleteUser(userUUID: string) {
+        logger.info(`Start service.admin.deleteUser, "input": %s`, userUUID)
+
+        const u = await this.repository.getUser({ userUUID })
+        if (!u || !u.userUUID) {
+            throw Error('user is not found')
+        }
+
+        // remove userImageURL from cloud storage
+
+        await this.firebase.auth().deleteUser(u.firebaseID!)
+
+        await this.repository.deleteUser(userUUID);
+
+        logger.info(`End service.admin.deleteUser`)
     }
 
     async isExistEmail(email: string) {

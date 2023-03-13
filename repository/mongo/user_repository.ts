@@ -13,6 +13,7 @@ interface UserRepo {
     getUser(filter: FilterUser): Promise<User>
     createUser(user: User): void
     updateUser(user: User): void
+    deleteUser(userUUID: string): void
     isExistEmail(email: string): Promise<boolean>
 }
 
@@ -66,6 +67,7 @@ export class UserRepository implements UserRepo {
     async createUser(user: User) {
         logger.info(`Start mongo.user.updateUser, "input": %s`, JSON.stringify(user))
 
+        // add validate unique student id
         user.userUUID = uuid()
         await this.db.collection(userCollection).insertOne({...user, createdAt: new Date()})
 
@@ -75,9 +77,18 @@ export class UserRepository implements UserRepo {
     async updateUser(user: User) {
         logger.info(`Start mongo.user.updateUser, "input": %s`, JSON.stringify(user))
 
+        // add validate unique student id
         await this.db.collection(userCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
 
         logger.info(`End mongo.user.updateUser`)
+    }
+
+    async deleteUser(userUUID: string) {
+        logger.info(`Start mongo.user.deleteUser, "input": %s`, userUUID)
+
+        await this.db.collection(userCollection).deleteOne({ userUUID })
+
+        logger.info(`End mongo.user.deleteUser`)
     }
 
     async isExistEmail(email: string) {
