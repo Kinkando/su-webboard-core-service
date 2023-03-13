@@ -11,19 +11,16 @@ const upload = multer()
 export function newUserHandler(userService: UserService, storage: CloudStorage) {
     const userHandler = new UserHandler(userService, storage)
 
-    const router = Router()
-    router.use('/profile', router)
-    router.get('', (req, res, next) => userHandler.getProfile(req, res, next));
-    router.patch('', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
+    const userRouter = Router()
 
-    return router
+    const profileRouter = userRouter.use('/profile', userRouter)
+    profileRouter.get('', (req, res, next) => userHandler.getProfile(req, res, next))
+    profileRouter.patch('', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
+
+    return userRouter
 }
 
-interface Handler {
-    getProfile(req: Request, res: Response, next: NextFunction): any
-}
-
-class UserHandler implements Handler {
+class UserHandler {
     constructor(private userService: UserService, private storage: CloudStorage) {}
 
     async getProfile(req: Request, res: Response, next: NextFunction) {

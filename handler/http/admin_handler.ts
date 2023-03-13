@@ -10,14 +10,17 @@ import { bind, validate } from '@util/validate';
 export function newAdminHandler(adminService: AdminService) {
     const adminHandler = new AdminHandler(adminService)
 
-    const router = Router()
-    router.use('/user', router)
-    router.get('', (req, res, next) => adminHandler.getUsers(req, res, next));
-    router.post('/:userType', (req, res, next) => adminHandler.createUser(req, res, next));
-    router.patch('', (req, res, next) => adminHandler.updateUser(req, res, next));
-    router.delete('', (req, res, next) => adminHandler.deleteUser(req, res, next));
+    const adminRouter = Router()
 
-    return router
+    const userRouter = adminRouter.use('/user', adminRouter)
+    userRouter.get('', (req, res, next) => adminHandler.getUsers(req, res, next))
+    userRouter.post('/:userType', (req, res, next) => adminHandler.createUser(req, res, next))
+    userRouter.patch('', (req, res, next) => adminHandler.updateUser(req, res, next))
+    userRouter.delete('', (req, res, next) => adminHandler.deleteUser(req, res, next))
+
+    const categoryRouter = adminRouter.use('/category', adminRouter)
+
+    return adminRouter
 }
 
 class AdminHandler {

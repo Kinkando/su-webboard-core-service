@@ -7,20 +7,17 @@ import logger from '@util/logger';
 export function newAuthenHandler(apiKey: string, authenService: AuthenService, userService: UserService) {
     const authenHandler = new AuthenHandler(apiKey, authenService, userService)
 
-    const router = Router()
-    router.use('/token', router)
-    router.post('/verify', (req, res, next) => authenHandler.verifyToken(req, res, next));
-    router.post('/refresh', (req, res, next) => authenHandler.refreshToken(req, res, next));
+    const authRouter = Router()
+    authRouter.post('/reset-password', (req, res, next) => authenHandler.resetPassword(req, res, next))
 
-    return router
+    const tokenRouter = authRouter.use('/token', authRouter)
+    tokenRouter.post('/verify', (req, res, next) => authenHandler.verifyToken(req, res, next))
+    tokenRouter.post('/refresh', (req, res, next) => authenHandler.refreshToken(req, res, next))
+
+    return authRouter
 }
 
-interface Handler {
-    verifyToken(req: Request, res: Response, next: NextFunction): any
-    refreshToken(req: Request, res: Response, next: NextFunction): any
-}
-
-class AuthenHandler implements Handler {
+class AuthenHandler {
     constructor(
         private apiKey: string,
         private authenService: AuthenService,
@@ -69,8 +66,23 @@ class AuthenHandler implements Handler {
 
             const jwt = this.authenService.encodeJWT(jwtDecode.userUUID, jwtDecode.userType)
 
-            logger.info("End http.authen.verifyToken")
+            logger.info("End http.authen.refreshToken")
             return res.status(HTTP.StatusOK).send(jwt)
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusUnauthorized).send({ error: (error as Error).message })
+        }
+    }
+
+    async resetPassword(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.authen.resetPassword")
+
+        try {
+            await this.userService.resetPassword("tokenID ???")
+
+            logger.info("End http.authen.resetPassword")
+            return res.status(HTTP.StatusOK).send({ message: "success" })
 
         } catch (error) {
             logger.error(error)
