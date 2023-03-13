@@ -9,7 +9,6 @@ import { newAuthenService } from '@service/authen_service';
 import { newAuthenHandler } from '@handler/http/authen_handler';
 import { useJWT } from './middleware/middleware';
 import { newCloudStorage } from '@cloud/google/storage';
-import { newAdminService } from '@service/admin_service';
 import { newAdminHandler } from '@handler/http/admin_handler';
 import { newSendGrid } from '@cloud/sendgrid/sendgrid';
 
@@ -39,12 +38,11 @@ export default async function init(config: Configuration) {
     const userRepository = newUserRepository(mongoDB)
 
     // define service
-    const adminService = newAdminService(userRepository, firebaseApp, storage)
     const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
-    const userService = newUserService(userRepository, sendgrid)
+    const userService = newUserService(userRepository, firebaseApp, storage, sendgrid)
 
     // define handler
-    api.use('/admin', newAdminHandler(adminService))
+    api.use('/admin', newAdminHandler(userService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))
 

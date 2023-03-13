@@ -1,14 +1,14 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import HTTP from '@common/http';
 import { UserType } from '@model/authen';
-import { AdminService } from "@service/admin_service";
 import logger from '@util/logger';
 import { getProfile } from '@util/profile';
 import { User } from '@model/user';
 import { bind, validate } from '@util/validate';
+import { UserService } from '@service/user_service';
 
-export function newAdminHandler(adminService: AdminService) {
-    const adminHandler = new AdminHandler(adminService)
+export function newAdminHandler(userService: UserService) {
+    const adminHandler = new AdminHandler(userService)
 
     const adminRouter = Router()
 
@@ -24,7 +24,7 @@ export function newAdminHandler(adminService: AdminService) {
 }
 
 class AdminHandler {
-    constructor(private adminService: AdminService) {}
+    constructor(private userService: UserService) {}
 
     async getUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.admin.getUsers")
@@ -41,7 +41,7 @@ class AdminHandler {
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
-            const users = await this.adminService.getUsers(filter.search, filter.limit, filter.offset)
+            const users = await this.userService.getUsers(filter.search, filter.limit, filter.offset)
             if (!users || !users.total || !users.data) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -99,13 +99,13 @@ class AdminHandler {
                 user.studentID = req.body.studentID
             }
 
-            const isExistEmail = await this.adminService.isExistEmail(user.userEmail!)
+            const isExistEmail = await this.userService.isExistEmail(user.userEmail!)
             if (isExistEmail) {
                 logger.error(`email: ${user.userEmail!} is exist`)
                 return res.status(HTTP.StatusBadRequest).send({ error: `email: ${user.userEmail!} is exist` })
             }
 
-            await this.adminService.createUser(user)
+            await this.userService.createUser(user)
 
             logger.info("End http.admin.createUser")
             return res.status(HTTP.StatusCreated).send();
@@ -144,7 +144,7 @@ class AdminHandler {
 
             const user: User = bind(req.body, schemas)
 
-            await this.adminService.updateUser(user)
+            await this.userService.updateUser(user)
 
             logger.info("End http.admin.updateUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
@@ -171,7 +171,7 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: 'userUUID is required' })
             }
 
-            await this.adminService.deleteUser(userUUID)
+            await this.userService.deleteUser(userUUID)
 
             logger.info("End http.admin.deleteUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });

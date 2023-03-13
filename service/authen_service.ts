@@ -3,7 +3,6 @@ import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken, UserType } from "@model/authen";
 import logger from "@util/logger";
-import { UserRepository } from "@repository/mongo/user_repository";
 
 export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) {
     return new AuthenService(jwtSecretKey as Secret, firebase)

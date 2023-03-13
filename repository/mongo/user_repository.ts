@@ -2,13 +2,14 @@ import { FilterUser, User } from "@model/user";
 import logger from "@util/logger";
 import * as mongoDB from "mongodb";
 import { v4 as uuid } from "uuid";
+
 export function newUserRepository(db: mongoDB.Db) {
     return new UserRepository(db)
 }
 
 const userCollection = "User"
 
-interface UserRepo {
+interface Repository {
     getUsers(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
     getUser(filter: FilterUser): Promise<User>
     createUser(user: User): void
@@ -17,7 +18,7 @@ interface UserRepo {
     isExistEmail(email: string): Promise<boolean>
 }
 
-export class UserRepository implements UserRepo {
+export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
     async getUsers(search: string, limit: number, offset: number) {
