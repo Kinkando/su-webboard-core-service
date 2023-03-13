@@ -52,9 +52,20 @@ export class AdminService implements Service {
     async updateUser(user: User) {
         logger.info(`Start service.admin.updateUser, "input": %s`, JSON.stringify(user))
 
-        await this.repository.updateUser(user);
+        const u = await this.repository.getUser({ userUUID: user.userUUID })
+        if (!u || !u.userUUID) {
+            throw Error('user is not found')
+        }
 
-        // update email at firebase authen
+        if (user.userEmail && u.userEmail! !== user.userEmail!) {
+            const isExistEmail = await this.repository.isExistEmail(user.userEmail!)
+            if (isExistEmail) {
+                throw Error(`email: ${user.userEmail} is exist`)
+            }
+            await this.firebase.auth().updateUser(u.firebaseID!, { email: user.userEmail })
+        }
+
+        await this.repository.updateUser(user);
 
         logger.info(`End service.admin.updateUser`)
         return user

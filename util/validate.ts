@@ -1,6 +1,12 @@
 const email: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
-export function validate(schemas: {field: string, type: string, required: boolean}[], req: any) {
+export interface Schema {
+    field: string
+    type: string
+    required: boolean
+}
+
+export function validate(schemas: Schema[], req: any) {
     for (const schema of schemas) {
         if (schema.required && !req[schema.field]) {
             throw Error(`${schema.field} is required`)
@@ -13,4 +19,16 @@ export function validate(schemas: {field: string, type: string, required: boolea
             }
         }
     }
+}
+
+export function bind(from: any, schemas?: Schema[]): any {
+    const to: any = {};
+    for (const key in from) {
+        if(from[key]) {
+            if (!schemas || schemas.find(schema => schema.field === key)) {
+                to[key] = from[key]
+            }
+        }
+    }
+    return to
 }
