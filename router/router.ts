@@ -14,9 +14,11 @@ import { newSendGrid } from '../cloud/sendgrid/sendgrid';
 import { newCategoryRepository } from '../repository/mongo/category_repository';
 import { newCategoryService } from '../service/category_service';
 import { newCategoryHandler } from '../handler/http/category_handler';
+import cors from 'cors'
 
 export default async function init(config: Configuration) {
     const api = express();
+    api.use(cors({ origin: true }))
     api.use((_, res, next) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
