@@ -22,7 +22,7 @@ export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
     async getUsersRepo(query: UserPagination) {
-        logger.info(`Start mongo.user.getUsersRepo, "input": %s`, JSON.stringify(query))
+        logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
 
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const users = (await this.db.collection(userCollection).aggregate([
@@ -56,31 +56,37 @@ export class UserRepository implements Repository {
                 delete (user as any)._id
                 delete (user as any).createdAt
                 delete (user as any).updatedAt
+                delete (user as any).firebaseID
+                delete (user as any).userType
+                delete (user as any).userUUID
                 data.push(user)
             })
             return { total: Number(doc.total), data: doc.data as User[] }
         }).toArray())[0];
 
-        logger.info(`End mongo.user.getUsersRepo, "output": %s`, JSON.stringify(users))
+        logger.info(`End mongo.user.getUsersRepo, "output": ${JSON.stringify(users)}`)
         return users
     }
 
     async getUserRepo(filter: FilterUser) {
-        logger.info(`Start mongo.user.getUserRepo, "input": %s`, JSON.stringify(filter))
+        logger.info(`Start mongo.user.getUserRepo, "input": ${JSON.stringify(filter)}`)
 
         const user = await this.db.collection<User>(userCollection).findOne(filter)
         if (user) {
             delete (user as any)._id
             delete (user as any).createdAt
             delete (user as any).updatedAt
+            delete (user as any).firebaseID
+            delete (user as any).userType
+            delete (user as any).userUUID
         }
 
-        logger.info(`End mongo.user.getUserRepo, "output": %s`, JSON.stringify(user))
+        logger.info(`End mongo.user.getUserRepo, "output": ${JSON.stringify(user)}`)
         return user as User
     }
 
     async createUserRepo(user: User) {
-        logger.info(`Start mongo.user.createUserRepo, "input": %s`, JSON.stringify(user))
+        logger.info(`Start mongo.user.createUserRepo, "input": ${JSON.stringify(user)}`)
 
         // add validate unique student id
         user.userUUID = uuid()
@@ -90,7 +96,7 @@ export class UserRepository implements Repository {
     }
 
     async updateUserRepo(user: User) {
-        logger.info(`Start mongo.user.updateUserRepo, "input": %s`, JSON.stringify(user))
+        logger.info(`Start mongo.user.updateUserRepo, "input": ${JSON.stringify(user)}`)
 
         // add validate unique student id
         await this.db.collection(userCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
@@ -99,7 +105,7 @@ export class UserRepository implements Repository {
     }
 
     async deleteUserRepo(userUUID: string) {
-        logger.info(`Start mongo.user.deleteUserRepo, "input": %s`, userUUID)
+        logger.info(`Start mongo.user.deleteUserRepo, "input": "${userUUID}"`)
 
         await this.db.collection(userCollection).deleteOne({ userUUID })
 
@@ -107,7 +113,7 @@ export class UserRepository implements Repository {
     }
 
     async isExistEmailRepo(email: string) {
-        logger.info(`Start mongo.user.isExistEmailRepo, "input": "%s"`, email)
+        logger.info(`Start mongo.user.isExistEmailRepo, "input": "${email}"`)
 
         const count = await this.db.collection(userCollection).countDocuments({ userEmail: email })
         const isExist = count > 0

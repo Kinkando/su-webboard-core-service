@@ -71,6 +71,12 @@ export class UserService implements Service {
 
         const users = await this.repository.getUsersRepo(query)
 
+        if (users?.data) {
+            for (const user of users?.data) {
+                user.userImageURL = await this.storage.signedURL(user.userImageURL!)
+            }
+        }
+
         logger.info(`End service.user.getUsersSrv, "output": {"total": %d, "data.length": %d}`, users?.total || 0, users?.data?.length || 0)
         return users
     }
@@ -125,11 +131,12 @@ export class UserService implements Service {
                     throw Error('user is not found')
                 }
 
-                this.storage.deleteFile(u.userImageURL!)
+                await this.storage.deleteFile(u.userImageURL!)
 
                 await this.firebase.auth().deleteUser(u.firebaseID!)
 
                 await this.repository.deleteUserRepo(userUUID);
+
             } catch (error) {
                 logger.error(error)
             }
