@@ -9,7 +9,8 @@ export function newCategoryRepository(db: mongoDB.Db) {
 const categoryCollection = "Category"
 
 interface Repository {
-    getCategoriesRepo(limit?: number, offset?: number): Promise<Category[]>
+    getCategoriesPaginationRepo(limit: number, offset: number, search?: string): Promise<{ total: number, data: Category[] }>
+    getCategoriesRepo(): Promise<Category[]>
     createCategoryRepo(category: Category): void
     updateCategoryRepo(category: Category): void
     deleteCategoryRepo(categoryID: number): void
@@ -18,11 +19,43 @@ interface Repository {
 export class CategoryRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getCategoriesRepo(limit?: number, offset?: number) {
-        logger.info(`Start mongo.category.getCategoriesRepo, "input": %s`, JSON.stringify({limit, offset}))
+    async getCategoriesPaginationRepo(limit: number, offset: number, search?: string) {
+        logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": %s`, JSON.stringify({limit, offset}))
 
-        // await this.db.collection(categoryCollection).insertOne({...category, createdAt: new Date()})
-        const categories: Category[] = []
+        const filter = { $regex: `.*${search ?? ''}.*`, $options: "i" }
+        const data = (await this.db.collection(categoryCollection).aggregate([
+            {$sort: { categoryID: 1 }},
+            {$match:{
+                $and: [
+                    { $or: [
+                        { categoryID: filter },
+                        { categoryName: filter },
+                        { categoryHexColor: filter },
+                    ]}
+                ]
+            }},
+            {$facet:{
+                "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
+                "stage2" : [ { "$skip": offset }, { "$limit": limit || 10 } ],
+            }},
+            {$unwind: "$stage1"},
+
+            //output projection
+            {$project:{
+                total: "$stage1.count",
+                data: "$stage2"
+            }}
+        ]).map(doc => { return { total: Number(doc.total), data: doc.data as Category[] } }).toArray())[0];
+
+        logger.info(`End mongo.category.getCategoriesPaginationRepo, "output": %s`, JSON.stringify(data))
+        return data
+    }
+
+    async getCategoriesRepo() {
+        logger.info(`Start mongo.category.getCategoriesRepo`)
+
+        const categoryDocs = await this.db.collection<Category>(categoryCollection).find({}, { sort: { categoryID: 1 }}).toArray()
+        const categories = categoryDocs.map(category => category as Category)
 
         logger.info(`End mongo.category.getCategoriesRepo, "output": %s`, JSON.stringify(categories))
         return categories

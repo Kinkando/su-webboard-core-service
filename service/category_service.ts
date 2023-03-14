@@ -7,11 +7,32 @@ export function newCategoryService(repository: CategoryRepository) {
 }
 
 interface Service {
+    getCategoriesPaginationSrv(limit: number, offset: number, search?: string): Promise<{ total: number, data: Category[] }>
+    getCategoriesSrv(): Promise<Category[]>
     upsertCategorySrv(category: Category): void
+    deleteCategorySrv(categoryID: number): void
 }
 
 export class CategoryService implements Service {
     constructor(private repository: CategoryRepository) {}
+
+    async getCategoriesPaginationSrv(limit: number, offset: number, search?: string) {
+        logger.info(`Start service.category.getCategoriesPaginationSrv, "input": %s`, JSON.stringify({limit, offset, search}))
+
+        const data = await this.repository.getCategoriesPaginationRepo(limit, offset, search)
+
+        logger.info(`End service.category.getCategoriesPaginationSrv, "output": %s`, JSON.stringify({ total: data.total || 0, length: data.data?.length || 0 }))
+        return data
+    }
+
+    async getCategoriesSrv() {
+        logger.info(`Start service.category.getCategoriesSrv`)
+
+        const categories = await this.repository.getCategoriesRepo()
+
+        logger.info(`End service.category.getCategoriesSrv, "total": ${categories.length}`)
+        return categories
+    }
 
     async upsertCategorySrv(category: Category) {
         logger.info(`Start service.category.upsertCategorySrv, "input": %s`, JSON.stringify(category))
@@ -25,5 +46,13 @@ export class CategoryService implements Service {
         }
 
         logger.info(`End service.category.upsertCategorySrv`)
+    }
+
+    async deleteCategorySrv(categoryID: number) {
+        logger.info(`Start service.category.deleteCategorySrv, "input": %s`, JSON.stringify(categoryID))
+
+        await this.repository.deleteCategoryRepo(categoryID)
+
+        logger.info(`End service.category.deleteCategorySrv`)
     }
 }
