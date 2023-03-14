@@ -1,5 +1,5 @@
-import HTTP from '@common/http';
-import { AccessToken, Profile } from '@model/authen';
+import HTTP from '../../common/http';
+import { AccessToken, Profile } from '../../model/authen';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 

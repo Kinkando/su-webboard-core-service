@@ -1,9 +1,9 @@
 import * as admin from 'firebase-admin';
-import { CloudStorage, File } from '@cloud/google/storage';
-import { SendGrid } from "@cloud/sendgrid/sendgrid";
-import { FilterUser, User, UserPagination } from "@model/user";
-import { UserRepository } from "@repository/mongo/user_repository";
-import logger from "@util/logger";
+import { CloudStorage, File } from '../cloud/google/storage';
+import { SendGrid } from "../cloud/sendgrid/sendgrid";
+import { FilterUser, User, UserPagination } from "../model/user";
+import { UserRepository } from "../repository/mongo/user_repository";
+import logger from "../util/logger";
 
 const storageFolder = "user"
 const defaultImageURL = `${storageFolder}/avatar-1.png`

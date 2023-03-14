@@ -1,19 +1,19 @@
 import express from 'express';
-import { Configuration } from '@config/config';
-import newConnection from '@repository/mongo/mongo';
-import { newUserRepository } from '@repository/mongo/user_repository';
-import { newUserHandler } from '@handler/http/user_handler';
-import { newUserService } from '@service/user_service';
-import { newFirebaseAppWithServiceAccount } from '@cloud/google/firebase';
-import { newAuthenService } from '@service/authen_service';
-import { newAuthenHandler } from '@handler/http/authen_handler';
+import { Configuration } from '../config/config';
+import newConnection from '../repository/mongo/mongo';
+import { newUserRepository } from '../repository/mongo/user_repository';
+import { newUserHandler } from '../handler/http/user_handler';
+import { newUserService } from '../service/user_service';
+import { newFirebaseAppWithServiceAccount } from '../cloud/google/firebase';
+import { newAuthenService } from '../service/authen_service';
+import { newAuthenHandler } from '../handler/http/authen_handler';
 import { useJWT } from './middleware/middleware';
-import { newCloudStorage } from '@cloud/google/storage';
-import { newAdminHandler } from '@handler/http/admin_handler';
-import { newSendGrid } from '@cloud/sendgrid/sendgrid';
-import { newCategoryRepository } from '@repository/mongo/category_repository';
-import { newCategoryService } from '@service/category_service';
-import { newCategoryHandler } from '@handler/http/category_handler';
+import { newCloudStorage } from '../cloud/google/storage';
+import { newAdminHandler } from '../handler/http/admin_handler';
+import { newSendGrid } from '../cloud/sendgrid/sendgrid';
+import { newCategoryRepository } from '../repository/mongo/category_repository';
+import { newCategoryService } from '../service/category_service';
+import { newCategoryHandler } from '../handler/http/category_handler';
 
 export default async function init(config: Configuration) {
     const api = express();

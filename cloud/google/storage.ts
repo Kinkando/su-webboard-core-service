@@ -1,4 +1,4 @@
-import { StorageConfiguration } from '@config/config';
+import { StorageConfiguration } from '../../config/config';
 import * as admin from 'firebase-admin';
 import stream, { Readable } from 'stream';
 import { v4 as uuid } from 'uuid';

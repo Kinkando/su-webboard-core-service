@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import { CategoryService } from "@service/category_service"
-import logger from '@util/logger';
-import { getProfile } from '@util/profile';
-import HTTP from '@common/http';
+import { CategoryService } from "../../service/category_service"
+import logger from '../../util/logger';
+import { getProfile } from '../../util/profile';
+import HTTP from '../../common/http';
 
 export function newCategoryHandler(categoryService: CategoryService) {
     const categoryHandler = new CategoryHandler(categoryService)

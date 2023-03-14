@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import HTTP from '@common/http';
-import { AuthenService } from "@service/authen_service";
-import { UserService } from '@service/user_service';
-import logger from '@util/logger';
+import HTTP from '../../common/http';
+import { AuthenService } from "../../service/authen_service";
+import { UserService } from '../../service/user_service';
+import logger from '../../util/logger';
 
 export function newAuthenHandler(apiKey: string, authenService: AuthenService, userService: UserService) {
     const authenHandler = new AuthenHandler(apiKey, authenService, userService)
