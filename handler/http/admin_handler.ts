@@ -237,7 +237,7 @@ class AdminHandler {
             const data = await this.categoryService.getCategoriesPaginationSrv(filter.limit, filter.offset, filter.search)
 
             logger.info("End http.admin.getCategories")
-            return res.status(HTTP.StatusOK).send(data);
+            return res.status(data ? HTTP.StatusOK : HTTP.StatusNoContent).send(data);
 
         } catch (error) {
             logger.error(error)

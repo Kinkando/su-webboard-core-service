@@ -21,7 +21,7 @@ export class CategoryService implements Service {
 
         const data = await this.repository.getCategoriesPaginationRepo(limit, offset, search)
 
-        logger.info(`End service.category.getCategoriesPaginationSrv, "output": %s`, JSON.stringify({ total: data.total || 0, length: data.data?.length || 0 }))
+        logger.info(`End service.category.getCategoriesPaginationSrv, "output": %s`, JSON.stringify({ total: data?.total || 0, length: data?.data?.length || 0 }))
         return data
     }
 
@@ -40,9 +40,9 @@ export class CategoryService implements Service {
         category.categoryHexColor = category.categoryHexColor.toUpperCase()
 
         if (category.categoryID) {
-            await this.repository.createCategoryRepo(category)
-        } else {
             await this.repository.updateCategoryRepo(category)
+        } else {
+            await this.repository.createCategoryRepo(category)
         }
 
         logger.info(`End service.category.upsertCategorySrv`)

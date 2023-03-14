@@ -1,6 +1,7 @@
 import { Category } from "@model/category";
 import logger from "@util/logger";
 import * as mongoDB from "mongodb";
+import categoryModel from './model/category'
 
 export function newCategoryRepository(db: mongoDB.Db) {
     return new CategoryRepository(db)
@@ -45,7 +46,17 @@ export class CategoryRepository implements Repository {
                 total: "$stage1.count",
                 data: "$stage2"
             }}
-        ]).map(doc => { return { total: Number(doc.total), data: doc.data as Category[] } }).toArray())[0];
+        ]).map(doc => {
+            const data: Category[] = []
+            doc.data.forEach((category: Category) => {
+                data.push({
+                    categoryID: category.categoryID,
+                    categoryName: category.categoryName,
+                    categoryHexColor: category.categoryHexColor,
+                })
+            })
+            return { total: Number(doc.total), data }
+        }).toArray())[0];
 
         logger.info(`End mongo.category.getCategoriesPaginationRepo, "output": %s`, JSON.stringify(data))
         return data
@@ -64,7 +75,7 @@ export class CategoryRepository implements Repository {
     async createCategoryRepo(category: Category) {
         logger.info(`Start mongo.category.createCategoryRepo, "input": %s`, JSON.stringify(category))
 
-        await this.db.collection(categoryCollection).insertOne({...category, createdAt: new Date()})
+        await categoryModel.countDocuments().then(async(count) => await categoryModel.create({categoryID: count+1, ...category, createdAt: new Date()}))
 
         logger.info(`End mongo.category.createCategoryRepo`)
     }
@@ -72,7 +83,7 @@ export class CategoryRepository implements Repository {
     async updateCategoryRepo(category: Category) {
         logger.info(`Start mongo.category.updateCategoryRepo, "input": %s`, JSON.stringify(category))
 
-        await this.db.collection(categoryCollection).updateOne({ categoryID: category.categoryID }, {...category, updatedAt: new Date()})
+        await categoryModel.updateOne({ categoryID: category.categoryID }, {...category, createdAt: new Date()})
 
         logger.info(`End mongo.category.updateCategoryRepo`)
     }

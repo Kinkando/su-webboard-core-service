@@ -12,12 +12,17 @@ export function validate(schemas: Schema[], req: any) {
             throw Error(`${schema.field} is required`)
         }
         if (req[schema.field]) {
+            if (schema.type === 'number') {
+                req[schema.field] = Number(req[schema.field])
+            } else if (schema.type === 'boolean') {
+                req[schema.field] = Boolean(req[schema.field])
+            }
             if (schema.type === 'email') {
                 if (!email.test(req[schema.field])) throw Error(`${schema.field} is invalid`);
             } else if (schema.type === 'hexColor') {
                 if (!hexColor.test(req[schema.field])) throw Error(`${schema.field} is invalid`);
             } else if (typeof req[schema.field] !== schema.type) {
-                throw Error(`type ${typeof req[schema.field]} unable to assign to type ${schema.type}`)
+                throw Error(`field '${schema.field}' has type '${typeof req[schema.field]}' that unable to assign to type '${schema.type}'`)
             }
         }
     }
