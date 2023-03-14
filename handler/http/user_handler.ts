@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
-import { CloudStorage, File } from '@cloud/google/storage';
-import HTTP from '@common/http';
-import { User } from '@model/user';
-import { UserService } from "@service/user_service";
-import logger from '@util/logger';
-import { getProfile } from '@util/profile';
+import { CloudStorage, File } from '../../cloud/google/storage';
+import HTTP from '../../common/http';
+import { User } from '../../model/user';
+import { UserService } from "../../service/user_service";
+import logger from '../../util/logger';
+import { getProfile } from '../../util/profile';
 const upload = multer()
 
 export function newUserHandler(userService: UserService, storage: CloudStorage) {

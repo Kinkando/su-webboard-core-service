@@ -1,5 +1,5 @@
-import { Category } from "@model/category";
-import logger from "@util/logger";
+import { Category } from "../../model/category";
+import logger from "../../util/logger";
 import * as mongoDB from "mongodb";
 import categoryModel from './model/category'
 

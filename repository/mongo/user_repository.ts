@@ -1,5 +1,5 @@
-import { FilterUser, User, UserPagination } from "@model/user";
-import logger from "@util/logger";
+import { FilterUser, User, UserPagination } from "../../model/user";
+import logger from "../../util/logger";
 import * as mongoDB from "mongodb";
 import { v4 as uuid } from "uuid";
 

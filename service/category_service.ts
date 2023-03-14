@@ -1,6 +1,6 @@
-import { Category } from "@model/category";
-import { CategoryRepository } from "@repository/mongo/category_repository";
-import logger from "@util/logger";
+import { Category } from "../model/category";
+import { CategoryRepository } from "../repository/mongo/category_repository";
+import logger from "../util/logger";
 
 export function newCategoryService(repository: CategoryRepository) {
     return new CategoryService(repository)

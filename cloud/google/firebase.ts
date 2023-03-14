@@ -1,4 +1,4 @@
-import { FirebaseCredentialConfiguration } from "@config/config";
+import { FirebaseCredentialConfiguration } from "../../config/config";
 import * as admin from 'firebase-admin';
 
 export function newFirebaseAppWithServiceAccount(credential: FirebaseCredentialConfiguration) {

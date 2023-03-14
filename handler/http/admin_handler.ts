@@ -1,13 +1,13 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import HTTP from '@common/http';
-import { UserType } from '@model/authen';
-import logger from '@util/logger';
-import { getProfile } from '@util/profile';
-import { User, UserPagination } from '@model/user';
-import { bind, validate } from '@util/validate';
-import { UserService } from '@service/user_service';
-import { CategoryService } from '@service/category_service';
-import { Category } from '@model/category';
+import HTTP from '../../common/http';
+import { UserType } from '../../model/authen';
+import logger from '../../util/logger';
+import { getProfile } from '../../util/profile';
+import { User, UserPagination } from '../../model/user';
+import { bind, validate } from '../../util/validate';
+import { UserService } from '../../service/user_service';
+import { CategoryService } from '../../service/category_service';
+import { Category } from '../../model/category';
 
 export function newAdminHandler(userService: UserService, categoryService: CategoryService) {
     const adminHandler = new AdminHandler(userService, categoryService)

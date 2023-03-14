@@ -1,4 +1,4 @@
-import { SendGridConfiguration } from '@config/config';
+import { SendGridConfiguration } from '../../config/config';
 import sendgrid, { MailService } from '@sendgrid/mail'
 
 export function newSendGrid(config: SendGridConfiguration) {

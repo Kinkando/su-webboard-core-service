@@ -1,5 +1,5 @@
-import conf from "@config/config";
-import initRouter from "@router/router";
+import conf from "./config/config";
+import initRouter from "./router/router";
 
 async function init() {
     const PORT = process.env.PORT || conf.app.port;

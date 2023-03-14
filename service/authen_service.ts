@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
-import { AccessToken, RefreshToken, UserType } from "@model/authen";
-import logger from "@util/logger";
+import { AccessToken, RefreshToken, UserType } from "../model/authen";
+import logger from "../util/logger";
 
 export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) {
     return new AuthenService(jwtSecretKey as Secret, firebase)
