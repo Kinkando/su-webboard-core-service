@@ -189,13 +189,13 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            const userUUID = req.body.userUUID
-            if (!userUUID) {
-                logger.error('userUUID is required')
-                return res.status(HTTP.StatusBadRequest).send({ error: 'userUUID is required' })
+            const userUUIDs: string[] = req.body.userUUIDs
+            if (!userUUIDs || !userUUIDs.length) {
+                logger.error('userUUIDs is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'userUUIDs is required' })
             }
 
-            await this.userService.deleteUserSrv(userUUID)
+            await this.userService.deleteUsersSrv(userUUIDs)
 
             logger.info("End http.admin.deleteUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
@@ -293,12 +293,12 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            if (!req.body.categoryID) {
-                logger.error('categoryID is required')
-                return res.status(HTTP.StatusBadRequest).send({ error: "categoryID is required" })
+            if (!req.body.categoryIDs) {
+                logger.error('categoryIDs is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "categoryIDs is required" })
             }
 
-            await this.categoryService.deleteCategorySrv(req.body.categoryID)
+            await this.categoryService.deleteCategoriesSrv(req.body.categoryIDs as number[])
 
             logger.info("End http.admin.deleteCategory")
             return res.status(HTTP.StatusOK).send({ message: "success" });

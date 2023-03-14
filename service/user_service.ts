@@ -21,7 +21,7 @@ interface Service {
     getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
     createUserSrv(user: User): void
     updateUserSrv(user: User): void
-    deleteUserSrv(userUUID: string): void
+    deleteUsersSrv(userUUIDs: string[]): void
     isExistEmailSrv(email: string): Promise<boolean>
 }
 
@@ -115,21 +115,27 @@ export class UserService implements Service {
         return user
     }
 
-    async deleteUserSrv(userUUID: string) {
-        logger.info(`Start service.user.deleteUserSrv, "input": %s`, userUUID)
+    async deleteUsersSrv(userUUIDs: string[]) {
+        logger.info(`Start service.user.deleteUsersSrv, "input": %s`, userUUIDs)
 
-        const u = await this.repository.getUserRepo({ userUUID })
-        if (!u || !u.userUUID) {
-            throw Error('user is not found')
-        }
+        userUUIDs.forEach(async(userUUID) => {
+            try {
+                const u = await this.repository.getUserRepo({ userUUID })
+                if (!u || !u.userUUID) {
+                    throw Error('user is not found')
+                }
 
-        // remove userImageURL from cloud storage
+                this.storage.deleteFile(u.userImageURL!)
 
-        await this.firebase.auth().deleteUser(u.firebaseID!)
+                await this.firebase.auth().deleteUser(u.firebaseID!)
 
-        await this.repository.deleteUserRepo(userUUID);
+                await this.repository.deleteUserRepo(userUUID);
+            } catch (error) {
+                logger.error(error)
+            }
+        })
 
-        logger.info(`End service.user.deleteUserSrv`)
+        logger.info(`End service.user.deleteUsersSrv`)
     }
 
     async isExistEmailSrv(email: string) {

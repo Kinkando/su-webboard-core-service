@@ -10,7 +10,7 @@ interface Service {
     getCategoriesPaginationSrv(limit: number, offset: number, search?: string): Promise<{ total: number, data: Category[] }>
     getCategoriesSrv(): Promise<Category[]>
     upsertCategorySrv(category: Category): void
-    deleteCategorySrv(categoryID: number): void
+    deleteCategoriesSrv(categoryIDs: number[]): void
 }
 
 export class CategoryService implements Service {
@@ -48,11 +48,11 @@ export class CategoryService implements Service {
         logger.info(`End service.category.upsertCategorySrv`)
     }
 
-    async deleteCategorySrv(categoryID: number) {
-        logger.info(`Start service.category.deleteCategorySrv, "input": %s`, JSON.stringify(categoryID))
+    async deleteCategoriesSrv(categoryIDs: number[]) {
+        logger.info(`Start service.category.deleteCategoriesSrv, "input": %s`, JSON.stringify(categoryIDs))
 
-        await this.repository.deleteCategoryRepo(categoryID)
+        categoryIDs.forEach(async(categoryID) => await this.repository.deleteCategoryRepo(categoryID))
 
-        logger.info(`End service.category.deleteCategorySrv`)
+        logger.info(`End service.category.deleteCategoriesSrv`)
     }
 }
