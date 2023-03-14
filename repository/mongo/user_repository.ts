@@ -26,7 +26,7 @@ export class UserRepository implements Repository {
 
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const users = (await this.db.collection(userCollection).aggregate([
-            {$sort: { createdAt: 1 }},
+            {$sort: { studentID: 1, createdAt: 1 }},
             {$match:{
                 $and: [
                     { userType: { $in: query.userType ? [query.userType] : ["std", "tch"] } },

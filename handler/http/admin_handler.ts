@@ -156,8 +156,10 @@ class AdminHandler {
             return res.status(HTTP.StatusOK).send({ message: "success" });
 
         } catch (error) {
-            logger.error(error)
-            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+            const errorMessage = (error as Error).message
+            const httpStatus = errorMessage.includes('user is not found') || errorMessage.includes('is exist') ? HTTP.StatusBadRequest : HTTP.StatusInternalServerError
+            logger.error(errorMessage)
+            return res.status(httpStatus).send({ error: errorMessage })
         }
     }
 

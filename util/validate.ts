@@ -26,7 +26,7 @@ export function validate(schemas: Schema[], req: any) {
 export function bind(from: any, schemas?: Schema[]): any {
     const to: any = {};
     for (const key in from) {
-        if(from[key]) {
+        if(from[key] != undefined) {
             if (!schemas || schemas.find(schema => schema.field === key)) {
                 to[key] = from[key]
             }

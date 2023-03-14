@@ -80,7 +80,7 @@ export class UserService implements Service {
 
         const firebaseUser = await this.firebase.auth().createUser({
             email: user.userEmail,
-            password: user.studentID || user.userEmail?.substring(0, user.userEmail?.indexOf("@")) || "test123!",
+            password: user.studentID || "test123!",
         })
 
         user.userDisplayName = user.userFullName
