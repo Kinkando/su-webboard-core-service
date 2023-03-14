@@ -28,6 +28,11 @@ class UserHandler {
 
         try {
             const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
             const user = await this.userService.getUserSrv({ userUUID: profile.userUUID })
             if (!user) {
                 throw Error("user not found")
@@ -47,6 +52,11 @@ class UserHandler {
 
         try {
             const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
             if (req.files && req.files.length > 1) {
                 logger.error('file is limit at 1')
                 return res.status(HTTP.StatusBadRequest).send({ error: "file is limit at 1" })
