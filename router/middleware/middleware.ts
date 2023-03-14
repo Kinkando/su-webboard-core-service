@@ -28,7 +28,7 @@ export function useJWT(jwtSecretKey: string) {
                     userType: jwtDecode.userType,
                 }
             } catch (error) {
-                // return res.status(HTTP.StatusUnauthorized).send({ error: `invalid JWT token: `+(error as Error).message })
+                return res.status(HTTP.StatusUnauthorized).send({ error: `invalid JWT token: `+(error as Error).message })
             }
         }
         next();
