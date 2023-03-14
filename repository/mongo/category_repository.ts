@@ -75,7 +75,13 @@ export class CategoryRepository implements Repository {
     async createCategoryRepo(category: Category) {
         logger.info(`Start mongo.category.createCategoryRepo, "input": %s`, JSON.stringify(category))
 
-        await categoryModel.countDocuments().then(async(count) => await categoryModel.create({categoryID: count+1, ...category, createdAt: new Date()}))
+        await categoryModel.find().then(async(docs) => {
+            let categoryID = 1;
+            while(docs.find(doc => doc.categoryID === categoryID)) {
+                categoryID++;
+            }
+            await categoryModel.create({categoryID, ...category, createdAt: new Date()})
+        })
 
         logger.info(`End mongo.category.createCategoryRepo`)
     }
