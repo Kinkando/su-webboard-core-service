@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { CloudStorage, File } from '@cloud/google/storage';
 import { SendGrid } from "@cloud/sendgrid/sendgrid";
-import { FilterUser, User } from "@model/user";
+import { FilterUser, User, UserPagination } from "@model/user";
 import { UserRepository } from "@repository/mongo/user_repository";
 import logger from "@util/logger";
 
@@ -18,10 +18,10 @@ interface Service {
     updateUserProfileSrv(user: User, image: File): void
     resetPasswordSrv(tokenID: string): void
 
-    getUsersSrv(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
+    getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
     createUserSrv(user: User): void
     updateUserSrv(user: User): void
-    deleteUserSrv(userUUID: string): void
+    deleteUsersSrv(userUUIDs: string[]): void
     isExistEmailSrv(email: string): Promise<boolean>
 }
 
@@ -66,10 +66,10 @@ export class UserService implements Service {
         return user
     }
 
-    async getUsersSrv(search: string, limit: number, offset: number) {
-        logger.info(`Start service.user.getUsersSrv, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
+    async getUsersSrv(query: UserPagination) {
+        logger.info(`Start service.user.getUsersSrv, "input": %s`, JSON.stringify(query))
 
-        const users = await this.repository.getUsersRepo(search, limit, offset)
+        const users = await this.repository.getUsersRepo(query)
 
         logger.info(`End service.user.getUsersSrv, "output": {"total": %d, "data.length": %d}`, users?.total || 0, users?.data?.length || 0)
         return users
@@ -80,7 +80,7 @@ export class UserService implements Service {
 
         const firebaseUser = await this.firebase.auth().createUser({
             email: user.userEmail,
-            password: user.studentID || user.userEmail?.substring(0, user.userEmail?.indexOf("@")) || "test123!",
+            password: user.studentID || "test123!",
         })
 
         user.userDisplayName = user.userFullName
@@ -115,21 +115,27 @@ export class UserService implements Service {
         return user
     }
 
-    async deleteUserSrv(userUUID: string) {
-        logger.info(`Start service.user.deleteUserSrv, "input": %s`, userUUID)
+    async deleteUsersSrv(userUUIDs: string[]) {
+        logger.info(`Start service.user.deleteUsersSrv, "input": %s`, userUUIDs)
 
-        const u = await this.repository.getUserRepo({ userUUID })
-        if (!u || !u.userUUID) {
-            throw Error('user is not found')
-        }
+        userUUIDs.forEach(async(userUUID) => {
+            try {
+                const u = await this.repository.getUserRepo({ userUUID })
+                if (!u || !u.userUUID) {
+                    throw Error('user is not found')
+                }
 
-        // remove userImageURL from cloud storage
+                this.storage.deleteFile(u.userImageURL!)
 
-        await this.firebase.auth().deleteUser(u.firebaseID!)
+                await this.firebase.auth().deleteUser(u.firebaseID!)
 
-        await this.repository.deleteUserRepo(userUUID);
+                await this.repository.deleteUserRepo(userUUID);
+            } catch (error) {
+                logger.error(error)
+            }
+        })
 
-        logger.info(`End service.user.deleteUserSrv`)
+        logger.info(`End service.user.deleteUsersSrv`)
     }
 
     async isExistEmailSrv(email: string) {

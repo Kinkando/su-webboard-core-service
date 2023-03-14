@@ -3,7 +3,7 @@ import HTTP from '@common/http';
 import { UserType } from '@model/authen';
 import logger from '@util/logger';
 import { getProfile } from '@util/profile';
-import { User } from '@model/user';
+import { User, UserPagination } from '@model/user';
 import { bind, validate } from '@util/validate';
 import { UserService } from '@service/user_service';
 import { CategoryService } from '@service/category_service';
@@ -19,7 +19,9 @@ export function newAdminHandler(userService: UserService, categoryService: Categ
     adminRouter.patch('/user', (req, res, next) => adminHandler.updateUser(req, res, next))
     adminRouter.delete('/user', (req, res, next) => adminHandler.deleteUser(req, res, next))
 
+    adminRouter.get('/category', (req, res, next) => adminHandler.getCategories(req, res, next))
     adminRouter.put('/category', (req, res, next) => adminHandler.upsertCategory(req, res, next))
+    adminRouter.delete('/category', (req, res, next) => adminHandler.deleteCategory(req, res, next))
 
     return adminRouter
 }
@@ -37,12 +39,31 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            const filter = {
+            const schemas = [
+                {field: "userType", type: "string", required: false},
+                {field: "search", type: "string", required: false},
+                {field: "limit", type: "number", required: false},
+                {field: "offset", type: "number", required: false},
+            ]
+
+            try {
+                validate(schemas, req.query)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const filter: UserPagination = {
+                userType: req.query.userType?.toString(),
                 search: req.query.search?.toString() || "",
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
-            const users = await this.userService.getUsersSrv(filter.search, filter.limit, filter.offset)
+            if (filter.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusBadRequest).send({ error: "permission is denied" })
+            }
+            const users = await this.userService.getUsersSrv(filter)
             if (!users || !users.total || !users.data) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -151,8 +172,10 @@ class AdminHandler {
             return res.status(HTTP.StatusOK).send({ message: "success" });
 
         } catch (error) {
-            logger.error(error)
-            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+            const errorMessage = (error as Error).message
+            const httpStatus = errorMessage.includes('user is not found') || errorMessage.includes('is exist') ? HTTP.StatusBadRequest : HTTP.StatusInternalServerError
+            logger.error(errorMessage)
+            return res.status(httpStatus).send({ error: errorMessage })
         }
     }
 
@@ -166,16 +189,55 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            const userUUID = req.body.userUUID
-            if (!userUUID) {
-                logger.error('userUUID is required')
-                return res.status(HTTP.StatusBadRequest).send({ error: 'userUUID is required' })
+            const userUUIDs: string[] = req.body.userUUIDs
+            if (!userUUIDs || !userUUIDs.length) {
+                logger.error('userUUIDs is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'userUUIDs is required' })
             }
 
-            await this.userService.deleteUserSrv(userUUID)
+            await this.userService.deleteUsersSrv(userUUIDs)
 
             logger.info("End http.admin.deleteUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async getCategories(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.getCategories")
+        try {
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const schemas = [
+                {field: "search", type: "string", required: false},
+                {field: "limit", type: "number", required: false},
+                {field: "offset", type: "number", required: false},
+            ]
+
+            try {
+                validate(schemas, req.query)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const filter: UserPagination = {
+                search: req.query.search?.toString() || "",
+                limit: Number(req.query.limit) || 10,
+                offset: Number(req.query.offset) || 0,
+            }
+
+            const data = await this.categoryService.getCategoriesPaginationSrv(filter.limit, filter.offset, filter.search)
+
+            logger.info("End http.admin.getCategories")
+            return res.status(data ? HTTP.StatusOK : HTTP.StatusNoContent).send(data);
 
         } catch (error) {
             logger.error(error)
@@ -213,7 +275,33 @@ class AdminHandler {
             await this.categoryService.upsertCategorySrv(category)
 
             logger.info("End http.admin.upsertCategory")
-            return res.status(HTTP.StatusCreated).send({ message: "success" });
+            return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async deleteCategory(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.deleteCategory")
+        try {
+
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            if (!req.body.categoryIDs) {
+                logger.error('categoryIDs is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "categoryIDs is required" })
+            }
+
+            await this.categoryService.deleteCategoriesSrv(req.body.categoryIDs as number[])
+
+            logger.info("End http.admin.deleteCategory")
+            return res.status(HTTP.StatusOK).send({ message: "success" });
 
         } catch (error) {
             logger.error(error)

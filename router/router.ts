@@ -13,6 +13,7 @@ import { newAdminHandler } from '@handler/http/admin_handler';
 import { newSendGrid } from '@cloud/sendgrid/sendgrid';
 import { newCategoryRepository } from '@repository/mongo/category_repository';
 import { newCategoryService } from '@service/category_service';
+import { newCategoryHandler } from '@handler/http/category_handler';
 
 export default async function init(config: Configuration) {
     const api = express();
@@ -50,6 +51,7 @@ export default async function init(config: Configuration) {
     api.use('/admin', newAdminHandler(userService, categoryService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))
+    api.use('/category', newCategoryHandler(categoryService))
 
     return api
 }

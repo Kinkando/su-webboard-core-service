@@ -46,8 +46,8 @@ export class CloudStorage implements Service {
         return fileName
     }
 
-    deleteFile(fileName: string) {
-        this.storage.bucket(this.bucketName).file(fileName).delete()
+    async deleteFile(fileName: string) {
+        await this.storage.bucket(this.bucketName).file(fileName).delete()
     }
 
     async signedURL(fileName: string) {

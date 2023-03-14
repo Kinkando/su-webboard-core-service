@@ -1,4 +1,4 @@
-import { FilterUser, User } from "@model/user";
+import { FilterUser, User, UserPagination } from "@model/user";
 import logger from "@util/logger";
 import * as mongoDB from "mongodb";
 import { v4 as uuid } from "uuid";
@@ -10,7 +10,7 @@ export function newUserRepository(db: mongoDB.Db) {
 const userCollection = "User"
 
 interface Repository {
-    getUsersRepo(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
+    getUsersRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
     getUserRepo(filter: FilterUser): Promise<User>
     createUserRepo(user: User): void
     updateUserRepo(user: User): void
@@ -21,15 +21,15 @@ interface Repository {
 export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getUsersRepo(search: string, limit: number, offset: number) {
-        logger.info(`Start mongo.user.getUsersRepo, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
+    async getUsersRepo(query: UserPagination) {
+        logger.info(`Start mongo.user.getUsersRepo, "input": %s`, JSON.stringify(query))
 
-        const filter = { $regex: `.*${search}.*`, $options: "i" }
+        const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const users = (await this.db.collection(userCollection).aggregate([
-            {$sort: { createdAt: 1 }},
+            {$sort: { studentID: 1, createdAt: 1 }},
             {$match:{
                 $and: [
-                    { userType: { $ne: "adm" } },
+                    { userType: { $in: query.userType ? [query.userType] : ["std", "tch"] } },
                     { $or: [
                         { userDisplayName: filter },
                         { userFullName: filter },
@@ -41,7 +41,7 @@ export class UserRepository implements Repository {
             }},
             {$facet:{
                 "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
-                "stage2" : [ { "$skip": offset }, { "$limit": limit } ],
+                "stage2" : [ { "$skip": query.offset }, { "$limit": query.limit || 10 } ],
             }},
             {$unwind: "$stage1"},
 
@@ -50,7 +50,16 @@ export class UserRepository implements Repository {
                 total: "$stage1.count",
                 data: "$stage2"
             }}
-        ]).map(doc => { return { total: Number(doc.total), data: doc.data as User[] } }).toArray())[0];
+        ]).map(doc => {
+            const data: User[] = []
+            doc.data.forEach((user: User) => {
+                delete (user as any)._id
+                delete (user as any).createdAt
+                delete (user as any).updatedAt
+                data.push(user)
+            })
+            return { total: Number(doc.total), data: doc.data as User[] }
+        }).toArray())[0];
 
         logger.info(`End mongo.user.getUsersRepo, "output": %s`, JSON.stringify(users))
         return users
@@ -60,6 +69,11 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.getUserRepo, "input": %s`, JSON.stringify(filter))
 
         const user = await this.db.collection<User>(userCollection).findOne(filter)
+        if (user) {
+            delete (user as any)._id
+            delete (user as any).createdAt
+            delete (user as any).updatedAt
+        }
 
         logger.info(`End mongo.user.getUserRepo, "output": %s`, JSON.stringify(user))
         return user as User
