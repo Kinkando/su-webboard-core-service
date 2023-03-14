@@ -3,7 +3,7 @@ import HTTP from '@common/http';
 import { UserType } from '@model/authen';
 import logger from '@util/logger';
 import { getProfile } from '@util/profile';
-import { User } from '@model/user';
+import { User, UserPagination } from '@model/user';
 import { bind, validate } from '@util/validate';
 import { UserService } from '@service/user_service';
 import { CategoryService } from '@service/category_service';
@@ -37,12 +37,17 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            const filter = {
+            const filter: UserPagination = {
+                userType: req.query.userType?.toString(),
                 search: req.query.search?.toString() || "",
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
-            const users = await this.userService.getUsersSrv(filter.search, filter.limit, filter.offset)
+            if (filter.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusBadRequest).send({ error: "permission is denied" })
+            }
+            const users = await this.userService.getUsersSrv(filter)
             if (!users || !users.total || !users.data) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()

@@ -1,4 +1,4 @@
-import { FilterUser, User } from "@model/user";
+import { FilterUser, User, UserPagination } from "@model/user";
 import logger from "@util/logger";
 import * as mongoDB from "mongodb";
 import { v4 as uuid } from "uuid";
@@ -10,7 +10,7 @@ export function newUserRepository(db: mongoDB.Db) {
 const userCollection = "User"
 
 interface Repository {
-    getUsersRepo(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
+    getUsersRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
     getUserRepo(filter: FilterUser): Promise<User>
     createUserRepo(user: User): void
     updateUserRepo(user: User): void
@@ -21,15 +21,15 @@ interface Repository {
 export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getUsersRepo(search: string, limit: number, offset: number) {
-        logger.info(`Start mongo.user.getUsersRepo, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
+    async getUsersRepo(query: UserPagination) {
+        logger.info(`Start mongo.user.getUsersRepo, "input": %s`, JSON.stringify(query))
 
-        const filter = { $regex: `.*${search}.*`, $options: "i" }
+        const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const users = (await this.db.collection(userCollection).aggregate([
             {$sort: { createdAt: 1 }},
             {$match:{
                 $and: [
-                    { userType: { $ne: "adm" } },
+                    { userType: { $in: query.userType ? [query.userType] : ["std", "tch"] } },
                     { $or: [
                         { userDisplayName: filter },
                         { userFullName: filter },
@@ -41,7 +41,7 @@ export class UserRepository implements Repository {
             }},
             {$facet:{
                 "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
-                "stage2" : [ { "$skip": offset }, { "$limit": limit } ],
+                "stage2" : [ { "$skip": query.offset }, { "$limit": query.limit || 10 } ],
             }},
             {$unwind: "$stage1"},
 

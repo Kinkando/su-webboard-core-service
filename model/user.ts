@@ -16,3 +16,10 @@ export interface FilterUser {
     userUUID?: string
     firebaseID?: string
 }
+
+export interface UserPagination {
+    search?: string
+    userType?: string
+    limit: number
+    offset: number
+}

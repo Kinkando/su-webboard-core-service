@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { CloudStorage, File } from '@cloud/google/storage';
 import { SendGrid } from "@cloud/sendgrid/sendgrid";
-import { FilterUser, User } from "@model/user";
+import { FilterUser, User, UserPagination } from "@model/user";
 import { UserRepository } from "@repository/mongo/user_repository";
 import logger from "@util/logger";
 
@@ -18,7 +18,7 @@ interface Service {
     updateUserProfileSrv(user: User, image: File): void
     resetPasswordSrv(tokenID: string): void
 
-    getUsersSrv(search: string, limit: number, offset: number): Promise<{ total: number, data: User[] }>
+    getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
     createUserSrv(user: User): void
     updateUserSrv(user: User): void
     deleteUserSrv(userUUID: string): void
@@ -66,10 +66,10 @@ export class UserService implements Service {
         return user
     }
 
-    async getUsersSrv(search: string, limit: number, offset: number) {
-        logger.info(`Start service.user.getUsersSrv, "input": {"search": "%s", "limit": %d, "offset": %d}`, search, limit, offset)
+    async getUsersSrv(query: UserPagination) {
+        logger.info(`Start service.user.getUsersSrv, "input": %s`, JSON.stringify(query))
 
-        const users = await this.repository.getUsersRepo(search, limit, offset)
+        const users = await this.repository.getUsersRepo(query)
 
         logger.info(`End service.user.getUsersSrv, "output": {"total": %d, "data.length": %d}`, users?.total || 0, users?.data?.length || 0)
         return users
