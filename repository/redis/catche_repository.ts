@@ -23,6 +23,7 @@ interface Repository {
     revokeAccessTokenRepo(accessToken: AccessToken): void
     revokeRefreshTokenRepo(refreshToken: RefreshToken): void
     revokeExpiredTokensRepo(): void
+    revokeTokenRepo(userUUID: string): void
 }
 
 export class CacheRepository implements Repository {
@@ -95,5 +96,22 @@ export class CacheRepository implements Repository {
         logger.warn(`delete expired token: ${total} token(s)`)
 
         logger.info(`End redis.cache.revokeExpiredTokensRepo`)
+    }
+
+    async revokeTokenRepo(userUUID: string) {
+        logger.info(`Start redis.cache.revokeTokenRepo, "input": ${JSON.stringify({ userUUID })}`)
+
+        let total = 0
+        for await (const key of this.db.scanIterator({
+            TYPE: 'string', // `SCAN` only
+            MATCH: `*:*:${userUUID}:*`,
+            COUNT: 1000
+        })) {
+            const count = await this.db.del(key)
+            total += count
+        }
+
+        logger.info(`End redis.cache.revokeTokenRepo, "output": ${JSON.stringify({ total })}`)
+        return total
     }
 }

@@ -9,12 +9,14 @@ import { UserService } from '../../service/user_service';
 import { CategoryService } from '../../service/category_service';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
+import { AuthenService } from '../../service/authen_service';
 
-export function newAdminHandler(userService: UserService, categoryService: CategoryService) {
-    const adminHandler = new AdminHandler(userService, categoryService)
+export function newAdminHandler(authenService: AuthenService, userService: UserService, categoryService: CategoryService) {
+    const adminHandler = new AdminHandler(authenService, userService, categoryService)
 
     const adminRouter = Router()
 
+    adminRouter.post('/user/revoke', (req, res, next) => adminHandler.revokeUsers(req, res, next))
     adminRouter.get('/user', (req, res, next) => adminHandler.getUsers(req, res, next))
     adminRouter.post('/user/:userType', (req, res, next) => adminHandler.createUser(req, res, next))
     adminRouter.patch('/user', (req, res, next) => adminHandler.updateUser(req, res, next))
@@ -28,7 +30,30 @@ export function newAdminHandler(userService: UserService, categoryService: Categ
 }
 
 class AdminHandler {
-    constructor(private userService: UserService, private categoryService: CategoryService) {}
+    constructor(private authenService: AuthenService, private userService: UserService, private categoryService: CategoryService) {}
+
+    async revokeUsers(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.revokeUsers")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            if (req.body?.userUUIDs) {
+                await this.authenService.revokeTokensByAdminSrv(req.body?.userUUIDs)
+            }
+
+            logger.info("End http.admin.revokeUsers")
+            return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
 
     async getUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.admin.getUsers")
@@ -77,7 +102,6 @@ class AdminHandler {
                     delete (user as any).updatedAt
                     delete (user as any).firebaseID
                     delete (user as any).isLinkGoogle
-                    delete (user as any).lastLogin
                 })
             }
 

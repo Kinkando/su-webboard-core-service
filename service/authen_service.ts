@@ -17,6 +17,7 @@ interface Service {
     createTokenSrv(token: string, type: 'access' | 'refresh'): void
     revokeTokenSrv(token: string, type: 'access' | 'refresh'): void
     revokeExpiredTokensSrv(): void
+    revokeTokensByAdminSrv(userUUIDs: string[]): void
     isExistToken(jwt: AccessToken | RefreshToken): Promise<boolean>
 }
 
@@ -136,6 +137,20 @@ export class AuthenService implements Service {
         }
 
         logger.info(`End service.authen.revokeExpiredTokensSrv`)
+    }
+
+    async revokeTokensByAdminSrv(userUUIDs: string[]) {
+        logger.info(`Start service.authen.revokeTokensByAdminSrv, "input": ${JSON.stringify(userUUIDs)}`)
+
+        try {
+            for (const userUUID of userUUIDs) {
+                logger.warn(`revoke token by userUUID: ${userUUID}, success: ${await this.cacheRepository.revokeTokenRepo(userUUID)} token(s)`)
+            }
+        } catch (error) {
+            logger.error(error)
+        }
+
+        logger.info(`End service.authen.revokeTokensByAdminSrv`)
     }
 
     async isExistToken(jwt: AccessToken | RefreshToken) {
