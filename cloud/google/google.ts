@@ -1,4 +1,4 @@
-import logger from "@util/logger"
+import axios from "axios"
 
 export function newGoogleService() {
     return new GoogleService()
@@ -22,10 +22,10 @@ interface Service {
 
 export class GoogleService implements Service {
     async getUserProfile(accessToken: string) {
-        const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?alt=json&access_token=${accessToken}`, { method: 'GET' })
+        const res = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?alt=json&access_token=${accessToken}`)
         if (res.status !== 200) {
             throw Error('unable to get user profile from google: invalid request')
         }
-        return await res.json() as UserProfile
+        return await res.data as UserProfile
     }
 }
