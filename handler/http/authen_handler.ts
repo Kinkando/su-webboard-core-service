@@ -84,8 +84,10 @@ class AuthenHandler {
                 throw Error("user not found")
             }
 
-            user.lastLogin = new Date()
-            await this.userService.updateUserSrv(user)
+            await this.userService.updateUserSrv({
+                userUUID: user.userUUID,
+                lastLogin: new Date(),
+            })
 
             const jwt = this.authenService.encodeJWTSrv(user.userUUID!, user.userType!)
 
