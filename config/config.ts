@@ -13,6 +13,8 @@ export interface AppConfiguration {
     readonly port: number
     readonly apiKey: string
     readonly jwtSecretKey: string
+    readonly jwtAccessExpire: string
+    readonly jwtRefreshExpire: string
 }
 
 export interface DatabaseConfiguration {
@@ -61,6 +63,8 @@ const config: Configuration = {
         port: Number(process.env.APP_PORT!),
         apiKey: process.env.APP_API_KEY!,
         jwtSecretKey: process.env.APP_JWT_SECRET_KEY!,
+        jwtAccessExpire: process.env.APP_JWT_ACCESS_EXPIRE!,
+        jwtRefreshExpire: process.env.APP_JWT_REFRESH_EXPIRE!,
     },
     mongo: {
         connectString: process.env.MONGO_CONNECTION_STRING!,

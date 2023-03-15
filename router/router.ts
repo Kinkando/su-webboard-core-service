@@ -38,7 +38,6 @@ export default async function init(config: Configuration) {
 
     api.use(express.json());
     api.use(express.urlencoded({ extended: false }));
-    api.use(useJWT(config.app.jwtSecretKey))
 
     const mongoDB = await newMongoConnection(config.mongo)
 
@@ -50,13 +49,15 @@ export default async function init(config: Configuration) {
 
     const sendgrid = newSendGrid(config.sendgrid)
 
+    api.use(useJWT(config.app.jwtSecretKey, redis as any))
+
     // define repo
     const cacheRepository = newCacheRepository(redis as any)
     const categoryRepository = newCategoryRepository(mongoDB)
     const userRepository = newUserRepository(mongoDB)
 
     // define service
-    const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp, cacheRepository)
+    const authenService = newAuthenService(config.app, firebaseApp, cacheRepository)
     const categoryService = newCategoryService(categoryRepository)
     const userService = newUserService(userRepository, firebaseApp, storage, sendgrid)
 

@@ -4,20 +4,23 @@ import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken, UserType } from "../model/authen";
 import logger from "../util/logger";
 import { CacheRepository } from '../repository/redis/catche_repository';
+import { AppConfiguration } from '../config/config';
 
-export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App, cacheRepository: CacheRepository) {
-    return new AuthenService(jwtSecretKey as Secret, firebase, cacheRepository)
+export function newAuthenService(appConfig: AppConfiguration, firebase: admin.app.App, cacheRepository: CacheRepository) {
+    return new AuthenService(appConfig, firebase, cacheRepository)
 }
 
 interface Service {
     verifyFirebaseTokenSrv(idToken: string): Promise<string | undefined>
     encodeJWTSrv(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
     decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
+    createTokenSrv(token: string, type: 'access' | 'refresh'): void
+    revokeTokenSrv(token: string, type: 'access' | 'refresh'): void
 }
 
 export class AuthenService implements Service {
     constructor(
-        private jwtSecretKey: Secret,
+        private appConfig: AppConfiguration,
         private firebase: admin.app.App,
         private cacheRepository: CacheRepository,
     ) {}
@@ -56,13 +59,13 @@ export class AuthenService implements Service {
             type: 'refresh',
         }
 
-        const accessToken = jwt.sign(accessJWT, this.jwtSecretKey, {
+        const accessToken = jwt.sign(accessJWT, this.appConfig.jwtSecretKey, {
             algorithm: 'HS256',
-            expiresIn: '24h',
+            expiresIn: this.appConfig.jwtAccessExpire,
         })
-        const refreshToken = jwt.sign(refreshJWT, this.jwtSecretKey, {
+        const refreshToken = jwt.sign(refreshJWT, this.appConfig.jwtSecretKey, {
             algorithm: 'HS256',
-            expiresIn: '7d',
+            expiresIn: this.appConfig.jwtRefreshExpire,
         })
 
         logger.info(`End service.authen.encodeJWTSrv, "output": ${JSON.stringify({ accessToken, refreshToken })}`)
@@ -72,7 +75,7 @@ export class AuthenService implements Service {
     decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
         logger.info(`Start service.authen.decodeJWTSrv, "input": ${JSON.stringify({ token, type })}`)
 
-        jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
+        jwt.verify(token, this.appConfig.jwtSecretKey, { algorithms: ['HS256'] })
 
         let jsonWebToken: AccessToken | RefreshToken
         if (type === 'access') {
@@ -83,5 +86,41 @@ export class AuthenService implements Service {
 
         logger.info(`End service.authen.decodeJWTSrv, "output": ${JSON.stringify(jsonWebToken)}`)
         return jsonWebToken
+    }
+
+    async createTokenSrv(token: string, type: 'access' | 'refresh') {
+        logger.info(`Start service.authen.createTokenSrv, "input": ${JSON.stringify({ token })}`)
+
+        try {
+            const jwtClaim = this.decodeJWTSrv(token, type)
+            if (type === 'access') {
+                await this.cacheRepository.createAccessTokenRepo(jwtClaim as AccessToken)
+            } else {
+                await this.cacheRepository.createRefreshTokenRepo(jwtClaim as RefreshToken)
+            }
+
+        } catch (error) {
+            logger.error(error)
+        }
+
+        logger.info(`End service.authen.createTokenSrv`)
+    }
+
+    async revokeTokenSrv(token: string, type: 'access' | 'refresh') {
+        logger.info(`Start service.authen.revokeTokenSrv, "input": ${JSON.stringify({ token, type })}`)
+
+        try {
+            const jwtClaim = this.decodeJWTSrv(token, type)
+            if (type === 'access') {
+                await this.cacheRepository.revokeAccessTokenRepo(jwtClaim as AccessToken)
+            } else {
+                await this.cacheRepository.revokeRefreshTokenRepo(jwtClaim as RefreshToken)
+            }
+
+        } catch (error) {
+            logger.error(error)
+        }
+
+        logger.info(`End service.authen.revokeTokenSrv`)
     }
 }

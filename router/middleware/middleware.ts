@@ -1,14 +1,16 @@
-import HTTP from '../../common/http';
-import { AccessToken, Profile } from '../../model/authen';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { RedisClientType } from 'redis';
+import HTTP from '../../common/http';
+import { AccessToken, Profile } from '../../model/authen';
+import { tokenKey } from '../../repository/redis/catche_repository';
 
 export interface CustomRequest extends Request {
     profile: Profile
 }
 
-export function useJWT(jwtSecretKey: string) {
-    return (req: Request, res: Response, next: NextFunction) => {
+export function useJWT(jwtSecretKey: string, redis: RedisClientType) {
+    return async(req: Request, res: Response, next: NextFunction) => {
         if (!req.url.startsWith('/authen') && req.url !== '/_health') {
             try {
                 const bearerToken = req.headers.authorization
@@ -21,6 +23,11 @@ export function useJWT(jwtSecretKey: string) {
                 const jwtDecode = jwt.decode(token!) as AccessToken
                 if (!jwtDecode || jwtDecode.type !== 'access') {
                     throw Error('invalid access token')
+                }
+
+                const found = await redis.exists(tokenKey(jwtDecode));
+                if (!found) {
+                    throw Error('access token is not found')
                 }
 
                 (req as CustomRequest).profile = {

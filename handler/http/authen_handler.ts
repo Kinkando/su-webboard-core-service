@@ -1,3 +1,4 @@
+import { getProfile } from '../../util/profile';
 import { NextFunction, Request, Response, Router } from 'express';
 import HTTP from '../../common/http';
 import { AuthenService } from "../../service/authen_service";
@@ -13,6 +14,7 @@ export function newAuthenHandler(apiKey: string, authenService: AuthenService, u
     const tokenRouter = authRouter.use('/token', authRouter)
     tokenRouter.post('/verify', (req, res, next) => authenHandler.verifyToken(req, res, next))
     tokenRouter.post('/refresh', (req, res, next) => authenHandler.refreshToken(req, res, next))
+    tokenRouter.post('/revoke', (req, res, next) => authenHandler.revokeToken(req, res, next))
 
     return authRouter
 }
@@ -41,6 +43,9 @@ class AuthenHandler {
 
             const jwt = this.authenService.encodeJWTSrv(user.userUUID!, user.userType!)
 
+            await this.authenService.createTokenSrv(jwt.accessToken, 'access')
+            await this.authenService.createTokenSrv(jwt.refreshToken, 'refresh')
+
             logger.info("End http.authen.verifyToken")
             return res.status(HTTP.StatusOK).send(jwt)
 
@@ -66,8 +71,35 @@ class AuthenHandler {
 
             const jwt = this.authenService.encodeJWTSrv(jwtDecode.userUUID, jwtDecode.userType)
 
+            await this.authenService.revokeTokenSrv(refreshToken, 'refresh')
+            await this.authenService.createTokenSrv(jwt.accessToken, 'access')
+            await this.authenService.createTokenSrv(jwt.refreshToken, 'refresh')
+
             logger.info("End http.authen.refreshToken")
             return res.status(HTTP.StatusOK).send(jwt)
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusUnauthorized).send({ error: (error as Error).message })
+        }
+    }
+
+    async revokeToken(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.authen.revokeToken")
+
+        try {
+            const accessToken = req.body.accessToken!
+            if (accessToken) {
+                await this.authenService.revokeTokenSrv(accessToken, 'access')
+            }
+
+            const refreshToken = req.body.refreshToken!
+            if (refreshToken) {
+                await this.authenService.revokeTokenSrv(refreshToken, 'refresh')
+            }
+
+            logger.info("End http.authen.revokeToken")
+            return res.status(HTTP.StatusOK).send({ message: "success" })
 
         } catch (error) {
             logger.error(error)

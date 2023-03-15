@@ -2,12 +2,22 @@ import { RedisClientType } from "redis";
 import { AccessToken, RefreshToken } from "../../model/authen";
 import logger from "../../util/logger";
 
+const ACCESS_TOKEN_PREFIX = 'ACCESS_TOKEN'
+const REFRESH_TOKEN_PREFIX = 'REFRESH_TOKEN'
+
 export function newCacheRepository(redis: RedisClientType) {
     return new CacheRepository(redis)
 }
 
+export function tokenKey(token: AccessToken | RefreshToken): string {
+    if (token.type === 'access') {
+        return `${ACCESS_TOKEN_PREFIX}:${token.userType}:${token.userUUID}:${token.sessionUUID}`
+    }
+    return `${REFRESH_TOKEN_PREFIX}:${token.userType}:${token.userUUID}:${token.sessionUUID}`
+}
+
 interface Repository {
-    checkExistRepo(userUUID: string, sessionUUID: string): boolean
+    checkExistRepo(sessionUUID: string): Promise<boolean>
     createAccessTokenRepo(accessToken: AccessToken): void
     createRefreshTokenRepo(refreshToken: RefreshToken): void
     revokeAccessTokenRepo(accessToken: AccessToken): void
@@ -17,8 +27,8 @@ interface Repository {
 export class CacheRepository implements Repository {
     constructor(private db: RedisClientType) {}
 
-    checkExistRepo(userUUID: string, sessionUUID: string) {
-        logger.info(`Start redis.cache.checkExistRepo, "input": ${JSON.stringify({ userUUID, sessionUUID })}`)
+    async checkExistRepo(sessionUUID: string) {
+        logger.info(`Start redis.cache.checkExistRepo, "input": ${JSON.stringify({ sessionUUID })}`)
 
         const isExist = true
 
@@ -26,26 +36,38 @@ export class CacheRepository implements Repository {
         return isExist
     }
 
-    createAccessTokenRepo(accessToken: AccessToken) {
+    async createAccessTokenRepo(accessToken: AccessToken) {
         logger.info(`Start redis.cache.createAccessTokenRepo, "input": ${JSON.stringify({ accessToken })}`)
+
+        const key = tokenKey(accessToken)
+        await this.db.SET(key, key)
 
         logger.info(`End redis.cache.createAccessTokenRepo`)
     }
 
-    createRefreshTokenRepo(refreshToken: RefreshToken) {
+    async createRefreshTokenRepo(refreshToken: RefreshToken) {
         logger.info(`Start redis.cache.createRefreshTokenRepo, "input": ${JSON.stringify({ refreshToken })}`)
+
+        const key = tokenKey(refreshToken)
+        await this.db.SET(key, key)
 
         logger.info(`End redis.cache.createRefreshTokenRepo`)
     }
 
-    revokeAccessTokenRepo(accessToken: AccessToken) {
+    async revokeAccessTokenRepo(accessToken: AccessToken) {
         logger.info(`Start redis.cache.revokeAccessTokenRepo, "input": ${JSON.stringify({ accessToken })}`)
+
+        const key = tokenKey(accessToken)
+        await this.db.DEL(key)
 
         logger.info(`End redis.cache.revokeAccessTokenRepo`)
     }
 
-    revokeRefreshTokenRepo(refreshToken: RefreshToken) {
+    async revokeRefreshTokenRepo(refreshToken: RefreshToken) {
         logger.info(`Start redis.cache.revokeRefreshTokenRepo, "input": ${JSON.stringify({ refreshToken })}`)
+
+        const key = tokenKey(refreshToken)
+        await this.db.DEL(key)
 
         logger.info(`End redis.cache.revokeRefreshTokenRepo`)
     }
