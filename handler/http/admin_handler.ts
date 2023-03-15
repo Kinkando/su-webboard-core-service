@@ -64,19 +64,21 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "permission is denied" })
             }
             const users = await this.userService.getUsersSrv(filter)
-            if (!users || !users.total || !users.data) {
+            if (!users || !users.total) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()
             }
 
-            users.data?.forEach(user => {
-                delete (user as any)._id
-                delete (user as any).createdAt
-                delete (user as any).updatedAt
-                delete (user as any).firebaseID
-                delete (user as any).userType
-                delete (user as any).userUUID
-            })
+            if (users.data) {
+                users.data.forEach(user => {
+                    delete (user as any)._id
+                    delete (user as any).createdAt
+                    delete (user as any).updatedAt
+                    delete (user as any).firebaseID
+                    delete (user as any).userType
+                    delete (user as any).userUUID
+                })
+            }
 
             logger.info("End http.admin.getUsers")
             return res.status(HTTP.StatusOK).send(users);
@@ -244,9 +246,13 @@ class AdminHandler {
             }
 
             const data = await this.categoryService.getCategoriesPaginationSrv(filter.limit, filter.offset, filter.search)
+            if (!data || !data.total) {
+                logger.error('categories are not found')
+                return res.status(HTTP.StatusNoContent).send()
+            }
 
             logger.info("End http.admin.getCategories")
-            return res.status(data ? HTTP.StatusOK : HTTP.StatusNoContent).send(data);
+            return res.status(HTTP.StatusOK).send(data);
 
         } catch (error) {
             logger.error(error)
