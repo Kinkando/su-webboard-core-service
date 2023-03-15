@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { v4 as uuid } from 'uuid';
 import { CloudStorage, File } from '../cloud/google/storage';
 import { SendGrid } from "../cloud/sendgrid/sendgrid";
 import { FilterUser, User, UserPagination } from "../model/user";
@@ -6,7 +7,7 @@ import { UserRepository } from "../repository/mongo/user_repository";
 import logger from "../util/logger";
 
 const storageFolder = "user"
-const defaultImageURL = `${storageFolder}/avatar-1.png`
+const defaultImageURL = `avatar-1.png`
 
 export function newUserService(repository: UserRepository, firebase: admin.app.App, storage: CloudStorage, sendgrid: SendGrid) {
     return new UserService(repository, firebase, storage, sendgrid)
@@ -55,9 +56,7 @@ export class UserService implements Service {
                 throw Error('user is not found')
             }
             user.userImageURL = this.storage.uploadFile(image, storageFolder)
-            if (u.userImageURL !== defaultImageURL) {
-                this.storage.deleteFile(u.userImageURL!)
-            }
+            await this.storage.deleteFile(u.userImageURL!)
         }
 
         await this.repository.updateUserRepo(user);
@@ -90,9 +89,10 @@ export class UserService implements Service {
         })
 
         user.userDisplayName = user.userFullName
-        user.userImageURL = defaultImageURL
+        user.userImageURL = `${storageFolder}/${uuid()}.${defaultImageURL.substring(defaultImageURL.lastIndexOf('.')+1)}`
         user.isAnonymous = false
         user.firebaseID = firebaseUser.uid
+        await this.storage.copyFile(`${storageFolder}/${defaultImageURL}`, user.userImageURL)
         await this.repository.createUserRepo(user);
 
         logger.info(`End service.user.createUserSrv`)

@@ -75,8 +75,6 @@ class AdminHandler {
                     delete (user as any).createdAt
                     delete (user as any).updatedAt
                     delete (user as any).firebaseID
-                    delete (user as any).userType
-                    delete (user as any).userUUID
                 })
             }
 

@@ -25,6 +25,7 @@ interface Service {
     deleteFile(fileName: string): void
     signedURL(fileName: string): Promise<string>
     publicURL(fileName: string): string
+    copyFile(from: string, to: string): void
 }
 
 export class CloudStorage implements Service {
@@ -61,5 +62,11 @@ export class CloudStorage implements Service {
     publicURL(fileName: string): string {
         const baseURL = "https://storage.googleapis.com"
         return `${baseURL}/${this.bucketName}/${fileName}`
+    }
+
+    async copyFile(from: string, to: string) {
+        const src = this.storage.bucket(this.bucketName).file(from)
+        const dsc = this.storage.bucket(this.bucketName).file(to)
+        await src.copy(dsc)
     }
 }
