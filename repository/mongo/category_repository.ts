@@ -2,6 +2,7 @@ import { Category } from "../../model/category";
 import logger from "../../util/logger";
 import * as mongoDB from "mongodb";
 import categoryModel from './model/category'
+import { Pagination } from "../../model/common";
 
 export function newCategoryRepository(db: mongoDB.Db) {
     return new CategoryRepository(db)
@@ -10,7 +11,7 @@ export function newCategoryRepository(db: mongoDB.Db) {
 const categoryCollection = "Category"
 
 interface Repository {
-    getCategoriesPaginationRepo(limit: number, offset: number, search?: string): Promise<{ total: number, data: Category[] }>
+    getCategoriesPaginationRepo(query: Pagination): Promise<{ total: number, data: Category[] }>
     getCategoriesRepo(): Promise<Category[]>
     createCategoryRepo(category: Category): void
     updateCategoryRepo(category: Category): void
@@ -20,10 +21,10 @@ interface Repository {
 export class CategoryRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getCategoriesPaginationRepo(limit: number, offset: number, search?: string) {
-        logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify({limit, offset})}`)
+    async getCategoriesPaginationRepo(query: Pagination) {
+        logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify(query)}`)
 
-        const filter = { $regex: `.*${search ?? ''}.*`, $options: "i" }
+        const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const data = (await this.db.collection(categoryCollection).aggregate([
             {$sort: { categoryID: 1 }},
             {$match:{
@@ -37,7 +38,7 @@ export class CategoryRepository implements Repository {
             }},
             {$facet:{
                 "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
-                "stage2" : [ { "$skip": offset }, { "$limit": limit || 10 } ],
+                "stage2" : [ { "$skip": query.offset }, { "$limit": query.limit || 10 } ],
             }},
             {$unwind: "$stage1"},
 

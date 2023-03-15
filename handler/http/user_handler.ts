@@ -44,6 +44,8 @@ class UserHandler {
             delete (user as any).firebaseID
             delete (user as any).userType
             delete (user as any).userUUID
+            delete (user as any).isLinkGoogle
+            delete (user as any).lastLogin
 
             logger.info("End http.user.getProfile")
             return res.status(HTTP.StatusOK).send(user);

@@ -70,6 +70,7 @@ export class UserRepository implements Repository {
 
         // add validate unique student id
         user.userUUID = uuid()
+        user.isLinkGoogle = false
         await this.db.collection(userCollection).insertOne({...user, createdAt: new Date()})
 
         logger.info(`End mongo.user.createUserRepo`)

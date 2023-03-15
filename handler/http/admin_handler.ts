@@ -8,6 +8,7 @@ import { bind, validate } from '../../util/validate';
 import { UserService } from '../../service/user_service';
 import { CategoryService } from '../../service/category_service';
 import { Category } from '../../model/category';
+import { Pagination } from '../../model/common';
 
 export function newAdminHandler(userService: UserService, categoryService: CategoryService) {
     const adminHandler = new AdminHandler(userService, categoryService)
@@ -75,6 +76,8 @@ class AdminHandler {
                     delete (user as any).createdAt
                     delete (user as any).updatedAt
                     delete (user as any).firebaseID
+                    delete (user as any).isLinkGoogle
+                    delete (user as any).lastLogin
                 })
             }
 
@@ -237,13 +240,13 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
             }
 
-            const filter: UserPagination = {
+            const filter: Pagination = {
                 search: req.query.search?.toString() || "",
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
 
-            const data = await this.categoryService.getCategoriesPaginationSrv(filter.limit, filter.offset, filter.search)
+            const data = await this.categoryService.getCategoriesPaginationSrv(filter)
             if (!data || !data.total) {
                 logger.error('categories are not found')
                 return res.status(HTTP.StatusNoContent).send()

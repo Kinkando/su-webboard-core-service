@@ -4,6 +4,7 @@ import cors from 'cors'
 import { Configuration } from '../config/config';
 import { newFirebaseAppWithServiceAccount } from '../cloud/google/firebase';
 import { newCloudStorage } from '../cloud/google/storage';
+import { newGoogleService } from '../cloud/google/google';
 import { newSendGrid } from '../cloud/sendgrid/sendgrid';
 import { useJWT } from './middleware/middleware';
 
@@ -43,6 +44,8 @@ export default async function init(config: Configuration) {
 
     const redis = await newRedisConnection(config.redis)
 
+    const googleService = newGoogleService()
+
     const firebaseApp = newFirebaseAppWithServiceAccount(config.google.firebaseCredential)
 
     const storage = newCloudStorage(firebaseApp, config.google.storage)
@@ -64,7 +67,7 @@ export default async function init(config: Configuration) {
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
     api.use('/admin', newAdminHandler(userService, categoryService))
-    api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
+    api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))
     api.use('/category', newCategoryHandler(categoryService))
 

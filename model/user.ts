@@ -1,4 +1,5 @@
 import { UserType } from "./authen"
+import { Pagination } from "./common"
 
 export interface User {
     userUUID?: string
@@ -10,16 +11,16 @@ export interface User {
     userImageURL?: string
     isAnonymous?: boolean
     firebaseID?: string
+    isLinkGoogle?: boolean
+    lastLogin?: Date
 }
 
 export interface FilterUser {
     userUUID?: string
     firebaseID?: string
+    userEmail?: string
 }
 
-export interface UserPagination {
-    search?: string
+export interface UserPagination extends Pagination {
     userType?: string
-    limit: number
-    offset: number
 }

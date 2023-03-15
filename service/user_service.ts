@@ -39,7 +39,7 @@ export class UserService implements Service {
 
         let user = await this.repository.getUserRepo(filter);
 
-        if (user.userImageURL) {
+        if (user?.userImageURL) {
             user.userImageURL = await this.storage.signedURL(user.userImageURL!)
         }
 
@@ -56,7 +56,7 @@ export class UserService implements Service {
                 throw Error('user is not found')
             }
             user.userImageURL = this.storage.uploadFile(image, storageFolder)
-            await this.storage.deleteFile(u.userImageURL!)
+            try { await this.storage.deleteFile(u.userImageURL!) } catch (error) {}
         }
 
         await this.repository.updateUserRepo(user);

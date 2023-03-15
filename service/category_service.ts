@@ -1,3 +1,4 @@
+import { Pagination } from "../model/common";
 import { Category } from "../model/category";
 import { CategoryRepository } from "../repository/mongo/category_repository";
 import logger from "../util/logger";
@@ -7,7 +8,7 @@ export function newCategoryService(repository: CategoryRepository) {
 }
 
 interface Service {
-    getCategoriesPaginationSrv(limit: number, offset: number, search?: string): Promise<{ total: number, data: Category[] }>
+    getCategoriesPaginationSrv(query: Pagination): Promise<{ total: number, data: Category[] }>
     getCategoriesSrv(): Promise<Category[]>
     upsertCategorySrv(category: Category): void
     deleteCategoriesSrv(categoryIDs: number[]): void
@@ -16,10 +17,10 @@ interface Service {
 export class CategoryService implements Service {
     constructor(private repository: CategoryRepository) {}
 
-    async getCategoriesPaginationSrv(limit: number, offset: number, search?: string) {
-        logger.info(`Start service.category.getCategoriesPaginationSrv, "input": ${JSON.stringify({limit, offset, search})}`)
+    async getCategoriesPaginationSrv(query: Pagination) {
+        logger.info(`Start service.category.getCategoriesPaginationSrv, "input": ${JSON.stringify(query)}`)
 
-        const data = await this.repository.getCategoriesPaginationRepo(limit, offset, search)
+        const data = await this.repository.getCategoriesPaginationRepo(query)
 
         logger.info(`End service.category.getCategoriesPaginationSrv, "output": ${JSON.stringify({ total: data?.total || 0, length: data?.data?.length || 0 })}`)
         return data
