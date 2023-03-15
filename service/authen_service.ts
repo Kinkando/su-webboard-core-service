@@ -39,7 +39,7 @@ export class AuthenService implements Service {
     }
 
     encodeJWTSrv(userUUID: string, userType: UserType): { accessToken: string, refreshToken: string } {
-        logger.info(`Start service.authen.encodeJWTSrv, "input": {"userUUID": "%s", "userType": "%s"}`, userUUID, userType)
+        logger.info(`Start service.authen.encodeJWTSrv, "input": ${JSON.stringify({ userUUID, userType })}`)
 
         const accessJWT: AccessToken = {
             userType,
@@ -63,12 +63,12 @@ export class AuthenService implements Service {
             expiresIn: '7d',
         })
 
-        logger.info(`End service.authen.encodeJWTSrv, "output": {"accessToken": "%s", "refreshToken": "%s"}`, accessToken, refreshToken)
+        logger.info(`End service.authen.encodeJWTSrv, "output": ${JSON.stringify({ accessToken, refreshToken })}`)
         return { accessToken, refreshToken }
     }
 
     decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken {
-        logger.info(`Start service.authen.decodeJWTSrv, "input": {"token": "%s", "type": "%s"}`, token, type)
+        logger.info(`Start service.authen.decodeJWTSrv, "input": ${JSON.stringify({ token, type })}`)
 
         jwt.verify(token, this.jwtSecretKey, { algorithms: ['HS256'] })
 
@@ -79,7 +79,7 @@ export class AuthenService implements Service {
             jsonWebToken = jwt.decode(token) as RefreshToken
         }
 
-        logger.info(`End service.authen.decodeJWTSrv, "output": %s`, JSON.stringify(jsonWebToken))
+        logger.info(`End service.authen.decodeJWTSrv, "output": ${JSON.stringify(jsonWebToken)}`)
         return jsonWebToken
     }
 }

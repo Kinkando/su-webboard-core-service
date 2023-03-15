@@ -21,7 +21,7 @@ export class CategoryRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
     async getCategoriesPaginationRepo(limit: number, offset: number, search?: string) {
-        logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": %s`, JSON.stringify({limit, offset}))
+        logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify({limit, offset})}`)
 
         const filter = { $regex: `.*${search ?? ''}.*`, $options: "i" }
         const data = (await this.db.collection(categoryCollection).aggregate([
@@ -58,7 +58,7 @@ export class CategoryRepository implements Repository {
             return { total: Number(doc.total), data }
         }).toArray())[0];
 
-        logger.info(`End mongo.category.getCategoriesPaginationRepo, "output": %s`, JSON.stringify(data))
+        logger.info(`End mongo.category.getCategoriesPaginationRepo, "output": ${JSON.stringify(data)}`)
         return data
     }
 
@@ -74,12 +74,12 @@ export class CategoryRepository implements Repository {
             }
         })
 
-        logger.info(`End mongo.category.getCategoriesRepo, "output": %s`, JSON.stringify(categories))
+        logger.info(`End mongo.category.getCategoriesRepo, "output": ${JSON.stringify(categories)}`)
         return categories
     }
 
     async createCategoryRepo(category: Category) {
-        logger.info(`Start mongo.category.createCategoryRepo, "input": %s`, JSON.stringify(category))
+        logger.info(`Start mongo.category.createCategoryRepo, "input": ${JSON.stringify(category)}`)
 
         await categoryModel.find().then(async(docs) => {
             let categoryID = 1;
@@ -93,7 +93,7 @@ export class CategoryRepository implements Repository {
     }
 
     async updateCategoryRepo(category: Category) {
-        logger.info(`Start mongo.category.updateCategoryRepo, "input": %s`, JSON.stringify(category))
+        logger.info(`Start mongo.category.updateCategoryRepo, "input": ${JSON.stringify(category)}`)
 
         await categoryModel.updateOne({ categoryID: category.categoryID }, {...category, updatedAt: new Date()})
 
@@ -101,7 +101,7 @@ export class CategoryRepository implements Repository {
     }
 
     async deleteCategoryRepo(categoryID: number) {
-        logger.info(`Start mongo.category.deleteCategoryRepo, "input": %s`, JSON.stringify(categoryID))
+        logger.info(`Start mongo.category.deleteCategoryRepo, "input": ${JSON.stringify(categoryID)}`)
 
         await this.db.collection(categoryCollection).deleteOne({ categoryID })
 

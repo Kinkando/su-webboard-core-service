@@ -17,11 +17,11 @@ export class CategoryService implements Service {
     constructor(private repository: CategoryRepository) {}
 
     async getCategoriesPaginationSrv(limit: number, offset: number, search?: string) {
-        logger.info(`Start service.category.getCategoriesPaginationSrv, "input": %s`, JSON.stringify({limit, offset, search}))
+        logger.info(`Start service.category.getCategoriesPaginationSrv, "input": ${JSON.stringify({limit, offset, search})}`)
 
         const data = await this.repository.getCategoriesPaginationRepo(limit, offset, search)
 
-        logger.info(`End service.category.getCategoriesPaginationSrv, "output": %s`, JSON.stringify({ total: data?.total || 0, length: data?.data?.length || 0 }))
+        logger.info(`End service.category.getCategoriesPaginationSrv, "output": ${JSON.stringify({ total: data?.total || 0, length: data?.data?.length || 0 })}`)
         return data
     }
 
@@ -35,7 +35,7 @@ export class CategoryService implements Service {
     }
 
     async upsertCategorySrv(category: Category) {
-        logger.info(`Start service.category.upsertCategorySrv, "input": %s`, JSON.stringify(category))
+        logger.info(`Start service.category.upsertCategorySrv, "input": ${JSON.stringify(category)}`)
 
         category.categoryHexColor = category.categoryHexColor.toUpperCase()
 
@@ -49,7 +49,7 @@ export class CategoryService implements Service {
     }
 
     async deleteCategoriesSrv(categoryIDs: number[]) {
-        logger.info(`Start service.category.deleteCategoriesSrv, "input": %s`, JSON.stringify(categoryIDs))
+        logger.info(`Start service.category.deleteCategoriesSrv, "input": ${JSON.stringify(categoryIDs)}`)
 
         categoryIDs.forEach(async(categoryID) => await this.repository.deleteCategoryRepo(categoryID))
 

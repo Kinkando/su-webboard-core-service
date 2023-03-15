@@ -34,7 +34,7 @@ export class UserService implements Service {
     ) {}
 
     async getUserSrv(filter: FilterUser) {
-        logger.info(`Start service.user.getUserSrv, "input": %s`, JSON.stringify(filter))
+        logger.info(`Start service.user.getUserSrv, "input": ${JSON.stringify(filter)}`)
 
         let user = await this.repository.getUserRepo(filter);
 
@@ -42,12 +42,12 @@ export class UserService implements Service {
             user.userImageURL = await this.storage.signedURL(user.userImageURL!)
         }
 
-        logger.info(`End service.user.getUserSrv, "output": %s`, JSON.stringify(user))
+        logger.info(`End service.user.getUserSrv, "output": ${JSON.stringify(user)}`)
         return user
     }
 
     async updateUserProfileSrv(user: User, image: File) {
-        logger.info(`Start service.user.updateUserProfileSrv, "input": %s`, JSON.stringify(user))
+        logger.info(`Start service.user.updateUserProfileSrv, "input": ${JSON.stringify(user)}`)
 
         if (image) {
             const u = await this.repository.getUserRepo({ userUUID: user.userUUID })
@@ -67,7 +67,7 @@ export class UserService implements Service {
     }
 
     async getUsersSrv(query: UserPagination) {
-        logger.info(`Start service.user.getUsersSrv, "input": %s`, JSON.stringify(query))
+        logger.info(`Start service.user.getUsersSrv, "input": ${JSON.stringify(query)}`)
 
         const users = await this.repository.getUsersRepo(query)
 
@@ -77,12 +77,12 @@ export class UserService implements Service {
             }
         }
 
-        logger.info(`End service.user.getUsersSrv, "output": {"total": %d, "data.length": %d}`, users?.total || 0, users?.data?.length || 0)
+        logger.info(`End service.user.getUsersSrv, "output": {"total": ${users?.total || 0}, "data.length": ${users?.data?.length || 0}}`)
         return users
     }
 
     async createUserSrv(user: User) {
-        logger.info(`Start service.user.createUserSrv, "input": %s`, JSON.stringify(user))
+        logger.info(`Start service.user.createUserSrv, "input": ${JSON.stringify(user)}`)
 
         const firebaseUser = await this.firebase.auth().createUser({
             email: user.userEmail,
@@ -100,7 +100,7 @@ export class UserService implements Service {
     }
 
     async updateUserSrv(user: User) {
-        logger.info(`Start service.user.updateUserSrv, "input": %s`, JSON.stringify(user))
+        logger.info(`Start service.user.updateUserSrv, "input": ${JSON.stringify(user)}`)
 
         const u = await this.repository.getUserRepo({ userUUID: user.userUUID })
         if (!u || !u.userUUID) {
@@ -122,7 +122,7 @@ export class UserService implements Service {
     }
 
     async deleteUsersSrv(userUUIDs: string[]) {
-        logger.info(`Start service.user.deleteUsersSrv, "input": %s`, userUUIDs)
+        logger.info(`Start service.user.deleteUsersSrv, "input": ${userUUIDs}`)
 
         userUUIDs.forEach(async(userUUID) => {
             try {
@@ -146,7 +146,7 @@ export class UserService implements Service {
     }
 
     async isExistEmailSrv(email: string) {
-        logger.info(`Start service.user.isExistEmailSrv, "input": "%s"`, email)
+        logger.info(`Start service.user.isExistEmailSrv, "input": "${email}"`)
 
         const isExist = await this.repository.isExistEmailRepo(email);
 
@@ -155,7 +155,7 @@ export class UserService implements Service {
     }
 
     async resetPasswordSrv(tokenID: string) {
-        logger.info(`Start service.user.resetPasswordSrv, "input": {"tokenID": "%s"}`, tokenID)
+        logger.info(`Start service.user.resetPasswordSrv, "input": {"tokenID": "${tokenID}"}`)
 
         this.sendgrid.sendEmailTemplate("")
 
