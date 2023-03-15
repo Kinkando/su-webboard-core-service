@@ -15,6 +15,7 @@ export function newAuthenHandler(apiKey: string, authenService: AuthenService, u
     tokenRouter.post('/verify', (req, res, next) => authenHandler.verifyToken(req, res, next))
     tokenRouter.post('/refresh', (req, res, next) => authenHandler.refreshToken(req, res, next))
     tokenRouter.post('/revoke', (req, res, next) => authenHandler.revokeToken(req, res, next))
+    tokenRouter.delete('/revoke', (req, res, next) => authenHandler.revokeExpiredTokens(req, res, next))
 
     return authRouter
 }
@@ -104,6 +105,21 @@ class AuthenHandler {
         } catch (error) {
             logger.error(error)
             return res.status(HTTP.StatusUnauthorized).send({ error: (error as Error).message })
+        }
+    }
+
+    async revokeExpiredTokens(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.authen.revokeExpiredTokens")
+
+        try {
+            await this.authenService.revokeExpiredTokensSrv()
+
+            logger.info("End http.authen.revokeExpiredTokens")
+            return res.status(HTTP.StatusOK).send({ message: "success" })
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
         }
     }
 

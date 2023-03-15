@@ -22,6 +22,7 @@ interface Repository {
     createRefreshTokenRepo(refreshToken: RefreshToken): void
     revokeAccessTokenRepo(accessToken: AccessToken): void
     revokeRefreshTokenRepo(refreshToken: RefreshToken): void
+    revokeExpiredTokensRepo(): void
 }
 
 export class CacheRepository implements Repository {
@@ -40,7 +41,7 @@ export class CacheRepository implements Repository {
         logger.info(`Start redis.cache.createAccessTokenRepo, "input": ${JSON.stringify({ accessToken })}`)
 
         const key = tokenKey(accessToken)
-        await this.db.SET(key, key)
+        await this.db.SET(key, `${accessToken.iat}:${accessToken.exp}`)
 
         logger.info(`End redis.cache.createAccessTokenRepo`)
     }
@@ -49,7 +50,7 @@ export class CacheRepository implements Repository {
         logger.info(`Start redis.cache.createRefreshTokenRepo, "input": ${JSON.stringify({ refreshToken })}`)
 
         const key = tokenKey(refreshToken)
-        await this.db.SET(key, key)
+        await this.db.SET(key, `${refreshToken.iat}:${refreshToken.exp}`)
 
         logger.info(`End redis.cache.createRefreshTokenRepo`)
     }
@@ -70,5 +71,28 @@ export class CacheRepository implements Repository {
         await this.db.DEL(key)
 
         logger.info(`End redis.cache.revokeRefreshTokenRepo`)
+    }
+
+    async revokeExpiredTokensRepo() {
+        logger.info(`Start redis.cache.revokeExpiredTokensRepo`)
+
+        const now = Math.floor(new Date().getTime() / 1000)
+
+        let total = 0;
+
+        const tokens = await this.db.KEYS('*')
+        for (const key of tokens) {
+            const timestamp = await this.db.get(key)
+            if (timestamp) {
+                const exp = Number(timestamp.split(":")[1])
+                if (now > exp) {
+                    total++;
+                    await this.db.del(key)
+                }
+            }
+        }
+        logger.warn(`delete expired token: ${total} token(s)`)
+
+        logger.info(`End redis.cache.revokeExpiredTokensRepo`)
     }
 }

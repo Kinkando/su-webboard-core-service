@@ -1,11 +1,13 @@
-export interface AccessToken {
+import { JwtPayload } from "jsonwebtoken"
+
+export interface AccessToken extends JwtPayload {
     userType: UserType
     userUUID: string
     sessionUUID: string
     type: 'access'
 }
 
-export interface RefreshToken {
+export interface RefreshToken extends JwtPayload {
     userType: UserType
     userUUID: string
     sessionUUID: string

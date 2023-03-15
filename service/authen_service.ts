@@ -16,6 +16,7 @@ interface Service {
     decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
     createTokenSrv(token: string, type: 'access' | 'refresh'): void
     revokeTokenSrv(token: string, type: 'access' | 'refresh'): void
+    revokeExpiredTokensSrv(): void
 }
 
 export class AuthenService implements Service {
@@ -122,5 +123,17 @@ export class AuthenService implements Service {
         }
 
         logger.info(`End service.authen.revokeTokenSrv`)
+    }
+
+    async revokeExpiredTokensSrv() {
+        logger.info(`Start service.authen.revokeExpiredTokensSrv`)
+
+        try {
+            await this.cacheRepository.revokeExpiredTokensRepo()
+        } catch (error) {
+            logger.error(error)
+        }
+
+        logger.info(`End service.authen.revokeExpiredTokensSrv`)
     }
 }
