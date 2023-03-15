@@ -17,7 +17,7 @@ export function tokenKey(token: AccessToken | RefreshToken): string {
 }
 
 interface Repository {
-    checkExistRepo(sessionUUID: string): Promise<boolean>
+    isExistToken(jwt: AccessToken | RefreshToken): Promise<boolean>
     createAccessTokenRepo(accessToken: AccessToken): void
     createRefreshTokenRepo(refreshToken: RefreshToken): void
     revokeAccessTokenRepo(accessToken: AccessToken): void
@@ -28,12 +28,13 @@ interface Repository {
 export class CacheRepository implements Repository {
     constructor(private db: RedisClientType) {}
 
-    async checkExistRepo(sessionUUID: string) {
-        logger.info(`Start redis.cache.checkExistRepo, "input": ${JSON.stringify({ sessionUUID })}`)
+    async isExistToken(jwt: AccessToken | RefreshToken) {
+        logger.info(`Start redis.cache.isExistToken, "input": ${JSON.stringify({ jwt })}`)
 
-        const isExist = true
+        const key = `${jwt.type === 'access' ? ACCESS_TOKEN_PREFIX : REFRESH_TOKEN_PREFIX}:${jwt.userType}:${jwt.userUUID}:${jwt.sessionUUID}`
+        const isExist = (await this.db.KEYS(key)).length > 0
 
-        logger.info(`End redis.cache.checkExistRepo, "output": ${JSON.stringify({ isExist })}`)
+        logger.info(`End redis.cache.isExistToken, "output": ${JSON.stringify({ isExist })}`)
         return isExist
     }
 

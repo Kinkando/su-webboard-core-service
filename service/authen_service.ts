@@ -17,6 +17,7 @@ interface Service {
     createTokenSrv(token: string, type: 'access' | 'refresh'): void
     revokeTokenSrv(token: string, type: 'access' | 'refresh'): void
     revokeExpiredTokensSrv(): void
+    isExistToken(jwt: AccessToken | RefreshToken): Promise<boolean>
 }
 
 export class AuthenService implements Service {
@@ -135,5 +136,14 @@ export class AuthenService implements Service {
         }
 
         logger.info(`End service.authen.revokeExpiredTokensSrv`)
+    }
+
+    async isExistToken(jwt: AccessToken | RefreshToken) {
+        logger.info(`Start service.authen.isExistToken, "input": ${JSON.stringify({ jwt })}`)
+
+        const isExist = await this.cacheRepository.isExistToken(jwt)
+
+        logger.info(`End service.authen.isExistToken, "output": ${JSON.stringify({ isExist })}`)
+        return isExist
     }
 }

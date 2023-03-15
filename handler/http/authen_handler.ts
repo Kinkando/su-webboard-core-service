@@ -66,8 +66,18 @@ class AuthenHandler {
             }
 
             const jwtDecode = this.authenService.decodeJWTSrv(refreshToken, 'refresh')
-            if (!jwtDecode || jwtDecode.type !== 'refresh') {
+            if (!jwtDecode || jwtDecode.type !== 'refresh' || !jwtDecode.exp) {
                 throw Error('accept only refreshToken')
+            }
+
+            const now = Math.floor(new Date(jwtDecode.exp).getTime() / 1000)
+            if (now > jwtDecode.exp) {
+                throw Error('refreshToken is expired')
+            }
+
+            const isExist = await this.authenService.isExistToken(jwtDecode)
+            if (!isExist) {
+                throw Error('refreshToken is not found')
             }
 
             const jwt = this.authenService.encodeJWTSrv(jwtDecode.userUUID, jwtDecode.userType)
