@@ -95,7 +95,7 @@ export class CategoryRepository implements Repository {
     async updateCategoryRepo(category: Category) {
         logger.info(`Start mongo.category.updateCategoryRepo, "input": %s`, JSON.stringify(category))
 
-        await categoryModel.updateOne({ categoryID: category.categoryID }, {...category, createdAt: new Date()})
+        await categoryModel.updateOne({ categoryID: category.categoryID }, {...category, updatedAt: new Date()})
 
         logger.info(`End mongo.category.updateCategoryRepo`)
     }

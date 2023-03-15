@@ -50,19 +50,7 @@ export class UserRepository implements Repository {
                 total: "$stage1.count",
                 data: "$stage2"
             }}
-        ]).map(doc => {
-            const data: User[] = []
-            doc.data.forEach((user: User) => {
-                delete (user as any)._id
-                delete (user as any).createdAt
-                delete (user as any).updatedAt
-                delete (user as any).firebaseID
-                delete (user as any).userType
-                delete (user as any).userUUID
-                data.push(user)
-            })
-            return { total: Number(doc.total), data: doc.data as User[] }
-        }).toArray())[0];
+        ]).map(doc => { return { total: Number(doc.total), data: doc.data as User[] }}).toArray())[0];
 
         logger.info(`End mongo.user.getUsersRepo, "output": ${JSON.stringify(users)}`)
         return users
@@ -72,14 +60,6 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.getUserRepo, "input": ${JSON.stringify(filter)}`)
 
         const user = await this.db.collection<User>(userCollection).findOne(filter)
-        if (user) {
-            delete (user as any)._id
-            delete (user as any).createdAt
-            delete (user as any).updatedAt
-            delete (user as any).firebaseID
-            delete (user as any).userType
-            delete (user as any).userUUID
-        }
 
         logger.info(`End mongo.user.getUserRepo, "output": ${JSON.stringify(user)}`)
         return user as User

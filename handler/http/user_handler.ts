@@ -38,6 +38,13 @@ class UserHandler {
                 throw Error("user not found")
             }
 
+            delete (user as any)._id
+            delete (user as any).createdAt
+            delete (user as any).updatedAt
+            delete (user as any).firebaseID
+            delete (user as any).userType
+            delete (user as any).userUUID
+
             logger.info("End http.user.getProfile")
             return res.status(HTTP.StatusOK).send(user);
 
