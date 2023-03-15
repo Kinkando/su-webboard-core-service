@@ -4,6 +4,7 @@ dotenv.config();
 export interface Configuration {
     readonly app: AppConfiguration
     readonly mongo: DatabaseConfiguration
+    readonly redis: DatabaseConfiguration
     readonly google: GoogleConfiguration
     readonly sendgrid: SendGridConfiguration
 }
@@ -18,7 +19,7 @@ export interface DatabaseConfiguration {
     readonly host?: string
     readonly port?: number
     readonly auth: AuthConfiguration
-    connectString: string
+    connectString?: string
 }
 
 export interface AuthConfiguration {
@@ -69,6 +70,15 @@ const config: Configuration = {
             password: process.env.MONGO_PASSWORD!,
         }
     },
+    redis: {
+        host: process.env.REDIS_HOST!,
+        port: Number(process.env.REDIS_PORT!),
+        auth:{
+            dbName: process.env.REDIS_DATABASE!,
+            username: process.env.REDIS_USERNAME!,
+            password: process.env.REDIS_PASSWORD!,
+        }
+    },
     google: {
         storage: {
             bucketName: process.env.FIREBASE_STORAGE_BUCKET_NAME!,
@@ -92,6 +102,6 @@ const config: Configuration = {
         senderEmail: process.env.SENDGRID_SENDER_EMAIL!,
     },
 }
-config.mongo.connectString = config.mongo.connectString.replace("${USERNAME}", config.mongo.auth.username).replace("${PASSWORD}", config.mongo.auth.password)
+config.mongo.connectString = config.mongo.connectString?.replace("${USERNAME}", config.mongo.auth.username).replace("${PASSWORD}", config.mongo.auth.password)
 
 export default config

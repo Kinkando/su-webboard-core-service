@@ -1,20 +1,28 @@
 import express from 'express';
-import { Configuration } from '../config/config';
-import newConnection from '../repository/mongo/mongo';
-import { newUserRepository } from '../repository/mongo/user_repository';
-import { newUserHandler } from '../handler/http/user_handler';
-import { newUserService } from '../service/user_service';
-import { newFirebaseAppWithServiceAccount } from '../cloud/google/firebase';
-import { newAuthenService } from '../service/authen_service';
-import { newAuthenHandler } from '../handler/http/authen_handler';
-import { useJWT } from './middleware/middleware';
-import { newCloudStorage } from '../cloud/google/storage';
-import { newAdminHandler } from '../handler/http/admin_handler';
-import { newSendGrid } from '../cloud/sendgrid/sendgrid';
-import { newCategoryRepository } from '../repository/mongo/category_repository';
-import { newCategoryService } from '../service/category_service';
-import { newCategoryHandler } from '../handler/http/category_handler';
 import cors from 'cors'
+
+import { Configuration } from '../config/config';
+import { newFirebaseAppWithServiceAccount } from '../cloud/google/firebase';
+import { newCloudStorage } from '../cloud/google/storage';
+import { newSendGrid } from '../cloud/sendgrid/sendgrid';
+import { useJWT } from './middleware/middleware';
+
+import newMongoConnection from '../repository/mongo/mongo';
+import newRedisConnection from '../repository/redis/redis';
+
+import { newAdminHandler } from '../handler/http/admin_handler';
+import { newAuthenHandler } from '../handler/http/authen_handler';
+import { newCategoryHandler } from '../handler/http/category_handler';
+import { newHealthHandler } from '../handler/http/health_handler';
+import { newUserHandler } from '../handler/http/user_handler';
+
+import { newAuthenService } from '../service/authen_service';
+import { newCategoryService } from '../service/category_service';
+import { newUserService } from '../service/user_service';
+
+import { newUserRepository } from '../repository/mongo/user_repository';
+import { newCategoryRepository } from '../repository/mongo/category_repository';
+import { newCacheRepository } from '../repository/redis/catche_repository';
 
 export default async function init(config: Configuration) {
     const api = express();
@@ -32,7 +40,9 @@ export default async function init(config: Configuration) {
     api.use(express.urlencoded({ extended: false }));
     api.use(useJWT(config.app.jwtSecretKey))
 
-    const mongoDB = await newConnection(config.mongo)
+    const mongoDB = await newMongoConnection(config.mongo)
+
+    const redis = await newRedisConnection(config.redis)
 
     const firebaseApp = newFirebaseAppWithServiceAccount(config.google.firebaseCredential)
 
@@ -41,15 +51,17 @@ export default async function init(config: Configuration) {
     const sendgrid = newSendGrid(config.sendgrid)
 
     // define repo
+    const cacheRepository = newCacheRepository(redis as any)
     const categoryRepository = newCategoryRepository(mongoDB)
     const userRepository = newUserRepository(mongoDB)
 
     // define service
-    const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp)
+    const authenService = newAuthenService(config.app.jwtSecretKey, firebaseApp, cacheRepository)
     const categoryService = newCategoryService(categoryRepository)
     const userService = newUserService(userRepository, firebaseApp, storage, sendgrid)
 
     // define handler
+    api.use('', newHealthHandler(mongoDB, redis as any))
     api.use('/admin', newAdminHandler(userService, categoryService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, authenService, userService))
     api.use('/user', newUserHandler(userService, storage))

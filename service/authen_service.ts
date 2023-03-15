@@ -3,9 +3,10 @@ import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken, UserType } from "../model/authen";
 import logger from "../util/logger";
+import { CacheRepository } from '../repository/redis/catche_repository';
 
-export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App) {
-    return new AuthenService(jwtSecretKey as Secret, firebase)
+export function newAuthenService(jwtSecretKey: string, firebase: admin.app.App, cacheRepository: CacheRepository) {
+    return new AuthenService(jwtSecretKey as Secret, firebase, cacheRepository)
 }
 
 interface Service {
@@ -18,6 +19,7 @@ export class AuthenService implements Service {
     constructor(
         private jwtSecretKey: Secret,
         private firebase: admin.app.App,
+        private cacheRepository: CacheRepository,
     ) {}
 
     async verifyFirebaseTokenSrv(idToken: string) {

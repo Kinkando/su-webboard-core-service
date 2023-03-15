@@ -9,7 +9,7 @@ export interface CustomRequest extends Request {
 
 export function useJWT(jwtSecretKey: string) {
     return (req: Request, res: Response, next: NextFunction) => {
-        if (!req.url.startsWith('/authen')) {
+        if (!req.url.startsWith('/authen') && req.url !== '/_health') {
             try {
                 const bearerToken = req.headers.authorization
                 if (!bearerToken || !bearerToken.startsWith('Bearer ')) {
