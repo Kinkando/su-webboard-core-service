@@ -10,9 +10,10 @@ import { CategoryService } from '../../service/category_service';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
 import { AuthenService } from '../../service/authen_service';
+import { NotificationSocket } from '../../handler/socket/notification_socket';
 
-export function newAdminHandler(authenService: AuthenService, userService: UserService, categoryService: CategoryService) {
-    const adminHandler = new AdminHandler(authenService, userService, categoryService)
+export function newAdminHandler(authenService: AuthenService, userService: UserService, categoryService: CategoryService, notificationSocket: NotificationSocket) {
+    const adminHandler = new AdminHandler(authenService, userService, categoryService, notificationSocket)
 
     const adminRouter = Router()
 
@@ -30,7 +31,12 @@ export function newAdminHandler(authenService: AuthenService, userService: UserS
 }
 
 class AdminHandler {
-    constructor(private authenService: AuthenService, private userService: UserService, private categoryService: CategoryService) {}
+    constructor(
+        private authenService: AuthenService,
+        private userService: UserService,
+        private categoryService: CategoryService,
+        private notificationSocket: NotificationSocket,
+    ) {}
 
     async revokeUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.admin.revokeUsers")
