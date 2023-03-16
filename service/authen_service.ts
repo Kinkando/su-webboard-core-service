@@ -3,7 +3,7 @@ import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken, UserType } from "../model/authen";
 import logger from "../util/logger";
-import { CacheRepository } from '../repository/redis/catche_repository';
+import { CacheRepository } from '../repository/redis/cache_repository';
 import { AppConfiguration } from '../config/config';
 
 export function newAuthenService(appConfig: AppConfiguration, firebase: admin.app.App, cacheRepository: CacheRepository) {

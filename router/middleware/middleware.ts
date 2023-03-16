@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { RedisClientType } from 'redis';
 import HTTP from '../../common/http';
 import { AccessToken, Profile } from '../../model/authen';
-import { tokenKey } from '../../repository/redis/catche_repository';
+import { tokenKey } from '../../repository/redis/cache_repository';
 
 export interface CustomRequest extends Request {
     profile: Profile

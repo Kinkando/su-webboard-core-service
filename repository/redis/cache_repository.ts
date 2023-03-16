@@ -101,15 +101,9 @@ export class CacheRepository implements Repository {
     async revokeTokenRepo(userUUID: string) {
         logger.info(`Start redis.cache.revokeTokenRepo, "input": ${JSON.stringify({ userUUID })}`)
 
-        let total = 0
-        for await (const key of this.db.scanIterator({
-            TYPE: 'string', // `SCAN` only
-            MATCH: `*:*:${userUUID}:*`,
-            COUNT: 1000
-        })) {
-            const count = await this.db.del(key)
-            total += count
-        }
+        const keys = await this.db.KEYS(`*:*:${userUUID}:*`)
+
+        const total = await this.db.DEL(keys)
 
         logger.info(`End redis.cache.revokeTokenRepo, "output": ${JSON.stringify({ total })}`)
         return total

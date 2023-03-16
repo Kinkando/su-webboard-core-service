@@ -27,7 +27,7 @@ import { newUserService } from '../service/user_service';
 
 import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCategoryRepository } from '../repository/mongo/category_repository';
-import { newCacheRepository } from '../repository/redis/catche_repository';
+import { newCacheRepository } from '../repository/redis/cache_repository';
 
 export default async function init(config: Configuration) {
     const PORT = process.env.PORT || config.app.port;
