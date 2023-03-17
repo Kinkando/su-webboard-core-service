@@ -1,9 +1,8 @@
+import { v4 as uuid } from "uuid";
+import { CloudStorage, File } from '../cloud/google/storage';
 import { FilterForum, Forum, ForumView } from "../model/forum";
 import { ForumRepository } from "../repository/mongo/forum_repository";
-import { CloudStorage } from '../cloud/google/storage';
-import { File } from '../cloud/google/storage';
 import logger from "../util/logger";
-import { v4 as uuid } from "uuid";
 
 const storageFolder = "forum"
 
@@ -23,27 +22,27 @@ export class ForumService implements Service {
     constructor(private repository: ForumRepository, private storage: CloudStorage) {}
 
     async getForumsSrv(filter: FilterForum) {
-        logger.info(`Start mongo.forum.getForumsSrv, "input": ${JSON.stringify(filter)}`)
+        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify(filter)}`)
 
         const forums = await this.repository.getForumsRepo(filter)
 
         if(forums?.data) {
             for(let forum of forums.data) {
-                if (forum.forumImageURLs) {
-                    for(let i=0; i<forum.forumImageURLs.length; i++) {
-                        forum.forumImageURLs[i] = this.storage.publicURL(forum.forumImageURLs[i])
-                    }
-                }
+                // if (forum.forumImageURLs) {
+                //     for(let i=0; i<forum.forumImageURLs.length; i++) {
+                //         forum.forumImageURLs[i] = this.storage.publicURL(forum.forumImageURLs[i])
+                //     }
+                // }
                 forum.authorImageURL = await this.storage.signedURL(forum.authorImageURL)
             }
         }
 
-        logger.info(`End mongo.forum.getForumsSrv, "output": {"total": ${forums?.total || 0}, "data.length": ${forums?.data?.length || 0}}`)
+        logger.info(`End service.forum.getForumsSrv, "output": {"total": ${forums?.total || 0}, "data.length": ${forums?.data?.length || 0}}`)
         return forums
     }
 
     async getForumDetailSrv(forumUUID: string) {
-        logger.info(`Start mongo.forum.getForumDetailSrv, "input": ${JSON.stringify({ forumUUID })}`)
+        logger.info(`Start service.forum.getForumDetailSrv, "input": ${JSON.stringify({ forumUUID })}`)
 
         const forum = await this.repository.getForumDetailRepo(forumUUID)
 
@@ -56,12 +55,12 @@ export class ForumService implements Service {
             forum.authorImageURL = await this.storage.signedURL(forum.authorImageURL)
         }
 
-        logger.info(`End mongo.forum.getForumDetailSrv, "output": ${JSON.stringify(forum)}`)
+        logger.info(`End service.forum.getForumDetailSrv, "output": ${JSON.stringify(forum)}`)
         return forum
     }
 
     async upsertForumSrv(forum: Forum, files: File[]) {
-        logger.info(`Start mongo.forum.upsertForumSrv, "input": ${JSON.stringify(forum)}`)
+        logger.info(`Start service.forum.upsertForumSrv, "input": ${JSON.stringify(forum)}`)
 
         const uploadForumImage = async (forum: Forum) => {
             if (files) {
@@ -90,19 +89,19 @@ export class ForumService implements Service {
             }
             await uploadForumImage(forum)
             await this.repository.updateForumRepo(forum)
-        } else {
 
+        } else {
             forum.forumUUID = uuid()
             await uploadForumImage(forum)
             await this.repository.createForumRepo(forum)
         }
 
-        logger.info(`End mongo.forum.upsertForumSrv, "output": ${JSON.stringify({ forumUUID: forum.forumUUID })}`)
+        logger.info(`End service.forum.upsertForumSrv, "output": ${JSON.stringify({ forumUUID: forum.forumUUID })}`)
         return forum.forumUUID
     }
 
     async deleteForumSrv(forumUUID: string) {
-        logger.info(`Start mongo.forum.deleteForumSrv, "input": ${JSON.stringify(forumUUID)}`)
+        logger.info(`Start service.forum.deleteForumSrv, "input": ${JSON.stringify(forumUUID)}`)
 
         const forum = await this.repository.getForumRepo(forumUUID)
         if (!forum) {
@@ -121,14 +120,14 @@ export class ForumService implements Service {
 
         await this.repository.deleteForumRepo(forumUUID)
 
-        logger.info(`End mongo.forum.deleteForumSrv`)
+        logger.info(`End service.forum.deleteForumSrv`)
     }
 
     async likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean) {
-        logger.info(`Start mongo.forum.likeForumSrv, "input": ${JSON.stringify({forumUUID, userUUID, isLike})}`)
+        logger.info(`Start service.forum.likeForumSrv, "input": ${JSON.stringify({forumUUID, userUUID, isLike})}`)
 
         await this.repository.likeForumRepo(forumUUID, userUUID, isLike)
 
-        logger.info(`End mongo.forum.likeForumSrv`)
+        logger.info(`End service.forum.likeForumSrv`)
     }
 }

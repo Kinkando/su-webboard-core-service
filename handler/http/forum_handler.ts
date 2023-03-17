@@ -2,14 +2,15 @@ import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
 import HTTP from "../../common/http";
 import { FilterForum, Forum } from '../../model/forum';
+import { CommentService } from '../../service/comment_service';
 import { ForumService } from "../../service/forum_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
 const upload = multer()
 
-export function newForumHandler(forumService: ForumService) {
-    const forumHandler = new ForumHandler(forumService)
+export function newForumHandler(forumService: ForumService, commentService: CommentService) {
+    const forumHandler = new ForumHandler(forumService, commentService)
 
     const forumRouter = Router()
     forumRouter.get('', (req, res, next) => forumHandler.getForums(req, res, next))
@@ -22,7 +23,7 @@ export function newForumHandler(forumService: ForumService) {
 }
 
 export class ForumHandler {
-    constructor(private forumService: ForumService) {}
+    constructor(private forumService: ForumService, private commentService: CommentService) {}
 
     async getForums(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.forum.getForums")
@@ -83,8 +84,8 @@ export class ForumHandler {
 
             const forumUUID = req.params['forumUUID'] as string
             if (!forumUUID) {
-                logger.error('forumUUID is invalid')
-                return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is invalid" })
+                logger.error('forumUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
             }
 
             const forum = await this.forumService.getForumDetailSrv(forumUUID)
@@ -155,14 +156,15 @@ export class ForumHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            if (!req.body.forumUUID) {
+            const forumUUID = req.body.forumUUID
+            if (!forumUUID) {
                 logger.error('forumUUID is required')
                 return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
             }
 
-            await this.forumService.deleteForumSrv(req.body.forumUUID)
+            await this.forumService.deleteForumSrv(forumUUID)
 
-            // remove all related comments with this forum
+            await this.commentService.deleteCommentsByForumUUIDSrv(forumUUID)
 
             logger.info("End http.forum.deleteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

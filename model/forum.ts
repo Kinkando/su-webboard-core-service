@@ -14,7 +14,7 @@ export interface ForumView {
     likeCount?: number
     commentCount?: number
     ranking?: number
-    likeUserUUIDs?: string[]
+    likeUserUUIDs?: string[] // db only
     createdAt?: Date
 }
 
