@@ -8,7 +8,7 @@ export function newCategoryRepository(db: mongoDB.Db) {
     return new CategoryRepository(db)
 }
 
-const categoryCollection = "Category"
+export const CategoryCollection = "Category"
 
 interface Repository {
     getCategoriesPaginationRepo(query: Pagination): Promise<{ total: number, data: Category[] }>
@@ -25,7 +25,7 @@ export class CategoryRepository implements Repository {
         logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify(query)}`)
 
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
-        const data = (await this.db.collection(categoryCollection).aggregate([
+        const data = (await this.db.collection(CategoryCollection).aggregate([
             {$sort: { categoryID: 1 }},
             {$match:{
                 $and: [
@@ -66,7 +66,7 @@ export class CategoryRepository implements Repository {
     async getCategoriesRepo() {
         logger.info(`Start mongo.category.getCategoriesRepo`)
 
-        const categoryDocs = await this.db.collection<Category>(categoryCollection).find({}, { sort: { categoryID: 1 }}).toArray()
+        const categoryDocs = await this.db.collection<Category>(CategoryCollection).find({}, { sort: { categoryID: 1 }}).toArray()
         const categories = categoryDocs.map<Category>(category => {
             return {
                 categoryID: category.categoryID,
@@ -104,7 +104,7 @@ export class CategoryRepository implements Repository {
     async deleteCategoryRepo(categoryID: number) {
         logger.info(`Start mongo.category.deleteCategoryRepo, "input": ${JSON.stringify(categoryID)}`)
 
-        await this.db.collection(categoryCollection).deleteOne({ categoryID })
+        await this.db.collection(CategoryCollection).deleteOne({ categoryID })
 
         logger.info(`End mongo.category.deleteCategoryRepo`)
     }

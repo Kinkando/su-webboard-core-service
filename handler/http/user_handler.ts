@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
-import { CloudStorage, File } from '../../cloud/google/storage';
+import { File } from '../../cloud/google/storage';
 import HTTP from '../../common/http';
 import { User } from '../../model/user';
 import { UserService } from "../../service/user_service";
@@ -8,8 +8,8 @@ import logger from '../../util/logger';
 import { getProfile } from '../../util/profile';
 const upload = multer()
 
-export function newUserHandler(userService: UserService, storage: CloudStorage) {
-    const userHandler = new UserHandler(userService, storage)
+export function newUserHandler(userService: UserService) {
+    const userHandler = new UserHandler(userService)
 
     const userRouter = Router()
 
@@ -21,7 +21,7 @@ export function newUserHandler(userService: UserService, storage: CloudStorage) 
 }
 
 class UserHandler {
-    constructor(private userService: UserService, private storage: CloudStorage) {}
+    constructor(private userService: UserService) {}
 
     async getProfile(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.user.getProfile")

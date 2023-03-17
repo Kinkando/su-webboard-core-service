@@ -7,7 +7,7 @@ export function newUserRepository(db: mongoDB.Db) {
     return new UserRepository(db)
 }
 
-const userCollection = "User"
+export const UserCollection = "User"
 
 interface Repository {
     getUsersRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
@@ -25,7 +25,7 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
 
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
-        const users = (await this.db.collection(userCollection).aggregate([
+        const users = (await this.db.collection(UserCollection).aggregate([
             {$sort: { studentID: 1, createdAt: 1 }},
             {$match:{
                 $and: [
@@ -59,7 +59,7 @@ export class UserRepository implements Repository {
     async getUserRepo(filter: FilterUser) {
         logger.info(`Start mongo.user.getUserRepo, "input": ${JSON.stringify(filter)}`)
 
-        const user = await this.db.collection<User>(userCollection).findOne(filter)
+        const user = await this.db.collection<User>(UserCollection).findOne(filter)
 
         logger.info(`End mongo.user.getUserRepo, "output": ${JSON.stringify(user)}`)
         return user as User
@@ -71,7 +71,7 @@ export class UserRepository implements Repository {
         // add validate unique student id
         user.userUUID = uuid()
         user.isLinkGoogle = false
-        await this.db.collection(userCollection).insertOne({...user, createdAt: new Date()})
+        await this.db.collection(UserCollection).insertOne({...user, createdAt: new Date()})
 
         logger.info(`End mongo.user.createUserRepo`)
     }
@@ -80,7 +80,7 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.updateUserRepo, "input": ${JSON.stringify(user)}`)
 
         // add validate unique student id
-        await this.db.collection(userCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
+        await this.db.collection(UserCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
 
         logger.info(`End mongo.user.updateUserRepo`)
     }
@@ -88,7 +88,7 @@ export class UserRepository implements Repository {
     async deleteUserRepo(userUUID: string) {
         logger.info(`Start mongo.user.deleteUserRepo, "input": "${userUUID}"`)
 
-        await this.db.collection(userCollection).deleteOne({ userUUID })
+        await this.db.collection(UserCollection).deleteOne({ userUUID })
 
         logger.info(`End mongo.user.deleteUserRepo`)
     }
@@ -96,7 +96,7 @@ export class UserRepository implements Repository {
     async isExistEmailRepo(email: string) {
         logger.info(`Start mongo.user.isExistEmailRepo, "input": "${email}"`)
 
-        const count = await this.db.collection(userCollection).countDocuments({ userEmail: email })
+        const count = await this.db.collection(UserCollection).countDocuments({ userEmail: email })
         const isExist = count > 0
 
         logger.info(`End mongo.user.isExistEmailRepo, "output": ${isExist}`)

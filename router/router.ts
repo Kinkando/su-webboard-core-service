@@ -17,16 +17,19 @@ import { newAdminHandler } from '../handler/http/admin_handler';
 import { newAuthenHandler } from '../handler/http/authen_handler';
 import { newCategoryHandler } from '../handler/http/category_handler';
 import { newHealthHandler } from '../handler/http/health_handler';
+import { newForumHandler } from '../handler/http/forum_handler';
 import { newUserHandler } from '../handler/http/user_handler';
 import { NotificationSocket, newNotificationSocket } from '../handler/socket/notification_socket';
 import { ForumSocket, newForumSocket } from '../handler/socket/forum_socket';
 
 import { newAuthenService } from '../service/authen_service';
 import { newCategoryService } from '../service/category_service';
+import { newForumService } from '../service/forum_service';
 import { newUserService } from '../service/user_service';
 
-import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCategoryRepository } from '../repository/mongo/category_repository';
+import { newForumRepository } from '../repository/mongo/forum_repository';
+import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCacheRepository } from '../repository/redis/cache_repository';
 
 export default async function init(config: Configuration) {
@@ -78,18 +81,21 @@ export default async function init(config: Configuration) {
     const cacheRepository = newCacheRepository(redis as any)
     const categoryRepository = newCategoryRepository(mongoDB)
     const userRepository = newUserRepository(mongoDB)
+    const forumRepository = newForumRepository(mongoDB)
 
     // define service
     const authenService = newAuthenService(config.app, firebaseApp, cacheRepository)
     const categoryService = newCategoryService(categoryRepository)
     const userService = newUserService(userRepository, firebaseApp, storage, sendgrid)
+    const forumService = newForumService(forumRepository, storage)
 
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
     api.use('/admin', newAdminHandler(authenService, userService, categoryService, notificationSocket))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
-    api.use('/user', newUserHandler(userService, storage))
+    api.use('/user', newUserHandler(userService))
     api.use('/category', newCategoryHandler(categoryService))
+    api.use('/forum', newForumHandler(forumService))
 
     return api
 }

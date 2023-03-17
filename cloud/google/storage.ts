@@ -1,7 +1,7 @@
-import { StorageConfiguration } from '../../config/config';
+import { v4 as uuid } from 'uuid';
 import * as admin from 'firebase-admin';
 import stream, { Readable } from 'stream';
-import { v4 as uuid } from 'uuid';
+import { StorageConfiguration } from '../../config/config';
 
 export function newCloudStorage(firebase: admin.app.App, config: StorageConfiguration) {
     return new CloudStorage(firebase.storage(), config)
@@ -21,11 +21,12 @@ export interface File {
 }
 
 interface Service {
-    uploadFile(file: File, folder: string): string
+    uploadFile(file: File, folder: string): Promise<string>
     deleteFile(fileName: string): void
     signedURL(fileName: string): Promise<string>
     publicURL(fileName: string): string
     copyFile(from: string, to: string): void
+    setPublic(fileName: string): void
 }
 
 export class CloudStorage implements Service {
@@ -36,15 +37,20 @@ export class CloudStorage implements Service {
         this.expireTime = config.expireTime
     }
 
-    uploadFile(file: File, folder: string): string {
-        const fileName = `${folder}/${uuid()}.${file.originalname.substring(file.originalname.lastIndexOf(".")+1)}`
+    async uploadFile(fileReq: File, folder: string) {
+        const fileName = `${folder}/${uuid()}.${fileReq.originalname.substring(fileReq.originalname.lastIndexOf(".")+1)}`
 
-        const passthroughStream = new stream.PassThrough()
-        passthroughStream.write(file.buffer)
-        passthroughStream.end()
-        passthroughStream.pipe(this.storage.bucket(this.bucketName).file(fileName).createWriteStream())
-
+        await this.storage.bucket(this.bucketName).file(fileName).save(fileReq.buffer)
         return fileName
+
+        // const passthroughStream = new stream.PassThrough()
+        // passthroughStream.write(fileReq.buffer)
+        // passthroughStream.end()
+        // passthroughStream.pipe(this.storage.bucket(this.bucketName).file(fileName).createWriteStream({public: isPublic}))
+        // return await new Promise<string>((resolve, reject) => {
+        //     passthroughStream.on('error', err => reject(err))
+        //     passthroughStream.on('finish', () => {console.log("FINISH"); resolve(fileName)})
+        // })
     }
 
     async deleteFile(fileName: string) {
@@ -65,8 +71,13 @@ export class CloudStorage implements Service {
     }
 
     async copyFile(from: string, to: string) {
-        const src = this.storage.bucket(this.bucketName).file(from)
-        const dsc = this.storage.bucket(this.bucketName).file(to)
+        const bucket = this.storage.bucket(this.bucketName)
+        const src = bucket.file(from)
+        const dsc = bucket.file(to)
         await src.copy(dsc)
+    }
+
+    async setPublic(fileName: string) {
+        await this.storage.bucket(this.bucketName).file(fileName).makePublic()
     }
 }

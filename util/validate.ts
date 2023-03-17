@@ -8,24 +8,38 @@ export interface Schema {
 
 export function validate(schemas: Schema[], req: any) {
     for (const schema of schemas) {
-        if (schema.required && !req[schema.field]) {
+        if (schema.required && (req[schema.field] === undefined || req[schema.field] === null)) {
             throw Error(`${schema.field} is required`)
         }
         if (req[schema.field]) {
-            if (schema.type === 'number') {
-                req[schema.field] = Number(req[schema.field])
-            } else if (schema.type === 'boolean') {
-                req[schema.field] = Boolean(req[schema.field])
-            }
+            req[schema.field] = _convert(req[schema.field], schema.type)
             if (schema.type === 'email') {
                 if (!email.test(req[schema.field])) throw Error(`${schema.field} is invalid`);
             } else if (schema.type === 'hexColor') {
                 if (!hexColor.test(req[schema.field])) throw Error(`${schema.field} is invalid`);
+            } else if (schema.type.startsWith('array')) {
+                if (!Array.isArray(req[schema.field])) throw Error(`${schema.field} is invalid`);
+                const subType = schema.type.substring(6, schema.type.length-1)
+                for (let value of req[schema.field]) {
+                    value = _convert(value, subType)
+                    if (!value || typeof value !== subType) {
+                        throw Error(`${schema.field} is invalid`);
+                    }
+                }
             } else if (typeof req[schema.field] !== schema.type) {
                 throw Error(`field '${schema.field}' has type '${typeof req[schema.field]}' that unable to assign to type '${schema.type}'`)
             }
         }
     }
+}
+
+function _convert(field: any, type: string) {
+    if (type === 'number') {
+        return Number(field)
+    } else if (type === 'boolean') {
+        return Boolean(field)
+    }
+    return field
 }
 
 export function bind(from: any, schemas?: Schema[]): any {
