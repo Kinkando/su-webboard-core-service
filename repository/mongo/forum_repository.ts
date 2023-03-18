@@ -84,9 +84,15 @@ export class ForumRepository implements Repository {
             }
         }
 
-        let match: any = {}
+        let match: any = { $and: [] }
         if (filter.categoryID) {
-            match.categoryIDs = { $in: [filter.categoryID] }
+            match.$and.push({categoryIDs: { $in: [filter.categoryID] }})
+        }
+        if (filter.search) {
+            const query = { $regex: `.*${filter.search ?? ''}.*`, $options: "i" }
+            match.$and.push({$or: [
+                { title: query }
+            ]})
         }
 
         const data = (await this.db.collection(ForumCollection).aggregate([
