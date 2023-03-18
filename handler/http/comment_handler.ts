@@ -14,6 +14,7 @@ export function newCommentHandler(commentService: CommentService) {
 
     const commentRouter = Router()
     commentRouter.get('/:forumUUID', (req, res, next) => commentHandler.getComments(req, res, next))
+    commentRouter.get('/:forumUUID/:commentUUID', (req, res, next) => commentHandler.getComment(req, res, next))
     commentRouter.put('', upload.array("files"), (req, res, next) => commentHandler.upsertComment(req, res, next))
     commentRouter.delete('', (req, res, next) => commentHandler.deleteComment(req, res, next))
     commentRouter.patch('/like', (req, res, next) => commentHandler.likeComment(req, res, next))
@@ -23,6 +24,46 @@ export function newCommentHandler(commentService: CommentService) {
 
 export class CommentHandler {
     constructor(private commentService: CommentService) {}
+
+    async getComment(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.comment.getComment")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const forumUUID = req.params['forumUUID'] as string
+            if (!forumUUID) {
+                logger.error('forumUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
+            }
+
+            const commentUUID = req.params['commentUUID'] as string
+            if (!commentUUID) {
+                logger.error('commentUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "commentUUID is required" })
+            }
+
+            const comment = await this.commentService.getCommentSrv(commentUUID)
+            if (!comment || !comment.commentUUID) {
+                logger.error('comment is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: 'comment is not found' })
+            }
+
+            comment.isLike = comment.likeUserUUIDs?.includes(profile.userUUID) || false
+            delete comment.likeUserUUIDs
+
+            logger.info("End http.comment.getComment")
+            return res.status(HTTP.StatusOK).send(comment);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
 
     async getComments(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.comment.getComments")

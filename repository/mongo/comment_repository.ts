@@ -12,7 +12,7 @@ export function newCommentRepository(db: mongoDB.Db) {
 export const CommentCollection = 'Comment'
 
 interface Repository {
-    getCommentRepo(commentUUID: string): Promise<Comment>
+    getCommentRepo(commentUUID: string): Promise<CommentView>
     getCommentAndReplyRepo(commentUUID: string): Promise<CommentView[]>
     getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     getCommentsByForumUUIDRepo(forumUUID: string): Promise<Comment[]>
@@ -29,10 +29,32 @@ export class CommentRepository implements Repository {
     async getCommentRepo(commentUUID: string) {
         logger.info(`Start mongo.comment.getCommentRepo, "input": ${JSON.stringify({ commentUUID })}`)
 
-        const comment = await this.db.collection<Comment>(CommentCollection).findOne({ commentUUID })
+        // const comment = await this.db.collection<Comment>(CommentCollection).findOne({ commentUUID })
+
+        const comment = (await this.db.collection(CommentCollection).aggregate([
+            {$match: { commentUUID }},
+            {$lookup: {
+                from: UserCollection,
+                localField: 'commenterUUID',
+                foreignField: 'userUUID',
+                as: 'user'
+            }},
+            {$unwind: '$user'},
+        ]).map(comment => {
+            comment.commenterName = (comment as any).user.userDisplayName
+            comment.commenterImageURL = (comment as any).user.userImageURL
+            comment.likeCount = comment.likeUserUUIDs?.length || 0
+            delete (comment as any)._id
+            delete (comment as any).user
+            delete (comment as any).updatedAt
+            delete (comment as any).likeUserUUIDs
+            // duplicate
+            delete (comment as any).forumUUID
+            return comment as CommentView
+        }).toArray())[0];
 
         logger.info(`End mongo.comment.getCommentRepo, "output": ${JSON.stringify(comment)}`)
-        return comment as Comment
+        return comment
     }
 
     async getCommentAndReplyRepo(commentUUID: string) {

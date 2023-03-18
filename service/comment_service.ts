@@ -13,6 +13,7 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 }
 
 interface Service {
+    getCommentSrv(commentUUID: string): Promise<CommentView>
     getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     upsertCommentSrv(comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
     deleteCommentSrv(commentUUID: string): void
@@ -22,6 +23,22 @@ interface Service {
 
 export class CommentService implements Service {
     constructor(private repository: CommentRepository, private storage: CloudStorage) {}
+
+    async getCommentSrv(commentUUID: string) {
+        logger.info(`Start service.comment.getCommentSrv, "input": ${JSON.stringify({commentUUID})}`)
+
+        const comment = await this.repository.getCommentRepo(commentUUID)
+
+        if (comment?.commentImages) {
+            for(let i=0; i<comment.commentImages.length; i++) {
+                comment.commentImages[i].url = this.storage.publicURL(comment.commentImages[i].url)
+            }
+            comment.commenterImageURL = await this.storage.signedURL(comment.commenterImageURL)
+        }
+
+        logger.info(`End service.comment.getCommentSrv, "output": ${JSON.stringify(comment)}`)
+        return comment
+    }
 
     async getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string) {
         logger.info(`Start service.comment.getCommentsSrv, "input": ${JSON.stringify({commentUUID, filter, userUUID})}`)
