@@ -54,7 +54,7 @@ export class ForumHandler {
                 offset: Number(req.query.offset) || 0,
                 categoryID: Number(req.query.categoryID),
                 sortBy: req.query.sortBy?.toString() || 'createdAt@DESC',
-                userUUID: profile.userUUID,
+                search: req.query.search?.toString(),
             }
 
             const forums = await this.forumService.getForumsSrv(query)

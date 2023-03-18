@@ -12,7 +12,7 @@ export function newForumService(repository: ForumRepository, storage: CloudStora
 }
 
 interface Service {
-    getForumsSrv(filter: FilterForum): Promise<{ total: number, data: ForumView[] }>
+    getForumsSrv(filter: FilterForum, isSignedURL: boolean): Promise<{ total: number, data: ForumView[] }>
     getForumDetailSrv(forumUUID: string): Promise<ForumView>
     upsertForumSrv(forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
     deleteForumSrv(forumUUID: string): void
@@ -22,13 +22,20 @@ interface Service {
 export class ForumService implements Service {
     constructor(private repository: ForumRepository, private storage: CloudStorage) {}
 
-    async getForumsSrv(filter: FilterForum) {
-        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify(filter)}`)
+    async getForumsSrv(filter: FilterForum, isSignedURL: boolean = false) {
+        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify({filter, isSignedURL})}`)
 
         const forums = await this.repository.getForumsRepo(filter)
 
         if(forums?.data) {
             for(let forum of forums.data) {
+                if (forum.forumImages && isSignedURL) {
+                    for(let i=0; i<forum.forumImages.length; i++) {
+                        forum.forumImages[i].url = this.storage.publicURL(forum.forumImages[i].url)
+                    }
+                } else {
+                    delete forum.forumImages
+                }
                 forum.authorImageURL = await this.storage.signedURL(forum.authorImageURL)
             }
         }

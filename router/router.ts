@@ -18,6 +18,7 @@ import { newAnnouncementHandler } from '../handler/http/announcement_handler';
 import { newAuthenHandler } from '../handler/http/authen_handler';
 import { newCategoryHandler } from '../handler/http/category_handler';
 import { newHealthHandler } from '../handler/http/health_handler';
+import { newHomeHandler } from '../handler/http/home_handler';
 import { newCommentHandler } from '../handler/http/comment_handler';
 import { newForumHandler } from '../handler/http/forum_handler';
 import { newUserHandler } from '../handler/http/user_handler';
@@ -105,6 +106,7 @@ export default async function init(config: Configuration) {
     api.use('/announcement', newAnnouncementHandler(announcementService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', newCategoryHandler(categoryService))
+    api.use('/home', newHomeHandler(categoryService, forumService, announcementService))
     api.use('/forum', newForumHandler(forumService, commentService))
     api.use('/comment', newCommentHandler(commentService))
     api.use('/user', newUserHandler(userService))

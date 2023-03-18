@@ -12,7 +12,7 @@ export function newAnnouncementService(repository: AnnouncementRepository, stora
 }
 
 interface Service {
-    getAnnouncementsSrv(filter: Pagination): Promise<{ total: number, data: AnnouncementView[] }>
+    getAnnouncementsSrv(filter: Pagination, isSignedURL: boolean): Promise<{ total: number, data: AnnouncementView[] }>
     getAnnouncementDetailSrv(announcementUUID: string): Promise<AnnouncementView>
     upsertAnnouncementSrv(announcement: Announcement, files: File[], announcementImageUUIDs?: string[]): Promise<{ announcementUUID: string, documents: Document[] }>
     deleteAnnouncementSrv(announcementUUID: string): void
@@ -21,13 +21,20 @@ interface Service {
 export class AnnouncementService implements Service {
     constructor(private repository: AnnouncementRepository, private storage: CloudStorage) {}
 
-    async getAnnouncementsSrv(filter: Pagination) {
-        logger.info(`Start service.announcement.getAnnouncementsSrv, "input": ${JSON.stringify(filter)}`)
+    async getAnnouncementsSrv(filter: Pagination, isSignedURL: boolean = false) {
+        logger.info(`Start service.announcement.getAnnouncementsSrv, "input": ${JSON.stringify({filter, isSignedURL})}`)
 
         const announcements = await this.repository.getAnnouncementsRepo(filter)
 
         if(announcements?.data) {
             for(let announcement of announcements.data) {
+                if (announcement.announcementImages && isSignedURL) {
+                    for(let i=0; i<announcement.announcementImages.length; i++) {
+                        announcement.announcementImages[i].url = this.storage.publicURL(announcement.announcementImages[i].url)
+                    }
+                } else {
+                    delete announcement.announcementImages
+                }
                 announcement.authorImageURL = await this.storage.signedURL(announcement.authorImageURL)
             }
         }

@@ -86,7 +86,6 @@ export class AnnouncementRepository implements Repository {
                 forum.authorImageURL = (forum as any).user.userImageURL
                 delete (forum as any)._id
                 delete (forum as any).user
-                delete (forum as any).announcementImages
                 delete (forum as any).updatedAt
                 data.push({...forum})
             })

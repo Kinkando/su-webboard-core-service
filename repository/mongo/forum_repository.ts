@@ -133,7 +133,6 @@ export class ForumRepository implements Repository {
                 delete (forum as any).user
                 delete (forum as any).updatedAt
                 delete (forum as any).categoryIDs
-                delete (forum as any).forumImages
                 delete (forum as any).likeUserUUIDs
                 data.push({...forum})
             })
