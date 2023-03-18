@@ -116,17 +116,19 @@ export class CommentService implements Service {
     async deleteCommentSrv(commentUUID: string) {
         logger.info(`Start service.comment.deleteCommentSrv, "input": ${JSON.stringify(commentUUID)}`)
 
-        const comment = await this.repository.getCommentRepo(commentUUID)
-        if (!comment) {
+        const comments = await this.repository.getCommentAndReplyRepo(commentUUID)
+        if (!comments || !comments.length) {
             throw Error('commentUUID is not found')
         }
 
-        if (comment.commentImages) {
-            for (const commentImage of comment.commentImages) {
-                try {
-                    await this.storage.deleteFile(commentImage.url)
-                } catch (error) {
-                    logger.error(error)
+        for (const comment of comments) {
+            if (comment.commentImages) {
+                for (const commentImage of comment.commentImages) {
+                    try {
+                        await this.storage.deleteFile(commentImage.url)
+                    } catch (error) {
+                        logger.error(error)
+                    }
                 }
             }
         }

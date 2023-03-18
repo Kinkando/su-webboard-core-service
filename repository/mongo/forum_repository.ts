@@ -66,7 +66,7 @@ export class ForumRepository implements Repository {
             forum.authorName = (forum as any).user.userDisplayName
             forum.authorImageURL = (forum as any).user.userImageURL
             forum.likeCount = forum.likeUserUUIDs?.length || 0
-            forum.commentCount = (forum as any).comments?.length || 0
+            // forum.commentCount = (forum as any).comments?.length || 0
             delete (forum as any)._id
             delete (forum as any).user
             delete (forum as any).updatedAt
@@ -139,7 +139,7 @@ export class ForumRepository implements Repository {
                 forum.authorName = (forum as any).user.userDisplayName
                 forum.authorImageURL = (forum as any).user.userImageURL
                 forum.likeCount = forum.likeUserUUIDs?.length || 0
-                forum.commentCount = (forum as any).comments?.length || 0
+                // forum.commentCount = (forum as any).comments?.length || 0
                 if (filter.sortBy?.includes("ranking@ASC")) {
                     forum.ranking = filter.offset + index + 1
                 }

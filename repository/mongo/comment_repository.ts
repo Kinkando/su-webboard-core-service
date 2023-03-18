@@ -13,6 +13,7 @@ export const CommentCollection = 'Comment'
 
 interface Repository {
     getCommentRepo(commentUUID: string): Promise<Comment>
+    getCommentAndReplyRepo(commentUUID: string): Promise<CommentView[]>
     getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     getCommentsByForumUUIDRepo(forumUUID: string): Promise<Comment[]>
     createCommentRepo(comment: Comment): void
@@ -32,6 +33,18 @@ export class CommentRepository implements Repository {
 
         logger.info(`End mongo.comment.getCommentRepo, "output": ${JSON.stringify(comment)}`)
         return comment as Comment
+    }
+
+    async getCommentAndReplyRepo(commentUUID: string) {
+        logger.info(`Start mongo.comment.getCommentAndReplyRepo, "input": ${JSON.stringify({ commentUUID })}`)
+
+        const comment = await this.db.collection<CommentView>(CommentCollection).
+            find({ $or: [{ commentUUID }, { replyCommentUUID: commentUUID }] }).
+            map(doc => doc as CommentView).
+            toArray()
+
+        logger.info(`End mongo.comment.getCommentAndReplyRepo, "output": ${JSON.stringify(comment)}`)
+        return comment
     }
 
     async getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string) {
@@ -83,6 +96,7 @@ export class CommentRepository implements Repository {
                         replyComment.commenterName = user.userDisplayName || ''
                         replyComment.commenterImageURL = user.userImageURL || ''
                         replyComment.isLike = (replyComment as any).likeUserUUIDs?.includes(userUUID) || false
+                        replyComment.likeCount = replyComment.likeUserUUIDs?.length || 0
                         delete (replyComment as any)._id
                         delete (replyComment as any).replyUsers
                         delete (replyComment as any).updatedAt
