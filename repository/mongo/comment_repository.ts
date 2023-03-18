@@ -29,8 +29,6 @@ export class CommentRepository implements Repository {
     async getCommentRepo(commentUUID: string) {
         logger.info(`Start mongo.comment.getCommentRepo, "input": ${JSON.stringify({ commentUUID })}`)
 
-        // const comment = await this.db.collection<Comment>(CommentCollection).findOne({ commentUUID })
-
         const comment = (await this.db.collection(CommentCollection).aggregate([
             {$match: { commentUUID }},
             {$lookup: {
@@ -128,7 +126,6 @@ export class CommentRepository implements Repository {
                         delete replyComment.replyCommentUUID
                     }
                 }
-                // comment.commentCount = (comment as any).comments?.length || 0
                 delete (comment as any)._id
                 delete (comment as any).user
                 delete (comment as any).updatedAt

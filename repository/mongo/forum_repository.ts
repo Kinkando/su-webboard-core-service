@@ -50,12 +50,6 @@ export class ForumRepository implements Repository {
                 foreignField: 'categoryID',
                 as: 'categories'
             }},
-            // {$lookup: {
-            //     from: CommentCollection,
-            //     localField: 'forumUUID',
-            //     foreignField: 'forumUUID',
-            //     as: 'comments'
-            // }},
         ]).map(doc => {
             const forum = doc as ForumView
             forum.categories?.forEach(category => {
@@ -66,7 +60,6 @@ export class ForumRepository implements Repository {
             forum.authorName = (forum as any).user.userDisplayName
             forum.authorImageURL = (forum as any).user.userImageURL
             forum.likeCount = forum.likeUserUUIDs?.length || 0
-            // forum.commentCount = (forum as any).comments?.length || 0
             delete (forum as any)._id
             delete (forum as any).user
             delete (forum as any).updatedAt
@@ -111,12 +104,6 @@ export class ForumRepository implements Repository {
                 foreignField: 'categoryID',
                 as: 'categories'
             }},
-            // {$lookup: {
-            //     from: CommentCollection,
-            //     localField: 'forumUUID',
-            //     foreignField: 'forumUUID',
-            //     as: 'comments'
-            // }},
             {$facet:{
                 "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
                 "stage2" : [ { "$skip": filter.offset }, { "$limit": filter.limit || 10 } ],
@@ -139,7 +126,6 @@ export class ForumRepository implements Repository {
                 forum.authorName = (forum as any).user.userDisplayName
                 forum.authorImageURL = (forum as any).user.userImageURL
                 forum.likeCount = forum.likeUserUUIDs?.length || 0
-                // forum.commentCount = (forum as any).comments?.length || 0
                 if (filter.sortBy?.includes("ranking@ASC")) {
                     forum.ranking = filter.offset + index + 1
                 }
@@ -147,7 +133,7 @@ export class ForumRepository implements Repository {
                 delete (forum as any).user
                 delete (forum as any).updatedAt
                 delete (forum as any).categoryIDs
-                delete (forum as any).forumImageURLs
+                delete (forum as any).forumImages
                 delete (forum as any).likeUserUUIDs
                 data.push({...forum})
             })

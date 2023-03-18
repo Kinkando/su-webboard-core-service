@@ -14,6 +14,7 @@ import newMongoConnection from '../repository/mongo/mongo';
 import newRedisConnection from '../repository/redis/redis';
 
 import { newAdminHandler } from '../handler/http/admin_handler';
+import { newAnnouncementHandler } from '../handler/http/announcement_handler';
 import { newAuthenHandler } from '../handler/http/authen_handler';
 import { newCategoryHandler } from '../handler/http/category_handler';
 import { newHealthHandler } from '../handler/http/health_handler';
@@ -24,11 +25,13 @@ import { NotificationSocket, newNotificationSocket } from '../handler/socket/not
 import { ForumSocket, newForumSocket } from '../handler/socket/forum_socket';
 
 import { newAuthenService } from '../service/authen_service';
+import { newAnnouncementService } from '../service/announcement_service';
 import { newCategoryService } from '../service/category_service';
 import { newCommentService } from '../service/comment_service';
 import { newForumService } from '../service/forum_service';
 import { newUserService } from '../service/user_service';
 
+import { newAnnouncementRepository } from '../repository/mongo/announcement_repository';
 import { newCategoryRepository } from '../repository/mongo/category_repository';
 import { newForumRepository } from '../repository/mongo/forum_repository';
 import { newCommentRepository } from '../repository/mongo/comment_repository';
@@ -81,6 +84,7 @@ export default async function init(config: Configuration) {
     })
 
     // define repo
+    const announcementRepository = newAnnouncementRepository(mongoDB)
     const cacheRepository = newCacheRepository(redis as any)
     const categoryRepository = newCategoryRepository(mongoDB)
     const commentRepository = newCommentRepository(mongoDB)
@@ -88,6 +92,7 @@ export default async function init(config: Configuration) {
     const userRepository = newUserRepository(mongoDB)
 
     // define service
+    const announcementService = newAnnouncementService(announcementRepository, storage)
     const authenService = newAuthenService(config.app, firebaseApp, cacheRepository)
     const categoryService = newCategoryService(categoryRepository)
     const commentService = newCommentService(commentRepository, storage)
@@ -97,6 +102,7 @@ export default async function init(config: Configuration) {
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
     api.use('/admin', newAdminHandler(authenService, userService, categoryService, notificationSocket))
+    api.use('/announcement', newAnnouncementHandler(announcementService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', newCategoryHandler(categoryService))
     api.use('/forum', newForumHandler(forumService, commentService))

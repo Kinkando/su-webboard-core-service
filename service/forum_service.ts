@@ -29,11 +29,6 @@ export class ForumService implements Service {
 
         if(forums?.data) {
             for(let forum of forums.data) {
-                // if (forum.forumImageURLs) {
-                //     for(let i=0; i<forum.forumImageURLs.length; i++) {
-                //         forum.forumImageURLs[i] = this.storage.publicURL(forum.forumImageURLs[i])
-                //     }
-                // }
                 forum.authorImageURL = await this.storage.signedURL(forum.authorImageURL)
             }
         }
