@@ -1,6 +1,7 @@
 import * as mongoDB from "mongodb";
 import { Comment, CommentView } from "../../model/comment";
 import { Pagination } from "../../model/common";
+import { User } from "../../model/user";
 import logger from "../../util/logger";
 import { UserCollection } from "./user_repository";
 
@@ -51,9 +52,15 @@ export class CommentRepository implements Repository {
                 foreignField: 'replyCommentUUID',
                 as: 'replyComments'
             }},
+            {$lookup: {
+                from: UserCollection,
+                localField: 'replyComments.commenterUUID',
+                foreignField: 'userUUID',
+                as: 'replyUsers'
+            }},
             {$unwind: '$user'},
             {$facet:{
-                "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
+                "stage1" : [ { "$group": { _id: null, count: { $sum: 1 },  userReply: { $push: "$userReply" } } } ],
                 "stage2" : [ { "$skip": filter.offset }, { "$limit": filter.limit || 10 } ],
             }},
             {$unwind: "$stage1"},
@@ -71,7 +78,11 @@ export class CommentRepository implements Repository {
                 comment.likeCount = comment.likeUserUUIDs?.length || 0
                 if (comment.replyComments) {
                     for(const replyComment of comment.replyComments) {
+                        const user = (comment as any).replyUsers.find((user: any) => user.userUUID ===  replyComment.commenterUUID) as User
+                        replyComment.commenterName = user.userDisplayName || ''
+                        replyComment.commenterImageURL = user.userImageURL || ''
                         delete (replyComment as any)._id
+                        delete (replyComment as any).replyUsers
                         delete (replyComment as any).updatedAt
                         delete (replyComment as any).likeUserUUIDs
                         // duplicate

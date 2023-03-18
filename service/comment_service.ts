@@ -34,6 +34,16 @@ export class CommentService implements Service {
                         comment.commentImageURLs[i] = this.storage.publicURL(comment.commentImageURLs[i])
                     }
                 }
+                if (comment.replyComments) {
+                    for (let replyComment of comment.replyComments) {
+                        if (replyComment.commentImageURLs) {
+                            for(let i=0; i<replyComment.commentImageURLs.length; i++) {
+                                replyComment.commentImageURLs[i] = this.storage.publicURL(replyComment.commentImageURLs[i])
+                            }
+                        }
+                        replyComment.commenterImageURL = await this.storage.signedURL(replyComment.commenterImageURL)
+                    }
+                }
                 comment.commenterImageURL = await this.storage.signedURL(comment.commenterImageURL)
             }
         }

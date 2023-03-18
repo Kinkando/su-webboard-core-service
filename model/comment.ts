@@ -12,7 +12,7 @@ export interface CommentView {
     // commentCount: number
     createdAt: Date
     likeUserUUIDs?: string[] // db only
-    replyComments?: Comment[]
+    replyComments?: CommentView[]
 }
 
 export interface Comment {
