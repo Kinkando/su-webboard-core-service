@@ -12,7 +12,7 @@ export interface ForumView {
     authorImageURL: string
     isLike: boolean
     likeCount?: number
-    // commentCount?: number
+    commentCount?: number
     ranking?: number
     likeUserUUIDs?: string[] // db only
     createdAt?: Date

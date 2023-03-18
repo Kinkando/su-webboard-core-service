@@ -3,6 +3,7 @@ import { CategoryCollection } from "./category_repository";
 import { UserCollection } from "./user_repository";
 import { FilterForum, Forum, ForumView } from "../../model/forum";
 import logger from "../../util/logger";
+import { CommentCollection } from "./comment_repository";
 
 export function newForumRepository(db: mongoDB.Db) {
     return new ForumRepository(db)
@@ -104,6 +105,12 @@ export class ForumRepository implements Repository {
                 foreignField: 'categoryID',
                 as: 'categories'
             }},
+            {$lookup: {
+                from: CommentCollection,
+                localField: 'forumUUID',
+                foreignField: 'forumUUID',
+                as: 'comments'
+            }},
             {$facet:{
                 "stage1" : [ { "$group": { _id: null, count: { $sum: 1 } } } ],
                 "stage2" : [ { "$skip": filter.offset }, { "$limit": filter.limit || 10 } ],
@@ -129,8 +136,10 @@ export class ForumRepository implements Repository {
                 if (filter.sortBy?.includes("ranking@ASC")) {
                     forum.ranking = filter.offset + index + 1
                 }
+                forum.commentCount = (forum as any).comments?.filter((comment: any) => comment.replyCommentUUID == undefined)?.length || 0
                 delete (forum as any)._id
                 delete (forum as any).user
+                delete (forum as any).comments
                 delete (forum as any).updatedAt
                 delete (forum as any).categoryIDs
                 delete (forum as any).likeUserUUIDs
