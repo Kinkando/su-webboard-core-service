@@ -13,7 +13,7 @@ export const CommentCollection = 'Comment'
 
 interface Repository {
     getCommentRepo(commentUUID: string): Promise<Comment>
-    getCommentsRepo(forumUUID: string, filter: Pagination): Promise<{ total: number, data: CommentView[] }>
+    getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     getCommentsByForumUUIDRepo(forumUUID: string): Promise<Comment[]>
     createCommentRepo(comment: Comment): void
     updateCommentRepo(comment: Comment): void
@@ -34,8 +34,8 @@ export class CommentRepository implements Repository {
         return comment as Comment
     }
 
-    async getCommentsRepo(forumUUID: string, filter: Pagination) {
-        logger.info(`Start mongo.comment.getCommentsRepo, "input": ${JSON.stringify({ forumUUID, filter })}`)
+    async getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string) {
+        logger.info(`Start mongo.comment.getCommentsRepo, "input": ${JSON.stringify({ forumUUID, filter, userUUID })}`)
 
         const data = (await this.db.collection(CommentCollection).aggregate([
             {$sort: { createdAt: 1 }},
@@ -76,11 +76,13 @@ export class CommentRepository implements Repository {
                 comment.commenterName = (comment as any).user.userDisplayName
                 comment.commenterImageURL = (comment as any).user.userImageURL
                 comment.likeCount = comment.likeUserUUIDs?.length || 0
+                comment.isLike = (comment as any).likeUserUUIDs?.includes(userUUID) || false
                 if (comment.replyComments) {
                     for(const replyComment of comment.replyComments) {
                         const user = (comment as any).replyUsers.find((user: any) => user.userUUID ===  replyComment.commenterUUID) as User
                         replyComment.commenterName = user.userDisplayName || ''
                         replyComment.commenterImageURL = user.userImageURL || ''
+                        replyComment.isLike = (replyComment as any).likeUserUUIDs?.includes(userUUID) || false
                         delete (replyComment as any)._id
                         delete (replyComment as any).replyUsers
                         delete (replyComment as any).updatedAt
@@ -97,6 +99,7 @@ export class CommentRepository implements Repository {
                 delete (comment as any).categoryIDs
                 delete (comment as any).commentImageURLs
                 delete (comment as any).likeUserUUIDs
+                delete (comment as any).replyUsers
                 // duplicate
                 delete (comment as any).forumUUID
                 data.push({...comment})
@@ -142,7 +145,8 @@ export class CommentRepository implements Repository {
     async deleteCommentRepo(commentUUID: string) {
         logger.info(`Start mongo.comment.deleteCommentRepo, "input": ${JSON.stringify({ commentUUID })}`)
 
-        await this.db.collection(CommentCollection).deleteOne({ commentUUID })
+        const result = await this.db.collection(CommentCollection).deleteMany({ $or: [{ commentUUID }, { replyCommentUUID: commentUUID }] })
+        logger.warn(`delete comment total: ${result.deletedCount} comment(s)`)
 
         logger.info(`End mongo.comment.deleteCommentRepo`)
     }

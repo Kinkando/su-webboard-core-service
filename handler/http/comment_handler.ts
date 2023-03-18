@@ -57,7 +57,7 @@ export class CommentHandler {
                 offset: Number(req.query.offset) || 0,
             }
 
-            const comments = await this.commentService.getCommentsSrv(forumUUID, query)
+            const comments = await this.commentService.getCommentsSrv(forumUUID, query, profile.userUUID)
             if (!comments || !comments.total) {
                 logger.error('comments are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -101,10 +101,10 @@ export class CommentHandler {
             const comment: Comment = bind(data, schemas)
             comment.commenterUUID = profile.userUUID
 
-            const commentUUID = await this.commentService.upsertCommentSrv(comment, req.files as any)
+            const response = await this.commentService.upsertCommentSrv(comment, req.files as any, data.commentImageUUIDs)
 
             logger.info("End http.comment.upsertComment")
-            return res.status(HTTP.StatusOK).send({ commentUUID });
+            return res.status(HTTP.StatusOK).send(response);
 
         } catch (error) {
             logger.error(error)

@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { Comment, CommentView } from "../model/comment";
+import { Document } from "../model/common";
 import { CloudStorage, File } from '../cloud/google/storage';
 import { CommentRepository } from "../repository/mongo/comment_repository";
 import logger from "../util/logger";
@@ -12,8 +13,8 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 }
 
 interface Service {
-    getCommentsSrv(commentUUID: string, filter: Pagination): Promise<{ total: number, data: CommentView[] }>
-    upsertCommentSrv(comment: Comment, files: File[]): void
+    getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
+    upsertCommentSrv(comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
     deleteCommentSrv(commentUUID: string): void
     deleteCommentsByForumUUIDSrv(forumUUID: string): void
     likeCommentSrv(commentUUID: string, userUUID: string, isLike: boolean): void
@@ -22,23 +23,23 @@ interface Service {
 export class CommentService implements Service {
     constructor(private repository: CommentRepository, private storage: CloudStorage) {}
 
-    async getCommentsSrv(commentUUID: string, filter: Pagination) {
-        logger.info(`Start service.comment.getCommentsSrv, "input": ${JSON.stringify({commentUUID, filter})}`)
+    async getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string) {
+        logger.info(`Start service.comment.getCommentsSrv, "input": ${JSON.stringify({commentUUID, filter, userUUID})}`)
 
-        const comments = await this.repository.getCommentsRepo(commentUUID, filter)
+        const comments = await this.repository.getCommentsRepo(commentUUID, filter, userUUID)
 
         if(comments?.data) {
             for(let comment of comments.data) {
-                if (comment.commentImageURLs) {
-                    for(let i=0; i<comment.commentImageURLs.length; i++) {
-                        comment.commentImageURLs[i] = this.storage.publicURL(comment.commentImageURLs[i])
+                if (comment.commentImages) {
+                    for(let i=0; i<comment.commentImages.length; i++) {
+                        comment.commentImages[i].url = this.storage.publicURL(comment.commentImages[i].url)
                     }
                 }
                 if (comment.replyComments) {
                     for (let replyComment of comment.replyComments) {
-                        if (replyComment.commentImageURLs) {
-                            for(let i=0; i<replyComment.commentImageURLs.length; i++) {
-                                replyComment.commentImageURLs[i] = this.storage.publicURL(replyComment.commentImageURLs[i])
+                        if (replyComment.commentImages) {
+                            for(let i=0; i<replyComment.commentImages.length; i++) {
+                                replyComment.commentImages[i].url = this.storage.publicURL(replyComment.commentImages[i].url)
                             }
                         }
                         replyComment.commenterImageURL = await this.storage.signedURL(replyComment.commenterImageURL)
@@ -52,45 +53,64 @@ export class CommentService implements Service {
         return comments
     }
 
-    async upsertCommentSrv(comment: Comment, files: File[]) {
-        logger.info(`Start service.comment.upsertCommentSrv, "input": ${JSON.stringify(comment)}`)
+    async upsertCommentSrv(comment: Comment, files: File[], commentImageUUIDs?: string[]) {
+        logger.info(`Start service.comment.upsertCommentSrv, "input": ${JSON.stringify({comment, commentImageUUIDs})}`)
 
-        const uploadCommentImage = async (comment: Comment) => {
+        const uploadCommentImage = async (comment: Comment, images?: Document[]): Promise<Document[]> => {
             if (files) {
-                comment.commentImageURLs = []
-                for (const file of files) {
-                    const fileName = await this.storage.uploadFile(file, `${storageFolder}/${comment.forumUUID}/${comment.commentUUID}`)
-                    await this.storage.setPublic(fileName)
-                    comment.commentImageURLs.push(fileName)
+                comment.commentImages = images ? [...images] : []
+                if (commentImageUUIDs) {
+                    comment.commentImages = comment.commentImages.filter(doc => !commentImageUUIDs.includes(doc.uuid))
                 }
+                const newDocuments: Document[] = []
+                for (const file of files) {
+                    const { fileUUID, fileName } = await this.storage.uploadFile(file, `${storageFolder}/${comment.forumUUID}/${comment.commentUUID}`)
+                    await this.storage.setPublic(fileName)
+                    const document = {
+                        uuid: fileUUID,
+                        url: fileName,
+                    }
+                    newDocuments.push({...document})
+                    comment.commentImages.push({...document})
+                }
+                for (const newDocument of newDocuments) {
+                    newDocument.url = await this.storage.signedURL(newDocument.url)
+                }
+                return newDocuments
             }
+            return []
         }
 
+        let newDocuments: Document[] = []
         if (comment.commentUUID) {
             const commentReq = await this.repository.getCommentRepo(comment.commentUUID)
             if (!commentReq || !commentReq.commentUUID) {
                 throw Error('commentUUID is not found')
             }
-            if (commentReq.commentImageURLs) {
-                for (const commentImageURL of commentReq.commentImageURLs) {
-                    try {
-                        await this.storage.deleteFile(commentImageURL)
-                    } catch (error) {
-                        logger.error(error)
+            if (commentImageUUIDs && commentReq.commentImages) {
+                const commentImageReq = commentReq.commentImages.filter(doc => commentImageUUIDs.includes(doc.uuid))
+                if (commentImageReq) {
+                    for (const commentImage of commentImageReq) {
+                        try {
+                            await this.storage.deleteFile(commentImage.url)
+                        } catch (error) {
+                            logger.error(error)
+                        }
                     }
                 }
             }
-            await uploadCommentImage(comment)
+            newDocuments = await uploadCommentImage(comment, commentReq?.commentImages)
             await this.repository.updateCommentRepo(comment)
 
         } else {
             comment.commentUUID = uuid()
-            await uploadCommentImage(comment)
+            newDocuments = await uploadCommentImage(comment)
             await this.repository.createCommentRepo(comment)
         }
 
-        logger.info(`End service.comment.upsertCommentSrv, "output": ${JSON.stringify({ commentUUID: comment.commentUUID })}`)
-        return comment.commentUUID
+        const res = { commentUUID: comment.commentUUID, documents: newDocuments }
+        logger.info(`End service.comment.upsertCommentSrv, "output": ${JSON.stringify(res)}`)
+        return res
     }
 
     async deleteCommentSrv(commentUUID: string) {
@@ -101,10 +121,10 @@ export class CommentService implements Service {
             throw Error('commentUUID is not found')
         }
 
-        if (comment.commentImageURLs) {
-            for (const commentImageURL of comment.commentImageURLs) {
+        if (comment.commentImages) {
+            for (const commentImage of comment.commentImages) {
                 try {
-                    await this.storage.deleteFile(commentImageURL)
+                    await this.storage.deleteFile(commentImage.url)
                 } catch (error) {
                     logger.error(error)
                 }
@@ -123,10 +143,10 @@ export class CommentService implements Service {
 
         if (comments) {
             for (const comment of comments) {
-                if (comment.commentImageURLs) {
-                    for (const commentImageURL of comment.commentImageURLs) {
+                if (comment.commentImages) {
+                    for (const commentImage of comment.commentImages) {
                         try {
-                            await this.storage.deleteFile(commentImageURL)
+                            await this.storage.deleteFile(commentImage.url)
                         } catch (error) {
                             logger.error(error)
                         }

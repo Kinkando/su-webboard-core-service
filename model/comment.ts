@@ -1,9 +1,11 @@
+import { Document } from "./common"
+
 export interface CommentView {
     forumUUID: string
     commentUUID: string
     replyCommentUUID?: string
     commentText: string
-    commentImageURLs?: string[]
+    commentImages?: Document[]
     commenterUUID: string
     commenterName: string
     commenterImageURL: string
@@ -20,6 +22,6 @@ export interface Comment {
     commentUUID?: string
     replyCommentUUID?: string
     commentText: string
-    commentImageURLs?: string[]
+    commentImages?: Document[]
     commenterUUID: string
 }

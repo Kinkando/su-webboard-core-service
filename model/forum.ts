@@ -1,11 +1,11 @@
 import { Category } from "./category"
-import { Pagination } from "./common"
+import { Document, Pagination } from "./common"
 
 export interface ForumView {
     forumUUID: string
     title: string
     description: string
-    forumImageURLs?: string[]
+    forumImages?: Document[]
     categories?: Category[]
     authorUUID: string
     authorName: string
@@ -23,7 +23,7 @@ export interface Forum {
     title: string
     description: string
     categoryIDs: number[]
-    forumImageURLs?: string[]
+    forumImages?: Document[]
     authorUUID: string
 }
 

@@ -3,3 +3,8 @@ export interface Pagination {
     offset: number
     limit: number
 }
+
+export interface Document {
+    uuid: string
+    url: string
+}

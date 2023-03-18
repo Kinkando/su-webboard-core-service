@@ -55,7 +55,8 @@ export class UserService implements Service {
             if (!u || !u.userUUID) {
                 throw Error('user is not found')
             }
-            user.userImageURL = await this.storage.uploadFile(image, storageFolder)
+            const { fileName } = await this.storage.uploadFile(image, storageFolder)
+            user.userImageURL = fileName
             try { await this.storage.deleteFile(u.userImageURL!) } catch (error) {}
         }
 

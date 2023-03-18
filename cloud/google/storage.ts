@@ -21,7 +21,7 @@ export interface File {
 }
 
 interface Service {
-    uploadFile(file: File, folder: string): Promise<string>
+    uploadFile(file: File, folder: string): Promise<{ fileUUID: string, fileName: string }>
     deleteFile(fileName: string): void
     signedURL(fileName: string): Promise<string>
     publicURL(fileName: string): string
@@ -38,10 +38,11 @@ export class CloudStorage implements Service {
     }
 
     async uploadFile(fileReq: File, folder: string) {
-        const fileName = `${folder}/${uuid()}.${fileReq.originalname.substring(fileReq.originalname.lastIndexOf(".")+1)}`
+        const fileUUID = uuid()
+        const fileName = `${folder}/${fileUUID}.${fileReq.originalname.substring(fileReq.originalname.lastIndexOf(".")+1)}`
 
         await this.storage.bucket(this.bucketName).file(fileName).save(fileReq.buffer)
-        return fileName
+        return { fileUUID, fileName }
 
         // const passthroughStream = new stream.PassThrough()
         // passthroughStream.write(fileReq.buffer)
