@@ -75,12 +75,21 @@ export class ForumRepository implements Repository {
     async getForumsRepo(filter: FilterForum) {
         logger.info(`Start mongo.forum.getForumsRepo, "input": ${JSON.stringify(filter)}`)
 
+        const options: any = [];
+
         let sortBy: any = {}
         if (filter.sortBy) {
             for(let sortField of filter.sortBy.split(',')) {
                 sortField = sortField.trim()
                 const sortOption = sortField.split("@")
-                sortBy[sortOption[0].trim()] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+                let field = sortOption[0].trim()
+                if (field === 'ranking') {
+                    options.push({$addFields: { likeCount: {$size: { "$ifNull": [ "$likeUserUUIDs", [] ] } } }})
+                    field = 'likeCount'
+                    sortBy[field] = -1
+                } else {
+                    sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+                }
             }
         }
 
@@ -97,9 +106,13 @@ export class ForumRepository implements Repository {
             }
         }
 
+        options.push(
+            { $sort: sortBy },
+            { $match: match },
+        )
+
         const data = (await this.db.collection(ForumCollection).aggregate([
-            {$sort: sortBy},
-            {$match: match},
+            ...options,
             {$lookup: {
                 from: UserCollection,
                 localField: 'authorUUID',
@@ -140,7 +153,6 @@ export class ForumRepository implements Repository {
                 })
                 forum.authorName = (forum as any).user.userDisplayName
                 forum.authorImageURL = (forum as any).user.userImageURL
-                forum.likeCount = forum.likeUserUUIDs?.length || 0
                 if (filter.sortBy?.includes("ranking@ASC")) {
                     forum.ranking = filter.offset + index + 1
                 }
