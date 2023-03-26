@@ -1,6 +1,5 @@
 import * as mongoDB from "mongodb";
-import { Announcement, AnnouncementView } from "../../model/announcement"
-import { Pagination } from "../../model/common"
+import { Announcement, AnnouncementView, FilterAnnouncement } from "../../model/announcement"
 import { UserCollection } from "./user_repository";
 import logger from "../../util/logger";
 
@@ -13,7 +12,7 @@ export const AnnouncementCollection = "Announcement"
 interface Repository {
     getAnnouncementRepo(announcementUUID: string): Promise<Announcement>
     getAnnouncementDetailRepo(announcementUUID: string): Promise<AnnouncementView>
-    getAnnouncementsRepo(filter: Pagination): Promise<{ total: number, data: AnnouncementView[] }>
+    getAnnouncementsRepo(filter: FilterAnnouncement): Promise<{ total: number, data: AnnouncementView[] }>
     createAnnouncementRepo(announcement: Announcement): void
     updateAnnouncementRepo(announcement: Announcement): void
     deleteAnnouncementRepo(announcementUUID: string): void
@@ -58,11 +57,19 @@ export class AnnouncementRepository implements Repository {
         return forumDetail
     }
 
-    async getAnnouncementsRepo(filter: Pagination) {
+    async getAnnouncementsRepo(filter: FilterAnnouncement) {
         logger.info(`Start mongo.announcement.getAnnouncementsRepo, "input": ${JSON.stringify(filter)}`)
 
+        const options: any = [
+            { $sort: { createdAt: -1 } },
+        ]
+
+        if (filter.userUUID) {
+            options.push({ $match: { authorUUID: filter.userUUID } })
+        }
+
         const data = (await this.db.collection(AnnouncementCollection).aggregate([
-            {$sort: { createdAt: -1 }},
+            ...options,
             {$lookup: {
                 from: UserCollection,
                 localField: 'authorUUID',

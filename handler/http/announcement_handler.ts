@@ -1,8 +1,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
 import HTTP from "../../common/http";
-import { Announcement } from '../../model/announcement';
-import { Pagination } from '../../model/common';
+import { Announcement, FilterAnnouncement } from '../../model/announcement';
 import { AnnouncementService } from "../../service/announcement_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
@@ -35,6 +34,7 @@ export class AnnouncementHandler {
             }
 
             const schemas = [
+                {field: "userUUID", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
             ]
@@ -46,7 +46,8 @@ export class AnnouncementHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
             }
 
-            const query: Pagination = {
+            const query: FilterAnnouncement = {
+                userUUID: req.query.userUUID as string,
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }

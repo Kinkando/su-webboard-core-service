@@ -36,6 +36,8 @@ export class ForumHandler {
             }
 
             const schemas = [
+                {field: "userUUID", type: "string", required: false},
+                {field: "search", type: "string", required: false},
                 {field: "categoryID", type: "number", required: false},
                 {field: "sortBy", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
@@ -52,9 +54,11 @@ export class ForumHandler {
             const query: FilterForum = {
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
+                userUUID: req.query.userUUID?.toString(),
                 categoryID: Number(req.query.categoryID),
                 sortBy: req.query.sortBy?.toString() || 'createdAt@DESC',
                 search: req.query.search?.toString(),
+                selfUUID: profile.userUUID,
             }
 
             const forums = await this.forumService.getForumsSrv(query, false, profile.userUUID)

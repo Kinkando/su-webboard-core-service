@@ -1,4 +1,4 @@
-import type { Document } from "./common"
+import type { Document, Pagination } from "./common"
 
 export interface Announcement {
     announcementUUID?: string
@@ -14,4 +14,8 @@ export interface AnnouncementView extends Announcement {
     createdAt?: Date
     updatedAt?: Date
     seeCount?: number
+}
+
+export interface FilterAnnouncement extends Pagination {
+    userUUID?: string
 }

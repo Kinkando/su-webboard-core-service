@@ -96,6 +96,17 @@ export class ForumRepository implements Repository {
         if (filter.categoryID) {
             match.categoryIDs = { $in: [filter.categoryID] }
         }
+        if (filter.userUUID) {
+            match = {
+                $and: [
+                    {authorUUID: filter.userUUID},
+                    {$or: [
+                        { isAnonymous: { $in: [null, false] } },
+                        { isAnonymous: true, authorUUID: filter.selfUUID },
+                    ]}
+                ]
+            }
+        }
         if (filter.search) {
             const query = { $regex: `.*${filter.search ?? ''}.*`, $options: "i" }
             match = {

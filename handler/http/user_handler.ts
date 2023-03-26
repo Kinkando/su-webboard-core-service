@@ -1,6 +1,7 @@
-import { validate } from '@util/validate';
+import { validate } from '../../util/validate';
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
+import { Pagination } from '../../model/common';
 import { File } from '../../cloud/google/storage';
 import HTTP from '../../common/http';
 import { FollowUserPagination, User } from '../../model/user';
@@ -13,12 +14,12 @@ export function newUserHandler(userService: UserService) {
     const userHandler = new UserHandler(userService)
 
     const userRouter = Router()
-    userRouter.get('', (req, res, next) => userHandler.getUsers(req, res, next))
-    userRouter.get('/:type', (req, res, next) => userHandler.getFollowUsers(req, res, next))
-    userRouter.patch('/following', (req, res, next) => userHandler.followingUser(req, res, next))
+    userRouter.get('', (req, res, next) => userHandler.searchUsers(req, res, next))
     userRouter.patch('/notification', (req, res, next) => userHandler.notiUser(req, res, next))
     userRouter.get('/profile', (req, res, next) => userHandler.getProfile(req, res, next))
     userRouter.patch('/profile', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
+    userRouter.patch('/following', (req, res, next) => userHandler.followingUser(req, res, next))
+    userRouter.get('/:type', (req, res, next) => userHandler.getFollowUsers(req, res, next))
 
     return userRouter
 }
@@ -26,8 +27,8 @@ export function newUserHandler(userService: UserService) {
 class UserHandler {
     constructor(private userService: UserService) {}
 
-    async getUsers(req: Request, res: Response, next: NextFunction) {
-        logger.info("Start http.user.getUsers")
+    async searchUsers(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.user.searchUsers")
 
         try {
             const profile = getProfile(req)
@@ -37,8 +38,7 @@ class UserHandler {
             }
 
             const schemas = [
-                {field: "userUUID", type: "string", required: true},
-                {field: "search", type: "string", required: false},
+                {field: "search", type: "string", required: true},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
             ]
@@ -50,26 +50,33 @@ class UserHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
             }
 
-            const query: FollowUserPagination = {
-                userUUID: req.query.userUUID?.toString()!,
-                type: req.params['type'] as string,
+            const query: Pagination = {
                 search: req.query.search?.toString(),
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
 
-            if (query.type !== 'following' && query.type !== 'follower') {
-                logger.error('type is invalid')
-                return res.status(HTTP.StatusBadRequest).send({ error: 'type is invalid' })
-            }
-
-            const users = await this.userService.getFollowUsersSrv(query, profile.userUUID)
+            const users = await this.userService.getUsersSrv(query)
             if (!users || !users.total) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()
             }
 
-            logger.info("End http.user.getUsers")
+            if (users.data) {
+                users.data = users.data.map(user => {
+                    return {
+                        userUUID: user.userUUID,
+                        userType: user.userType,
+                        userDisplayName: user.userDisplayName,
+                        userFullName: user.userFullName,
+                        userEmail: user.userEmail,
+                        studentID: user.studentID,
+                        userImageURL: user.userImageURL,
+                    } as User
+                })
+            }
+
+            logger.info("End http.user.searchUsers")
             return res.status(HTTP.StatusOK).send(users);
 
         } catch (error) {
@@ -90,7 +97,6 @@ class UserHandler {
 
             const schemas = [
                 {field: "userUUID", type: "string", required: true},
-                {field: "type", type: "string", required: true},
                 {field: "search", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
@@ -105,7 +111,7 @@ class UserHandler {
 
             const query: FollowUserPagination = {
                 userUUID: req.query.userUUID?.toString()!,
-                type: req.query.type?.toString()!,
+                type: req.params.type?.toString()!,
                 search: req.query.search?.toString(),
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
