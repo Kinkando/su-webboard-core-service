@@ -82,6 +82,8 @@ export class AnnouncementHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "announcementUUID is required" })
             }
 
+            await this.announcementService.seeAnnouncementSrv(announcementUUID, profile.userUUID)
+
             const announcement = await this.announcementService.getAnnouncementDetailSrv(announcementUUID)
             if (!announcement || !announcement.announcementUUID) {
                 logger.error('announcementUUID is not found')

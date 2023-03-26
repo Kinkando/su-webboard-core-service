@@ -12,4 +12,6 @@ export interface AnnouncementView extends Announcement {
     authorName: string
     authorImageURL: string
     createdAt?: Date
+    updatedAt?: Date
+    seeCount?: number
 }

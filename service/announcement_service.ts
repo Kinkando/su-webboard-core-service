@@ -16,6 +16,7 @@ interface Service {
     getAnnouncementDetailSrv(announcementUUID: string): Promise<AnnouncementView>
     upsertAnnouncementSrv(announcement: Announcement, files: File[], announcementImageUUIDs?: string[]): Promise<{ announcementUUID: string, documents: Document[] }>
     deleteAnnouncementSrv(announcementUUID: string): void
+    seeAnnouncementSrv(announcementUUID: string, userUUID: string): void
 }
 
 export class AnnouncementService implements Service {
@@ -142,5 +143,13 @@ export class AnnouncementService implements Service {
         await this.repository.deleteAnnouncementRepo(announcementUUID)
 
         logger.info(`End service.announcement.deleteAnnouncementSrv`)
+    }
+
+    async seeAnnouncementSrv(announcementUUID: string, userUUID: string) {
+        logger.info(`Start service.announcement.seeAnnouncementSrv, "input": ${JSON.stringify({announcementUUID, userUUID})}`)
+
+        await this.repository.seeAnnouncementRepo(announcementUUID, userUUID)
+
+        logger.info(`End service.announcement.seeAnnouncementSrv`)
     }
 }

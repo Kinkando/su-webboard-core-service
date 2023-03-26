@@ -16,6 +16,7 @@ export interface ForumView {
     ranking?: number
     likeUserUUIDs?: string[] // db only
     createdAt?: Date
+    updatedAt?: Date
 }
 
 export interface Forum {

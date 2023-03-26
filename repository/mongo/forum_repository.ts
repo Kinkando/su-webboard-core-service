@@ -63,7 +63,6 @@ export class ForumRepository implements Repository {
             forum.likeCount = forum.likeUserUUIDs?.length || 0
             delete (forum as any)._id
             delete (forum as any).user
-            delete (forum as any).updatedAt
             delete (forum as any).categoryIDs
             return forum
         }).toArray())[0];
@@ -160,7 +159,6 @@ export class ForumRepository implements Repository {
                 delete (forum as any)._id
                 delete (forum as any).user
                 delete (forum as any).comments
-                delete (forum as any).updatedAt
                 delete (forum as any).categoryIDs
                 delete (forum as any).likeUserUUIDs
                 data.push({...forum})

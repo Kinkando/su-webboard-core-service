@@ -44,7 +44,6 @@ export class CommentRepository implements Repository {
             comment.likeCount = comment.likeUserUUIDs?.length || 0
             delete (comment as any)._id
             delete (comment as any).user
-            delete (comment as any).updatedAt
             delete (comment as any).likeUserUUIDs
             // duplicate
             delete (comment as any).forumUUID
@@ -119,7 +118,6 @@ export class CommentRepository implements Repository {
                         replyComment.likeCount = replyComment.likeUserUUIDs?.length || 0
                         delete (replyComment as any)._id
                         delete (replyComment as any).replyUsers
-                        delete (replyComment as any).updatedAt
                         delete (replyComment as any).likeUserUUIDs
                         // duplicate
                         delete (replyComment as any).forumUUID
@@ -128,7 +126,6 @@ export class CommentRepository implements Repository {
                 }
                 delete (comment as any)._id
                 delete (comment as any).user
-                delete (comment as any).updatedAt
                 delete (comment as any).categoryIDs
                 delete (comment as any).commentImageURLs
                 delete (comment as any).likeUserUUIDs

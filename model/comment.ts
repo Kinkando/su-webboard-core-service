@@ -13,6 +13,7 @@ export interface CommentView {
     likeCount: number
     // commentCount: number
     createdAt: Date
+    updatedAt?: Date
     likeUserUUIDs?: string[] // db only
     replyComments?: CommentView[]
 }

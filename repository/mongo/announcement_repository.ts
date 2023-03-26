@@ -17,6 +17,7 @@ interface Repository {
     createAnnouncementRepo(announcement: Announcement): void
     updateAnnouncementRepo(announcement: Announcement): void
     deleteAnnouncementRepo(announcementUUID: string): void
+    seeAnnouncementRepo(announcementUUID: string, userUUID: string): void
 }
 
 export class AnnouncementRepository implements Repository {
@@ -46,9 +47,10 @@ export class AnnouncementRepository implements Repository {
         ]).map(doc => {
             doc.authorName = doc.user.userDisplayName
             doc.authorImageURL = doc.user.userImageURL
+            doc.seeCount = doc.seeCountUUIDs?.length || 0
             delete doc._id
             delete doc.user
-            delete doc.updatedAt
+            delete doc.seeCountUUIDs
             return doc as AnnouncementView
         }).toArray())[0];
 
@@ -86,7 +88,6 @@ export class AnnouncementRepository implements Repository {
                 forum.authorImageURL = (forum as any).user.userImageURL
                 delete (forum as any)._id
                 delete (forum as any).user
-                delete (forum as any).updatedAt
                 data.push({...forum})
             })
             return { total: Number(doc.total), data }
@@ -99,7 +100,7 @@ export class AnnouncementRepository implements Repository {
     async createAnnouncementRepo(announcement: Announcement) {
         logger.info(`Start mongo.announcement.createAnnouncementRepo, "input": ${JSON.stringify(announcement)}`)
 
-        await this.db.collection(AnnouncementCollection).insertOne({...announcement, createdAt: new Date()})
+        await this.db.collection(AnnouncementCollection).insertOne({...announcement, seeCountUUIDs: [], createdAt: new Date()})
 
         logger.info(`End mongo.announcement.createAnnouncementRepo, "output": ${JSON.stringify("")}`)
     }
@@ -120,4 +121,11 @@ export class AnnouncementRepository implements Repository {
         logger.info(`End mongo.announcement.deleteAnnouncementRepo`)
     }
 
+    async seeAnnouncementRepo(announcementUUID: string, userUUID: string) {
+        logger.info(`Start mongo.announcement.seeAnnouncementRepo, "input": ${JSON.stringify({ announcementUUID, userUUID })}`)
+
+        await this.db.collection(AnnouncementCollection).updateOne({announcementUUID}, { $addToSet: { seeCountUUIDs: userUUID } })
+
+        logger.info(`End mongo.announcement.seeAnnouncementRepo`)
+    }
 }
