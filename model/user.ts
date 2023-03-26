@@ -16,6 +16,7 @@ export interface User {
     followerUserUUIDs?: string[]
     followingUserUUIDs?: string[]
     isFollowing?: boolean
+    isSelf?: boolean
 }
 
 export interface FilterUser {
@@ -26,4 +27,9 @@ export interface FilterUser {
 
 export interface UserPagination extends Pagination {
     userType?: string
+}
+
+export interface FollowUserPagination extends Pagination {
+    userUUID: string
+    type: string
 }

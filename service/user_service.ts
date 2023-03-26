@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { filePath } from '../common/file_path';
 import { CloudStorage, File } from '../cloud/google/storage';
 import { SendGrid } from "../cloud/sendgrid/sendgrid";
-import { FilterUser, User, UserPagination } from "../model/user";
+import { FilterUser, FollowUserPagination, User, UserPagination } from "../model/user";
 import { UserRepository } from "../repository/mongo/user_repository";
 import logger from "../util/logger";
 
@@ -15,6 +15,7 @@ export function newUserService(repository: UserRepository, firebase: admin.app.A
 
 interface Service {
     // user
+    getFollowUsersSrv(query: FollowUserPagination, userUUID: string): Promise<{ total: number, data: User[] }>
     getUserProfileSrv(filter: FilterUser): Promise<User>
     updateUserProfileSrv(user: User, image: File): void
     followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
@@ -34,6 +35,57 @@ export class UserService implements Service {
         private storage: CloudStorage,
         private sendgrid: SendGrid,
     ) {}
+
+    async getFollowUsersSrv(query: FollowUserPagination, userUUID: string) {
+        logger.info(`Start service.user.getFollowUsersSrv, "input": ${JSON.stringify({query, userUUID})}`)
+
+        const userReq = await this.repository.getUserRepo({ userUUID: query.userUUID })
+        if (!userReq) {
+            logger.error('user is not found')
+            throw Error('user is not found')
+        }
+
+        let userUUIDs = query.type === 'following' ? userReq.followingUserUUIDs : userReq.followerUserUUIDs
+        if (userUUIDs) {
+            userUUIDs = userUUIDs.slice(query.offset, query.offset + query.limit)
+        }
+
+        console.log(userUUIDs)
+
+        let users: User[] = []
+        if (userUUIDs?.length) {
+            users = await this.repository.getFollowUsersRepo(userUUIDs);
+
+            if (users) {
+                for (const user of users) {
+                    user.userImageURL = await this.storage.signedURL(user.userImageURL!)
+                    if (user.userUUID !== userUUID) {
+                        const followUserUUIDs = query.type === 'following' ? user.followingUserUUIDs : user.followerUserUUIDs
+                        user.isFollowing = followUserUUIDs?.includes(userUUID) || false
+                    } else {
+                        user.isSelf = true
+                    }
+
+                    delete (user as any)._id
+                    delete (user as any).createdAt
+                    delete (user as any).updatedAt
+                    delete user.firebaseID
+                    delete user.isLinkGoogle
+                    delete user.lastLogin
+                    delete user.followerUserUUIDs
+                    delete user.followingUserUUIDs
+                }
+            }
+        }
+
+        const res = {
+            total: userUUIDs?.length || 0,
+            data: users,
+        }
+
+        logger.info(`End service.user.getUsersSrv, "output": {"total": ${res?.total || 0}, "data.length": ${res?.data?.length || 0}}`)
+        return res
+    }
 
     async getUserProfileSrv(filter: FilterUser) {
         logger.info(`Start service.user.getUserProfileSrv, "input": ${JSON.stringify(filter)}`)

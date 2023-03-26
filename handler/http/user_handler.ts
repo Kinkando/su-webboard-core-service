@@ -3,7 +3,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
 import { File } from '../../cloud/google/storage';
 import HTTP from '../../common/http';
-import { User } from '../../model/user';
+import { FollowUserPagination, User } from '../../model/user';
 import { UserService } from "../../service/user_service";
 import logger from '../../util/logger';
 import { getProfile } from '../../util/profile';
@@ -13,17 +13,69 @@ export function newUserHandler(userService: UserService) {
     const userHandler = new UserHandler(userService)
 
     const userRouter = Router()
+    userRouter.get('', (req, res, next) => userHandler.getUsers(req, res, next))
     userRouter.patch('/following', (req, res, next) => userHandler.followingUser(req, res, next))
-
-    const profileRouter = userRouter.use('/profile', userRouter)
-    profileRouter.get('', (req, res, next) => userHandler.getProfile(req, res, next))
-    profileRouter.patch('', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
+    userRouter.get('/profile', (req, res, next) => userHandler.getProfile(req, res, next))
+    userRouter.patch('/profile', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
 
     return userRouter
 }
 
 class UserHandler {
     constructor(private userService: UserService) {}
+
+    async getUsers(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.user.getUsers")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const schemas = [
+                {field: "userUUID", type: "string", required: true},
+                {field: "type", type: "string", required: true},
+                {field: "search", type: "string", required: false},
+                {field: "limit", type: "number", required: false},
+                {field: "offset", type: "number", required: false},
+            ]
+
+            try {
+                validate(schemas, req.query)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const query: FollowUserPagination = {
+                userUUID: req.query.userUUID?.toString()!,
+                type: req.query.type?.toString()!,
+                search: req.query.search?.toString(),
+                limit: Number(req.query.limit) || 10,
+                offset: Number(req.query.offset) || 0,
+            }
+
+            if (query.type !== 'following' && query.type !== 'follower') {
+                logger.error('type is invalid')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'type is invalid' })
+            }
+
+            const users = await this.userService.getFollowUsersSrv(query, profile.userUUID)
+            if (!users || !users.total) {
+                logger.error('users are not found')
+                return res.status(HTTP.StatusNoContent).send()
+            }
+
+            logger.info("End http.user.getUsers")
+            return res.status(HTTP.StatusOK).send(users);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
 
     async followingUser(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.user.followingUser")
