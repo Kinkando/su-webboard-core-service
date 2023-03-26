@@ -16,6 +16,7 @@ interface Repository {
     updateUserRepo(user: User): void
     deleteUserRepo(userUUID: string): void
     isExistEmailRepo(email: string): Promise<boolean>
+    followingUserRepo(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
 }
 
 export class UserRepository implements Repository {
@@ -101,5 +102,19 @@ export class UserRepository implements Repository {
 
         logger.info(`End mongo.user.isExistEmailRepo, "output": ${isExist}`)
         return isExist
+    }
+
+    async followingUserRepo(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean) {
+        logger.info(`Start mongo.user.followingUserRepo, "input": "${JSON.stringify({followingByUserUUID, followingToUserUUID, isFollowing})}"`)
+
+        if (isFollowing) {
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, { $addToSet: { followingUserUUIDs: followingToUserUUID }, $set: { updatedAt: new Date() } })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, { $addToSet: { followerUserUUIDs: followingByUserUUID }, $set: { updatedAt: new Date() } })
+        } else {
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, { $pull: { followingUserUUIDs: followingToUserUUID }, $set: { updatedAt: new Date() } })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, { $pull: { followerUserUUIDs: followingByUserUUID }, $set: { updatedAt: new Date() } })
+        }
+
+        logger.info(`End mongo.user.followingUserRepo`)
     }
 }

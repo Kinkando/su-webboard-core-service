@@ -44,7 +44,7 @@ class AuthenHandler {
             }
 
             const profile = await this.googleService.getUserProfile(accessToken)
-            const user = await this.userService.getUserSrv({ userEmail: profile.email })
+            const user = await this.userService.getUserProfileSrv({ userEmail: profile.email })
             if (!user) {
                 throw Error("user not found")
             }
@@ -79,7 +79,7 @@ class AuthenHandler {
             }
             const idToken = req.body.idToken!
             const firebaseID = await this.authenService.verifyFirebaseTokenSrv(idToken)
-            const user = await this.userService.getUserSrv({ firebaseID })
+            const user = await this.userService.getUserProfileSrv({ firebaseID })
             if (!user) {
                 logger.error('user is not found')
                 return res.status(HTTP.StatusNotFound).send({ error: 'user is not found' })

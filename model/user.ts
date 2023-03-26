@@ -13,6 +13,9 @@ export interface User {
     firebaseID?: string
     isLinkGoogle?: boolean
     lastLogin?: Date
+    followerUserUUIDs?: string[]
+    followingUserUUIDs?: string[]
+    isFollowing?: boolean
 }
 
 export interface FilterUser {

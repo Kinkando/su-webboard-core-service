@@ -15,8 +15,9 @@ export function newUserService(repository: UserRepository, firebase: admin.app.A
 
 interface Service {
     // user
-    getUserSrv(filter: FilterUser): Promise<User>
+    getUserProfileSrv(filter: FilterUser): Promise<User>
     updateUserProfileSrv(user: User, image: File): void
+    followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
     resetPasswordSrv(tokenID: string): void
 
     getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
@@ -34,8 +35,8 @@ export class UserService implements Service {
         private sendgrid: SendGrid,
     ) {}
 
-    async getUserSrv(filter: FilterUser) {
-        logger.info(`Start service.user.getUserSrv, "input": ${JSON.stringify(filter)}`)
+    async getUserProfileSrv(filter: FilterUser) {
+        logger.info(`Start service.user.getUserProfileSrv, "input": ${JSON.stringify(filter)}`)
 
         let user = await this.repository.getUserRepo(filter);
 
@@ -43,7 +44,7 @@ export class UserService implements Service {
             user.userImageURL = await this.storage.signedURL(user.userImageURL!)
         }
 
-        logger.info(`End service.user.getUserSrv, "output": ${JSON.stringify(user)}`)
+        logger.info(`End service.user.getUserProfileSrv, "output": ${JSON.stringify(user)}`)
         return user
     }
 
@@ -64,6 +65,14 @@ export class UserService implements Service {
 
         logger.info(`End service.user.updateUserProfileSrv`)
         return user
+    }
+
+    async followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean) {
+        logger.info(`Start service.user.followingUserSrv, "input": ${JSON.stringify({followingByUserUUID, followingToUserUUID, isFollowing})}`)
+
+        await this.repository.followingUserRepo(followingByUserUUID, followingToUserUUID, isFollowing)
+
+        logger.info(`End service.user.followingUserSrv`)
     }
 
     async getUsersSrv(query: UserPagination) {
