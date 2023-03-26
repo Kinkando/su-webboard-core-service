@@ -19,6 +19,7 @@ interface Service {
     getUserProfileSrv(filter: FilterUser): Promise<User>
     updateUserProfileSrv(user: User, image: File): void
     followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
+    notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean): void
     resetPasswordSrv(tokenID: string): void
 
     getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
@@ -39,18 +40,28 @@ export class UserService implements Service {
     async getFollowUsersSrv(query: FollowUserPagination, userUUID: string) {
         logger.info(`Start service.user.getFollowUsersSrv, "input": ${JSON.stringify({query, userUUID})}`)
 
+        const selfUser = await this.repository.getUserRepo({ userUUID })
+        if (!selfUser) {
+            logger.error('user is not found')
+            throw Error('user is not found')
+        }
+
         const userReq = await this.repository.getUserRepo({ userUUID: query.userUUID })
         if (!userReq) {
             logger.error('user is not found')
             throw Error('user is not found')
         }
 
-        let userUUIDs = query.type === 'following' ? userReq.followingUserUUIDs : userReq.followerUserUUIDs
-        if (userUUIDs) {
-            userUUIDs = userUUIDs.slice(query.offset, query.offset + query.limit)
+        let followUserUUIDs = query.type === 'following' ? userReq.followingUserUUIDs : userReq.followerUserUUIDs
+        if (followUserUUIDs) {
+            followUserUUIDs = followUserUUIDs.sort((a, b) => (selfUser.followingUserUUIDs?.includes(a) ? -1 : 1))
+            const index = followUserUUIDs.findIndex(followUserUUID => followUserUUID === userUUID)
+            if (index !== -1) {
+                followUserUUIDs = followUserUUIDs.filter(followUserUUID => followUserUUID !== userUUID)
+                followUserUUIDs.unshift(userUUID)
+            }
         }
-
-        console.log(userUUIDs)
+        const userUUIDs = followUserUUIDs?.slice(query.offset, query.offset + query.limit)
 
         let users: User[] = []
         if (userUUIDs?.length) {
@@ -60,8 +71,7 @@ export class UserService implements Service {
                 for (const user of users) {
                     user.userImageURL = await this.storage.signedURL(user.userImageURL!)
                     if (user.userUUID !== userUUID) {
-                        const followUserUUIDs = query.type === 'following' ? user.followingUserUUIDs : user.followerUserUUIDs
-                        user.isFollowing = followUserUUIDs?.includes(userUUID) || false
+                        user.isFollowing = selfUser.followingUserUUIDs?.includes(user.userUUID!) || false
                     } else {
                         user.isSelf = true
                     }
@@ -74,16 +84,20 @@ export class UserService implements Service {
                     delete user.lastLogin
                     delete user.followerUserUUIDs
                     delete user.followingUserUUIDs
+                    delete user.notiUserUUIDs
                 }
             }
         }
 
-        const res = {
-            total: userUUIDs?.length || 0,
-            data: users,
+        let data: User[] = [];
+        const total = userUUIDs?.length || 0
+        if (total) {
+            userUUIDs?.forEach(userUUID => data.push(users?.find(user => user.userUUID! === userUUID)!))
         }
 
-        logger.info(`End service.user.getUsersSrv, "output": {"total": ${res?.total || 0}, "data.length": ${res?.data?.length || 0}}`)
+        const res = { total, data }
+
+        logger.info(`End service.user.getFollowUsersSrv, "output": {"total": ${res?.total || 0}, "data.length": ${res?.data?.length || 0}}`)
         return res
     }
 
@@ -125,6 +139,14 @@ export class UserService implements Service {
         await this.repository.followingUserRepo(followingByUserUUID, followingToUserUUID, isFollowing)
 
         logger.info(`End service.user.followingUserSrv`)
+    }
+
+    async notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean) {
+        logger.info(`Start service.user.notiUserSrv, "input": ${JSON.stringify({userUUID, notiUserUUID, isNoti})}`)
+
+        await this.repository.notiUserRepo(userUUID, notiUserUUID, isNoti)
+
+        logger.info(`End service.user.notiUserSrv`)
     }
 
     async getUsersSrv(query: UserPagination) {

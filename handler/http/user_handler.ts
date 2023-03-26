@@ -14,7 +14,9 @@ export function newUserHandler(userService: UserService) {
 
     const userRouter = Router()
     userRouter.get('', (req, res, next) => userHandler.getUsers(req, res, next))
+    userRouter.get('/:type', (req, res, next) => userHandler.getFollowUsers(req, res, next))
     userRouter.patch('/following', (req, res, next) => userHandler.followingUser(req, res, next))
+    userRouter.patch('/notification', (req, res, next) => userHandler.notiUser(req, res, next))
     userRouter.get('/profile', (req, res, next) => userHandler.getProfile(req, res, next))
     userRouter.patch('/profile', upload.array("file"), (req, res, next) => userHandler.updateProfile(req, res, next))
 
@@ -26,6 +28,58 @@ class UserHandler {
 
     async getUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.user.getUsers")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const schemas = [
+                {field: "userUUID", type: "string", required: true},
+                {field: "search", type: "string", required: false},
+                {field: "limit", type: "number", required: false},
+                {field: "offset", type: "number", required: false},
+            ]
+
+            try {
+                validate(schemas, req.query)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const query: FollowUserPagination = {
+                userUUID: req.query.userUUID?.toString()!,
+                type: req.params['type'] as string,
+                search: req.query.search?.toString(),
+                limit: Number(req.query.limit) || 10,
+                offset: Number(req.query.offset) || 0,
+            }
+
+            if (query.type !== 'following' && query.type !== 'follower') {
+                logger.error('type is invalid')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'type is invalid' })
+            }
+
+            const users = await this.userService.getFollowUsersSrv(query, profile.userUUID)
+            if (!users || !users.total) {
+                logger.error('users are not found')
+                return res.status(HTTP.StatusNoContent).send()
+            }
+
+            logger.info("End http.user.getUsers")
+            return res.status(HTTP.StatusOK).send(users);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async getFollowUsers(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.user.getFollowUsers")
 
         try {
             const profile = getProfile(req)
@@ -68,7 +122,7 @@ class UserHandler {
                 return res.status(HTTP.StatusNoContent).send()
             }
 
-            logger.info("End http.user.getUsers")
+            logger.info("End http.user.getFollowUsers")
             return res.status(HTTP.StatusOK).send(users);
 
         } catch (error) {
@@ -110,6 +164,39 @@ class UserHandler {
         }
     }
 
+    async notiUser(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.user.notiUser")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const schemas = [
+                {field: "userUUID", type: "string", required: true},
+                {field: "isNoti", type: "boolean", required: true},
+            ]
+
+            try {
+                validate(schemas, req.body)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            await this.userService.notiUserSrv(profile.userUUID, req.body.userUUID, req.body.isNoti as boolean)
+
+            logger.info("End http.user.notiUser")
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
     async getProfile(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.user.getProfile")
 
@@ -127,7 +214,12 @@ class UserHandler {
             }
 
             if (userUUID && userUUID !== profile.userUUID) {
+                const selfUser = await this.userService.getUserProfileSrv({ userUUID: profile.userUUID })
+                if (!selfUser) {
+                    throw Error("user not found")
+                }
                 user.isFollowing = user.followerUserUUIDs?.includes(profile.userUUID) || false
+                user.isNoti = selfUser.notiUserUUIDs?.includes(user.userUUID!) || false
             }
 
             delete (user as any)._id
@@ -136,8 +228,9 @@ class UserHandler {
             delete user.firebaseID
             delete user.isLinkGoogle
             delete user.lastLogin
-            delete user.followerUserUUIDs
-            delete user.followingUserUUIDs
+            delete user.notiUserUUIDs
+            // delete user.followerUserUUIDs
+            // delete user.followingUserUUIDs
             // delete user.userType
             // delete user.userUUID
 
