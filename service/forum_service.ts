@@ -1,4 +1,5 @@
 import { v4 as uuid } from "uuid";
+import { filePath } from "../common/file_path";
 import { CloudStorage, File } from '../cloud/google/storage';
 import { Document } from "../model/common";
 import { FilterForum, Forum, ForumView } from "../model/forum";
@@ -12,8 +13,8 @@ export function newForumService(repository: ForumRepository, storage: CloudStora
 }
 
 interface Service {
-    getForumsSrv(filter: FilterForum, isSignedURL: boolean): Promise<{ total: number, data: ForumView[] }>
-    getForumDetailSrv(forumUUID: string): Promise<ForumView>
+    getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string): Promise<{ total: number, data: ForumView[] }>
+    getForumDetailSrv(forumUUID: string, userUUID: string): Promise<ForumView>
     upsertForumSrv(forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
     deleteForumSrv(forumUUID: string): void
     likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean): void
@@ -22,8 +23,21 @@ interface Service {
 export class ForumService implements Service {
     constructor(private repository: ForumRepository, private storage: CloudStorage) {}
 
-    async getForumsSrv(filter: FilterForum, isSignedURL: boolean = false) {
-        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify({filter, isSignedURL})}`)
+    async assertAnonymousSrv(forum: ForumView, userUUID: string) {
+        if (forum.isAnonymous) {
+            forum.authorName = 'ไม่ระบุตัวตน'
+            if (forum.authorUUID === userUUID) {
+                forum.authorName += ' (คุณ)'
+            } else {
+                forum.authorUUID = "unknown"
+            }
+        }
+        forum.authorImageURL = await this.storage.signedURL(forum.isAnonymous ? filePath.anonymousAvatar : forum.authorImageURL)
+        // delete forum.isAnonymous
+    }
+
+    async getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string) {
+        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify({filter, isSignedURL, userUUID})}`)
 
         const forums = await this.repository.getForumsRepo(filter)
 
@@ -33,10 +47,8 @@ export class ForumService implements Service {
                     for(let i=0; i<forum.forumImages.length; i++) {
                         forum.forumImages[i].url = this.storage.publicURL(forum.forumImages[i].url)
                     }
-                } else {
-                    delete forum.forumImages
                 }
-                forum.authorImageURL = await this.storage.signedURL(forum.authorImageURL)
+                await this.assertAnonymousSrv(forum, userUUID)
             }
         }
 
@@ -44,8 +56,8 @@ export class ForumService implements Service {
         return forums
     }
 
-    async getForumDetailSrv(forumUUID: string) {
-        logger.info(`Start service.forum.getForumDetailSrv, "input": ${JSON.stringify({ forumUUID })}`)
+    async getForumDetailSrv(forumUUID: string, userUUID: string) {
+        logger.info(`Start service.forum.getForumDetailSrv, "input": ${JSON.stringify({ forumUUID, userUUID })}`)
 
         const forum = await this.repository.getForumDetailRepo(forumUUID)
 
@@ -55,7 +67,7 @@ export class ForumService implements Service {
                     forum.forumImages[i].url = this.storage.publicURL(forum.forumImages[i].url)
                 }
             }
-            forum.authorImageURL = await this.storage.signedURL(forum.authorImageURL)
+            await this.assertAnonymousSrv(forum, userUUID)
         }
 
         logger.info(`End service.forum.getForumDetailSrv, "output": ${JSON.stringify(forum)}`)

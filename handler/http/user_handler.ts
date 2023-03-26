@@ -33,7 +33,7 @@ class UserHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            const user = await this.userService.getUserSrv({ userUUID: profile.userUUID })
+            const user = await this.userService.getUserSrv({ userUUID: (req.query.userUUID as any) || profile.userUUID })
             if (!user) {
                 throw Error("user not found")
             }

@@ -47,7 +47,7 @@ export class CommentHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "commentUUID is required" })
             }
 
-            const comment = await this.commentService.getCommentSrv(commentUUID)
+            const comment = await this.commentService.getCommentSrv(commentUUID, profile.userUUID)
             if (!comment || !comment.commentUUID) {
                 logger.error('comment is not found')
                 return res.status(HTTP.StatusNotFound).send({ error: 'comment is not found' })

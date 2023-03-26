@@ -81,7 +81,8 @@ class AuthenHandler {
             const firebaseID = await this.authenService.verifyFirebaseTokenSrv(idToken)
             const user = await this.userService.getUserSrv({ firebaseID })
             if (!user) {
-                throw Error("user not found")
+                logger.error('user is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: 'user is not found' })
             }
 
             await this.userService.updateUserSrv({

@@ -15,6 +15,7 @@ export interface ForumView {
     commentCount?: number
     ranking?: number
     likeUserUUIDs?: string[] // db only
+    isAnonymous?: boolean // db only
     createdAt?: Date
     updatedAt?: Date
 }
@@ -26,6 +27,7 @@ export interface Forum {
     categoryIDs: number[]
     forumImages?: Document[]
     authorUUID: string
+    isAnonymous?: boolean // db only
 }
 
 export interface FilterForum extends Pagination {

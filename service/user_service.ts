@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import { v4 as uuid } from 'uuid';
+import { filePath } from '../common/file_path';
 import { CloudStorage, File } from '../cloud/google/storage';
 import { SendGrid } from "../cloud/sendgrid/sendgrid";
 import { FilterUser, User, UserPagination } from "../model/user";
@@ -7,7 +8,6 @@ import { UserRepository } from "../repository/mongo/user_repository";
 import logger from "../util/logger";
 
 const storageFolder = "user"
-const defaultImageURL = `avatar-1.png`
 
 export function newUserService(repository: UserRepository, firebase: admin.app.App, storage: CloudStorage, sendgrid: SendGrid) {
     return new UserService(repository, firebase, storage, sendgrid)
@@ -90,10 +90,10 @@ export class UserService implements Service {
         })
 
         user.userDisplayName = user.userFullName
-        user.userImageURL = `${storageFolder}/${uuid()}.${defaultImageURL.substring(defaultImageURL.lastIndexOf('.')+1)}`
+        user.userImageURL = `${storageFolder}/${uuid()}.${filePath.defaultAvatar.substring(filePath.defaultAvatar.lastIndexOf('.')+1)}`
         user.isAnonymous = false
         user.firebaseID = firebaseUser.uid
-        await this.storage.copyFile(`${storageFolder}/${defaultImageURL}`, user.userImageURL)
+        await this.storage.copyFile(`${storageFolder}/${filePath.defaultAvatar}`, user.userImageURL)
         await this.repository.createUserRepo(user);
 
         logger.info(`End service.user.createUserSrv`)
