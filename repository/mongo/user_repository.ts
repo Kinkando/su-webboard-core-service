@@ -80,7 +80,7 @@ export class UserRepository implements Repository {
     async createUserRepo(user: User) {
         logger.info(`Start mongo.user.createUserRepo, "input": ${JSON.stringify(user)}`)
 
-        // add validate unique student id
+        // add validate unique student id and user email
         user.userUUID = uuid()
         user.isLinkGoogle = false
         await this.db.collection(UserCollection).insertOne({...user, createdAt: new Date()})
@@ -91,7 +91,7 @@ export class UserRepository implements Repository {
     async updateUserRepo(user: User) {
         logger.info(`Start mongo.user.updateUserRepo, "input": ${JSON.stringify(user)}`)
 
-        // add validate unique student id
+        // add validate unique student id and user email
         await this.db.collection(UserCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
 
         logger.info(`End mongo.user.updateUserRepo`)

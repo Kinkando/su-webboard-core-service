@@ -18,6 +18,7 @@ interface Service {
     upsertForumSrv(forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
     deleteForumSrv(forumUUID: string): void
     likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean): void
+    favoriteForumSrv(forumUUID: string, userUUID: string, isFavorite: boolean): void
 }
 
 export class ForumService implements Service {
@@ -34,6 +35,9 @@ export class ForumService implements Service {
         }
         forum.authorImageURL = await this.storage.signedURL(forum.isAnonymous ? filePath.anonymousAvatar : forum.authorImageURL)
         // delete forum.isAnonymous
+
+        forum.isFavorite = forum.favoriteUserUUIDs?.includes(userUUID) || false
+        delete forum.favoriteUserUUIDs
     }
 
     async getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string) {
@@ -163,5 +167,13 @@ export class ForumService implements Service {
         await this.repository.likeForumRepo(forumUUID, userUUID, isLike)
 
         logger.info(`End service.forum.likeForumSrv`)
+    }
+
+    async favoriteForumSrv(forumUUID: string, userUUID: string, isFavorite: boolean) {
+        logger.info(`Start service.forum.favoriteForumSrv, "input": ${JSON.stringify({forumUUID, userUUID, isFavorite})}`)
+
+        await this.repository.favoriteForumRepo(forumUUID, userUUID, isFavorite)
+
+        logger.info(`End service.forum.favoriteForumSrv`)
     }
 }

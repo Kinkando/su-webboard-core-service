@@ -14,6 +14,8 @@ export interface ForumView {
     likeCount?: number
     commentCount?: number
     ranking?: number
+    isFavorite?: boolean // db only
+    favoriteUserUUIDs?: string[] // db only
     likeUserUUIDs?: string[] // db only
     isAnonymous?: boolean // db only
     createdAt?: Date
@@ -34,4 +36,5 @@ export interface FilterForum extends Pagination {
     categoryID?: number
     userUUID?: string
     selfUUID?: string
+    favoriteUserUUID?: string
 }
