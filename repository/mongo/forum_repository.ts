@@ -166,6 +166,7 @@ export class ForumRepository implements Repository {
                 if (filter.sortBy?.includes("ranking@ASC")) {
                     forum.ranking = filter.offset + index + 1
                 }
+                forum.likeCount = forum.likeUserUUIDs?.length || 0;
                 forum.commentCount = (forum as any).comments?.filter((comment: any) => comment.replyCommentUUID == undefined)?.length || 0
                 delete (forum as any)._id
                 delete (forum as any).user
