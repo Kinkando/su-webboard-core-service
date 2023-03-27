@@ -232,7 +232,6 @@ class UserHandler {
             delete (user as any).createdAt
             delete (user as any).updatedAt
             delete user.firebaseID
-            delete user.isLinkGoogle
             delete user.lastLogin
             delete user.notiUserUUIDs
             // delete user.followerUserUUIDs
@@ -267,9 +266,6 @@ class UserHandler {
             let user: User = {userUUID: profile.userUUID}
             if (data.userDisplayName && typeof data.userDisplayName === 'string') {
                 user.userDisplayName = data.userDisplayName
-            }
-            if (data.isAnonymous != undefined && typeof data.isAnonymous === 'boolean') {
-                user.isAnonymous = data.isAnonymous
             }
             await this.userService.updateUserProfileSrv(user, (req.files as any)[0] as File)
 

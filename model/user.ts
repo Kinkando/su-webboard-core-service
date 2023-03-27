@@ -9,9 +9,7 @@ export interface User {
     userEmail?: string
     studentID?: string
     userImageURL?: string
-    isAnonymous?: boolean
     firebaseID?: string
-    isLinkGoogle?: boolean
     lastLogin?: Date
     followerUserUUIDs?: string[] // db only
     followingUserUUIDs?: string[] // db only

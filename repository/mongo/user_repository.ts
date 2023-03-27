@@ -47,7 +47,6 @@ export class UserRepository implements Repository {
                         { userFullName: filter },
                         { userEmail: filter },
                         { studentID: filter },
-                        { isAnonymous: filter },
                     ]}
                 ]
             }},
@@ -82,7 +81,6 @@ export class UserRepository implements Repository {
 
         // add validate unique student id and user email
         user.userUUID = uuid()
-        user.isLinkGoogle = false
         await this.db.collection(UserCollection).insertOne({...user, createdAt: new Date()})
 
         logger.info(`End mongo.user.createUserRepo`)
