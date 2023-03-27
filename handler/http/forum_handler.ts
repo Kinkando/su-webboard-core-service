@@ -18,6 +18,7 @@ export function newForumHandler(forumService: ForumService, commentService: Comm
     forumRouter.put('', upload.array("files"), (req, res, next) => forumHandler.upsertForum(req, res, next))
     forumRouter.delete('', (req, res, next) => forumHandler.deleteForum(req, res, next))
     forumRouter.patch('/like', (req, res, next) => forumHandler.likeForum(req, res, next))
+    forumRouter.patch('/favorite', (req, res, next) => forumHandler.favoriteForum(req, res, next))
 
     return forumRouter
 }
@@ -36,6 +37,7 @@ export class ForumHandler {
             }
 
             const schemas = [
+                {field: "favoriteUserUUID", type: "string", required: false},
                 {field: "userUUID", type: "string", required: false},
                 {field: "search", type: "string", required: false},
                 {field: "categoryID", type: "number", required: false},
@@ -55,6 +57,7 @@ export class ForumHandler {
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
                 userUUID: req.query.userUUID?.toString(),
+                favoriteUserUUID: req.query.favoriteUserUUID?.toString(),
                 categoryID: Number(req.query.categoryID),
                 sortBy: req.query.sortBy?.toString() || 'createdAt@DESC',
                 search: req.query.search?.toString(),
@@ -208,6 +211,42 @@ export class ForumHandler {
             await this.forumService.likeForumSrv(forumUUID, profile.userUUID, isLike)
 
             logger.info("End http.forum.likeForum")
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status((error as Error).message.endsWith(" not found") ? HTTP.StatusNotFound : HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async favoriteForum(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.forum.favoriteForum")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const schemas = [
+                {field: "forumUUID", type: "string", required: true},
+                {field: "isFavorite", type: "boolean", required: true},
+            ]
+
+            try {
+                validate(schemas, req.body)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const forumUUID = req.body.forumUUID
+            const isFavorite = Boolean(req.body.isFavorite)
+
+            await this.forumService.favoriteForumSrv(forumUUID, profile.userUUID, isFavorite)
+
+            logger.info("End http.forum.favoriteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
 
         } catch (error) {
