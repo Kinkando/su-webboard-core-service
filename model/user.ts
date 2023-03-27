@@ -11,9 +11,9 @@ export interface User {
     userImageURL?: string
     firebaseID?: string
     lastLogin?: Date
-    followerUserUUIDs?: string[] // db only => uuid ของคนที่ติดตามเรา
-    followingUserUUIDs?: string[] // db only => uuid ของคนที่เราติดตาม
-    notiUserUUIDs?: string[] // db only => uuid ของคนที่่เราติดตาม และเปิดการแจ้งเตือนไว้
+    followerUserUUIDs?: string[] // db only
+    followingUserUUIDs?: string[] // db only
+    notiUserUUIDs?: string[] // db only
     isFollowing?: boolean
     isSelf?: boolean
     isNoti?: boolean
