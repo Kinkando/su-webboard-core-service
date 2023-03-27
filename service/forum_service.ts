@@ -25,7 +25,7 @@ export class ForumService implements Service {
 
     async assertAnonymousSrv(forum: ForumView, userUUID: string) {
         if (forum.isAnonymous) {
-            forum.authorName = 'ไม่ระบุตัวตน'
+            forum.authorName = 'ผู้ใช้นิรนาม'
             if (forum.authorUUID === userUUID) {
                 forum.authorName += ' (คุณ)'
             } else {

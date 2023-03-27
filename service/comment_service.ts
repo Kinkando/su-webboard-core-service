@@ -27,7 +27,7 @@ export class CommentService implements Service {
     private async assertAnonymousSrv(comment: CommentView, userUUID: string) {
         const injectAnonymous = async (comment: CommentView) => {
             if (comment.isAnonymous) {
-                comment.commenterName = 'ไม่ระบุตัวตน'
+                comment.commenterName = 'ผู้ใช้นิรนาม'
                 if (comment.commenterUUID === userUUID) {
                     comment.commenterName += ' (คุณ)'
                 } else {
