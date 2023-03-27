@@ -9,13 +9,11 @@ export interface User {
     userEmail?: string
     studentID?: string
     userImageURL?: string
-    isAnonymous?: boolean
     firebaseID?: string
-    isLinkGoogle?: boolean
     lastLogin?: Date
-    followerUserUUIDs?: string[] // db only
-    followingUserUUIDs?: string[] // db only
-    notiUserUUIDs?: string[] // db only
+    followerUserUUIDs?: string[] // db only => uuid ของคนที่ติดตามเรา
+    followingUserUUIDs?: string[] // db only => uuid ของคนที่เราติดตาม
+    notiUserUUIDs?: string[] // db only => uuid ของคนที่่เราติดตาม และเปิดการแจ้งเตือนไว้
     isFollowing?: boolean
     isSelf?: boolean
     isNoti?: boolean

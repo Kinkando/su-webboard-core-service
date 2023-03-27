@@ -107,7 +107,6 @@ class AdminHandler {
                     delete (user as any).createdAt
                     delete (user as any).updatedAt
                     delete (user as any).firebaseID
-                    delete (user as any).isLinkGoogle
                 })
             }
 
@@ -196,7 +195,6 @@ class AdminHandler {
                 {field: "userFullName", type: "string", required: false},
                 {field: "userEmail", type: "email", required: false},
                 {field: "studentID", type: "string", required: false},
-                {field: "isAnonymous", type: "boolean", required: false},
             ]
 
             try {

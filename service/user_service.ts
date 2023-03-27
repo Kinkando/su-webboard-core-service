@@ -80,7 +80,6 @@ export class UserService implements Service {
                     delete (user as any).createdAt
                     delete (user as any).updatedAt
                     delete user.firebaseID
-                    delete user.isLinkGoogle
                     delete user.lastLogin
                     delete user.followerUserUUIDs
                     delete user.followingUserUUIDs
@@ -174,7 +173,6 @@ export class UserService implements Service {
 
         user.userDisplayName = user.userFullName
         user.userImageURL = `${storageFolder}/${uuid()}.${filePath.defaultAvatar.substring(filePath.defaultAvatar.lastIndexOf('.')+1)}`
-        user.isAnonymous = false
         user.firebaseID = firebaseUser.uid
         await this.storage.copyFile(`${storageFolder}/${filePath.defaultAvatar}`, user.userImageURL)
         await this.repository.createUserRepo(user);

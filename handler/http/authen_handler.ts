@@ -51,7 +51,6 @@ class AuthenHandler {
 
             await this.userService.updateUserSrv({
                 userUUID: user.userUUID,
-                isLinkGoogle: true,
                 lastLogin: new Date(),
             })
 
