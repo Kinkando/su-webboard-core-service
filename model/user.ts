@@ -13,6 +13,12 @@ export interface User {
     firebaseID?: string
     isLinkGoogle?: boolean
     lastLogin?: Date
+    followerUserUUIDs?: string[] // db only
+    followingUserUUIDs?: string[] // db only
+    notiUserUUIDs?: string[] // db only
+    isFollowing?: boolean
+    isSelf?: boolean
+    isNoti?: boolean
 }
 
 export interface FilterUser {
@@ -23,4 +29,9 @@ export interface FilterUser {
 
 export interface UserPagination extends Pagination {
     userType?: string
+}
+
+export interface FollowUserPagination extends Pagination {
+    userUUID: string
+    type: string
 }

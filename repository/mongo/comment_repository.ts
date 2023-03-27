@@ -3,6 +3,7 @@ import { Comment, CommentView } from "../../model/comment";
 import { Pagination } from "../../model/common";
 import { User } from "../../model/user";
 import logger from "../../util/logger";
+import { ForumCollection } from "./forum_repository";
 import { UserCollection } from "./user_repository";
 
 export function newCommentRepository(db: mongoDB.Db) {
@@ -38,17 +39,26 @@ export class CommentRepository implements Repository {
                 as: 'user'
             }},
             {$unwind: '$user'},
-        ]).map(comment => {
+            {$lookup: {
+                from: ForumCollection,
+                localField: 'forumUUID',
+                foreignField: 'forumUUID',
+                as: 'forum'
+            }},
+            {$unwind: '$forum'},
+        ]).map(doc => {
+            const comment = doc as CommentView
             comment.commenterName = (comment as any).user.userDisplayName
             comment.commenterImageURL = (comment as any).user.userImageURL
             comment.likeCount = comment.likeUserUUIDs?.length || 0
+            comment.isAnonymous = ((comment as any).forum?.isAnonymous || false) && (comment as any).forum?.authorUUID === comment.commenterUUID
             delete (comment as any)._id
             delete (comment as any).user
-            delete (comment as any).updatedAt
             delete (comment as any).likeUserUUIDs
+            delete (comment as any).forum
             // duplicate
             delete (comment as any).forumUUID
-            return comment as CommentView
+            return comment
         }).toArray())[0];
 
         logger.info(`End mongo.comment.getCommentRepo, "output": ${JSON.stringify(comment)}`)
@@ -70,9 +80,26 @@ export class CommentRepository implements Repository {
     async getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string) {
         logger.info(`Start mongo.comment.getCommentsRepo, "input": ${JSON.stringify({ forumUUID, filter, userUUID })}`)
 
-        const data = (await this.db.collection(CommentCollection).aggregate([
-            {$sort: { createdAt: 1 }},
+        const options: any = [
             {$match: { forumUUID, replyCommentUUID: null }},
+        ];
+
+        let sortBy: any = {}
+        if (filter.sortBy) {
+            for(let sortField of filter.sortBy.split(',')) {
+                sortField = sortField.trim()
+                const sortOption = sortField.split("@")
+                let field = sortOption[0].trim()
+                sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+            }
+        }
+
+        if (sortBy) {
+            options.push({$sort: sortBy})
+        }
+
+        const data = (await this.db.collection(CommentCollection).aggregate([
+            ...options,
             {$lookup: {
                 from: UserCollection,
                 localField: 'commenterUUID',
@@ -92,6 +119,13 @@ export class CommentRepository implements Repository {
                 as: 'replyUsers'
             }},
             {$unwind: '$user'},
+            {$lookup: {
+                from: ForumCollection,
+                localField: 'forumUUID',
+                foreignField: 'forumUUID',
+                as: 'forum'
+            }},
+            {$unwind: '$forum'},
             {$facet:{
                 "stage1" : [ { "$group": { _id: null, count: { $sum: 1 },  userReply: { $push: "$userReply" } } } ],
                 "stage2" : [ { "$skip": filter.offset }, { "$limit": filter.limit || 10 } ],
@@ -110,6 +144,7 @@ export class CommentRepository implements Repository {
                 comment.commenterImageURL = (comment as any).user.userImageURL
                 comment.likeCount = comment.likeUserUUIDs?.length || 0
                 comment.isLike = (comment as any).likeUserUUIDs?.includes(userUUID) || false
+                comment.isAnonymous = ((comment as any).forum?.isAnonymous || false) && (comment as any).forum?.authorUUID === comment.commenterUUID
                 if (comment.replyComments) {
                     for(const replyComment of comment.replyComments) {
                         const user = (comment as any).replyUsers.find((user: any) => user.userUUID ===  replyComment.commenterUUID) as User
@@ -117,9 +152,9 @@ export class CommentRepository implements Repository {
                         replyComment.commenterImageURL = user.userImageURL || ''
                         replyComment.isLike = (replyComment as any).likeUserUUIDs?.includes(userUUID) || false
                         replyComment.likeCount = replyComment.likeUserUUIDs?.length || 0
+                        replyComment.isAnonymous = ((comment as any).forum?.isAnonymous || false) && (comment as any).forum?.authorUUID === replyComment.commenterUUID
                         delete (replyComment as any)._id
                         delete (replyComment as any).replyUsers
-                        delete (replyComment as any).updatedAt
                         delete (replyComment as any).likeUserUUIDs
                         // duplicate
                         delete (replyComment as any).forumUUID
@@ -128,11 +163,11 @@ export class CommentRepository implements Repository {
                 }
                 delete (comment as any)._id
                 delete (comment as any).user
-                delete (comment as any).updatedAt
                 delete (comment as any).categoryIDs
                 delete (comment as any).commentImageURLs
                 delete (comment as any).likeUserUUIDs
                 delete (comment as any).replyUsers
+                delete (comment as any).forum
                 // duplicate
                 delete (comment as any).forumUUID
                 data.push({...comment})

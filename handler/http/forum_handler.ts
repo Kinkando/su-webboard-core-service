@@ -36,6 +36,8 @@ export class ForumHandler {
             }
 
             const schemas = [
+                {field: "userUUID", type: "string", required: false},
+                {field: "search", type: "string", required: false},
                 {field: "categoryID", type: "number", required: false},
                 {field: "sortBy", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
@@ -52,12 +54,14 @@ export class ForumHandler {
             const query: FilterForum = {
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
+                userUUID: req.query.userUUID?.toString(),
                 categoryID: Number(req.query.categoryID),
                 sortBy: req.query.sortBy?.toString() || 'createdAt@DESC',
                 search: req.query.search?.toString(),
+                selfUUID: profile.userUUID,
             }
 
-            const forums = await this.forumService.getForumsSrv(query)
+            const forums = await this.forumService.getForumsSrv(query, false, profile.userUUID)
             if (!forums || !forums.total) {
                 logger.error('forums are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -88,7 +92,7 @@ export class ForumHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
             }
 
-            const forum = await this.forumService.getForumDetailSrv(forumUUID)
+            const forum = await this.forumService.getForumDetailSrv(forumUUID, profile.userUUID)
             if (!forum || !forum.forumUUID) {
                 logger.error('forumUUID is not found')
                 return res.status(HTTP.StatusNotFound).send({ error: 'forumUUID is not found' })
@@ -123,6 +127,7 @@ export class ForumHandler {
                 {field: "title", type: "string", required: true},
                 {field: "description", type: "string", required: true},
                 {field: "categoryIDs", type: "array<number>", required: true},
+                {field: "isAnonymous", type: "boolean", required: false},
             ]
 
             try {

@@ -13,8 +13,10 @@ export interface CommentView {
     likeCount: number
     // commentCount: number
     createdAt: Date
+    updatedAt?: Date
     likeUserUUIDs?: string[] // db only
     replyComments?: CommentView[]
+    isAnonymous?: boolean // db only
 }
 
 export interface Comment {
@@ -24,4 +26,5 @@ export interface Comment {
     commentText: string
     commentImages?: Document[]
     commenterUUID: string
+    isAnonymous?: boolean // db only
 }

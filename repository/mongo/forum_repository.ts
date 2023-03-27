@@ -63,7 +63,6 @@ export class ForumRepository implements Repository {
             forum.likeCount = forum.likeUserUUIDs?.length || 0
             delete (forum as any)._id
             delete (forum as any).user
-            delete (forum as any).updatedAt
             delete (forum as any).categoryIDs
             return forum
         }).toArray())[0];
@@ -96,6 +95,17 @@ export class ForumRepository implements Repository {
         let match: any = {}
         if (filter.categoryID) {
             match.categoryIDs = { $in: [filter.categoryID] }
+        }
+        if (filter.userUUID) {
+            match = {
+                $and: [
+                    {authorUUID: filter.userUUID},
+                    {$or: [
+                        { isAnonymous: { $in: [null, false] } },
+                        { isAnonymous: true, authorUUID: filter.selfUUID },
+                    ]}
+                ]
+            }
         }
         if (filter.search) {
             const query = { $regex: `.*${filter.search ?? ''}.*`, $options: "i" }
@@ -160,7 +170,6 @@ export class ForumRepository implements Repository {
                 delete (forum as any)._id
                 delete (forum as any).user
                 delete (forum as any).comments
-                delete (forum as any).updatedAt
                 delete (forum as any).categoryIDs
                 delete (forum as any).likeUserUUIDs
                 data.push({...forum})

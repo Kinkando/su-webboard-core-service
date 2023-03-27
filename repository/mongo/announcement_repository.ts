@@ -1,6 +1,5 @@
 import * as mongoDB from "mongodb";
-import { Announcement, AnnouncementView } from "../../model/announcement"
-import { Pagination } from "../../model/common"
+import { Announcement, AnnouncementView, FilterAnnouncement } from "../../model/announcement"
 import { UserCollection } from "./user_repository";
 import logger from "../../util/logger";
 
@@ -13,10 +12,11 @@ export const AnnouncementCollection = "Announcement"
 interface Repository {
     getAnnouncementRepo(announcementUUID: string): Promise<Announcement>
     getAnnouncementDetailRepo(announcementUUID: string): Promise<AnnouncementView>
-    getAnnouncementsRepo(filter: Pagination): Promise<{ total: number, data: AnnouncementView[] }>
+    getAnnouncementsRepo(filter: FilterAnnouncement): Promise<{ total: number, data: AnnouncementView[] }>
     createAnnouncementRepo(announcement: Announcement): void
     updateAnnouncementRepo(announcement: Announcement): void
     deleteAnnouncementRepo(announcementUUID: string): void
+    seeAnnouncementRepo(announcementUUID: string, userUUID: string): void
 }
 
 export class AnnouncementRepository implements Repository {
@@ -46,9 +46,10 @@ export class AnnouncementRepository implements Repository {
         ]).map(doc => {
             doc.authorName = doc.user.userDisplayName
             doc.authorImageURL = doc.user.userImageURL
+            doc.seeCount = doc.seeCountUUIDs?.length || 0
             delete doc._id
             delete doc.user
-            delete doc.updatedAt
+            delete doc.seeCountUUIDs
             return doc as AnnouncementView
         }).toArray())[0];
 
@@ -56,11 +57,19 @@ export class AnnouncementRepository implements Repository {
         return forumDetail
     }
 
-    async getAnnouncementsRepo(filter: Pagination) {
+    async getAnnouncementsRepo(filter: FilterAnnouncement) {
         logger.info(`Start mongo.announcement.getAnnouncementsRepo, "input": ${JSON.stringify(filter)}`)
 
+        const options: any = [
+            { $sort: { createdAt: -1 } },
+        ]
+
+        if (filter.userUUID) {
+            options.push({ $match: { authorUUID: filter.userUUID } })
+        }
+
         const data = (await this.db.collection(AnnouncementCollection).aggregate([
-            {$sort: { createdAt: -1 }},
+            ...options,
             {$lookup: {
                 from: UserCollection,
                 localField: 'authorUUID',
@@ -86,7 +95,6 @@ export class AnnouncementRepository implements Repository {
                 forum.authorImageURL = (forum as any).user.userImageURL
                 delete (forum as any)._id
                 delete (forum as any).user
-                delete (forum as any).updatedAt
                 data.push({...forum})
             })
             return { total: Number(doc.total), data }
@@ -99,7 +107,7 @@ export class AnnouncementRepository implements Repository {
     async createAnnouncementRepo(announcement: Announcement) {
         logger.info(`Start mongo.announcement.createAnnouncementRepo, "input": ${JSON.stringify(announcement)}`)
 
-        await this.db.collection(AnnouncementCollection).insertOne({...announcement, createdAt: new Date()})
+        await this.db.collection(AnnouncementCollection).insertOne({...announcement, seeCountUUIDs: [], createdAt: new Date()})
 
         logger.info(`End mongo.announcement.createAnnouncementRepo, "output": ${JSON.stringify("")}`)
     }
@@ -120,4 +128,11 @@ export class AnnouncementRepository implements Repository {
         logger.info(`End mongo.announcement.deleteAnnouncementRepo`)
     }
 
+    async seeAnnouncementRepo(announcementUUID: string, userUUID: string) {
+        logger.info(`Start mongo.announcement.seeAnnouncementRepo, "input": ${JSON.stringify({ announcementUUID, userUUID })}`)
+
+        await this.db.collection(AnnouncementCollection).updateOne({announcementUUID}, { $addToSet: { seeCountUUIDs: userUUID } })
+
+        logger.info(`End mongo.announcement.seeAnnouncementRepo`)
+    }
 }

@@ -1,10 +1,10 @@
 import { v4 as uuid } from "uuid";
-import { Comment, CommentView } from "../model/comment";
-import { Document } from "../model/common";
 import { CloudStorage, File } from '../cloud/google/storage';
+import { filePath } from "../common/file_path";
+import { Comment, CommentView } from "../model/comment";
+import { Pagination, Document } from "../model/common";
 import { CommentRepository } from "../repository/mongo/comment_repository";
 import logger from "../util/logger";
-import { Pagination } from "../model/common";
 
 const storageFolder = "comment"
 
@@ -13,7 +13,7 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 }
 
 interface Service {
-    getCommentSrv(commentUUID: string): Promise<CommentView>
+    getCommentSrv(commentUUID: string, userUUID: string): Promise<CommentView>
     getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     upsertCommentSrv(comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
     deleteCommentSrv(commentUUID: string): void
@@ -24,8 +24,29 @@ interface Service {
 export class CommentService implements Service {
     constructor(private repository: CommentRepository, private storage: CloudStorage) {}
 
-    async getCommentSrv(commentUUID: string) {
-        logger.info(`Start service.comment.getCommentSrv, "input": ${JSON.stringify({commentUUID})}`)
+    private async assertAnonymousSrv(comment: CommentView, userUUID: string) {
+        const injectAnonymous = async (comment: CommentView) => {
+            if (comment.isAnonymous) {
+                comment.commenterName = 'ไม่ระบุตัวตน'
+                if (comment.commenterUUID === userUUID) {
+                    comment.commenterName += ' (คุณ)'
+                } else {
+                    comment.commenterUUID = "unknown"
+                }
+            }
+            comment.commenterImageURL = await this.storage.signedURL(comment.isAnonymous ? filePath.anonymousAvatar : comment.commenterImageURL)
+            // delete comment.isAnonymous
+        }
+        await injectAnonymous(comment)
+        if (comment.replyComments) {
+            for(const replyComment of comment.replyComments) {
+                await injectAnonymous(replyComment)
+            }
+        }
+    }
+
+    async getCommentSrv(commentUUID: string, userUUID: string) {
+        logger.info(`Start service.comment.getCommentSrv, "input": ${JSON.stringify({commentUUID, userUUID})}`)
 
         const comment = await this.repository.getCommentRepo(commentUUID)
 
@@ -33,7 +54,7 @@ export class CommentService implements Service {
             for(let i=0; i<comment.commentImages.length; i++) {
                 comment.commentImages[i].url = this.storage.publicURL(comment.commentImages[i].url)
             }
-            comment.commenterImageURL = await this.storage.signedURL(comment.commenterImageURL)
+            await this.assertAnonymousSrv(comment, userUUID)
         }
 
         logger.info(`End service.comment.getCommentSrv, "output": ${JSON.stringify(comment)}`)
@@ -59,10 +80,9 @@ export class CommentService implements Service {
                                 replyComment.commentImages[i].url = this.storage.publicURL(replyComment.commentImages[i].url)
                             }
                         }
-                        replyComment.commenterImageURL = await this.storage.signedURL(replyComment.commenterImageURL)
                     }
                 }
-                comment.commenterImageURL = await this.storage.signedURL(comment.commenterImageURL)
+                await this.assertAnonymousSrv(comment, userUUID)
             }
         }
 

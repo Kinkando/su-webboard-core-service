@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { CloudStorage, File } from '../cloud/google/storage';
 import { Document, Pagination } from "../model/common";
-import { Announcement, AnnouncementView } from "../model/announcement";
+import { Announcement, AnnouncementView, FilterAnnouncement } from "../model/announcement";
 import { AnnouncementRepository } from "../repository/mongo/announcement_repository";
 import logger from "../util/logger";
 
@@ -12,10 +12,11 @@ export function newAnnouncementService(repository: AnnouncementRepository, stora
 }
 
 interface Service {
-    getAnnouncementsSrv(filter: Pagination, isSignedURL: boolean): Promise<{ total: number, data: AnnouncementView[] }>
+    getAnnouncementsSrv(filter: FilterAnnouncement, isSignedURL: boolean): Promise<{ total: number, data: AnnouncementView[] }>
     getAnnouncementDetailSrv(announcementUUID: string): Promise<AnnouncementView>
     upsertAnnouncementSrv(announcement: Announcement, files: File[], announcementImageUUIDs?: string[]): Promise<{ announcementUUID: string, documents: Document[] }>
     deleteAnnouncementSrv(announcementUUID: string): void
+    seeAnnouncementSrv(announcementUUID: string, userUUID: string): void
 }
 
 export class AnnouncementService implements Service {
@@ -142,5 +143,13 @@ export class AnnouncementService implements Service {
         await this.repository.deleteAnnouncementRepo(announcementUUID)
 
         logger.info(`End service.announcement.deleteAnnouncementSrv`)
+    }
+
+    async seeAnnouncementSrv(announcementUUID: string, userUUID: string) {
+        logger.info(`Start service.announcement.seeAnnouncementSrv, "input": ${JSON.stringify({announcementUUID, userUUID})}`)
+
+        await this.repository.seeAnnouncementRepo(announcementUUID, userUUID)
+
+        logger.info(`End service.announcement.seeAnnouncementSrv`)
     }
 }

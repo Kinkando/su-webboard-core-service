@@ -39,7 +39,7 @@ export class HomeHandler {
                 sortBy: 'ranking@ASC'
             }
             const announcement = await this.announcementService.getAnnouncementsSrv(filter, true)
-            const popularForum = await this.forumService.getForumsSrv(filter, true)
+            const popularForum = await this.forumService.getForumsSrv(filter, true, profile.userUUID)
 
             // Mockup for forum count in each category and latest active date
             const categories = await this.categoryService.getCategoriesSrv()

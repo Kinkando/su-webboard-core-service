@@ -10,16 +10,28 @@ export function newUserRepository(db: mongoDB.Db) {
 export const UserCollection = "User"
 
 interface Repository {
+    getFollowUsersRepo(userUUIDs: string[]): Promise<User[]>
     getUsersRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
     getUserRepo(filter: FilterUser): Promise<User>
     createUserRepo(user: User): void
     updateUserRepo(user: User): void
     deleteUserRepo(userUUID: string): void
     isExistEmailRepo(email: string): Promise<boolean>
+    followingUserRepo(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
+    notiUserRepo(userUUID: string, notiUserUUID: string, isNoti: boolean): void
 }
 
 export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
+
+    async getFollowUsersRepo(userUUIDs: string[]) {
+        logger.info(`Start mongo.user.getFollowUsersRepo, "input": ${JSON.stringify(userUUIDs)}`)
+
+        const users = await this.db.collection<User>(UserCollection).find({ userUUID: { $in: userUUIDs } }).toArray()
+
+        logger.info(`End mongo.user.getFollowUsersRepo, "output": ${JSON.stringify(users)}`)
+        return users as User[]
+    }
 
     async getUsersRepo(query: UserPagination) {
         logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
@@ -101,5 +113,49 @@ export class UserRepository implements Repository {
 
         logger.info(`End mongo.user.isExistEmailRepo, "output": ${isExist}`)
         return isExist
+    }
+
+    async followingUserRepo(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean) {
+        logger.info(`Start mongo.user.followingUserRepo, "input": "${JSON.stringify({followingByUserUUID, followingToUserUUID, isFollowing})}"`)
+
+        if (isFollowing) {
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, {
+                $addToSet: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID },
+                $set: { updatedAt: new Date() }
+            })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, {
+                $addToSet: { followerUserUUIDs: followingByUserUUID },
+                $set: { updatedAt: new Date() }
+            })
+        } else {
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, {
+                $pull: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID },
+                $set: { updatedAt: new Date() }
+            })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, {
+                $pull: { followerUserUUIDs: followingByUserUUID },
+                $set: { updatedAt: new Date() }
+            })
+        }
+
+        logger.info(`End mongo.user.followingUserRepo`)
+    }
+
+    async notiUserRepo(userUUID: string, notiUserUUID: string, isNoti: boolean) {
+        logger.info(`Start mongo.user.notiUserRepo, "input": "${JSON.stringify({userUUID, notiUserUUID, isNoti})}"`)
+
+        if (isNoti) {
+            await this.db.collection(UserCollection).updateOne({ userUUID }, {
+                $addToSet: { notiUserUUIDs: notiUserUUID },
+                $set: { updatedAt: new Date() }
+            })
+        } else {
+            await this.db.collection(UserCollection).updateOne({ userUUID }, {
+                $pull: { notiUserUUIDs: notiUserUUID },
+                $set: { updatedAt: new Date() }
+            })
+        }
+
+        logger.info(`End mongo.user.notiUserRepo`)
     }
 }

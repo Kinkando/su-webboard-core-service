@@ -1,13 +1,13 @@
 import * as admin from 'firebase-admin';
 import { v4 as uuid } from 'uuid';
+import { filePath } from '../common/file_path';
 import { CloudStorage, File } from '../cloud/google/storage';
 import { SendGrid } from "../cloud/sendgrid/sendgrid";
-import { FilterUser, User, UserPagination } from "../model/user";
+import { FilterUser, FollowUserPagination, User, UserPagination } from "../model/user";
 import { UserRepository } from "../repository/mongo/user_repository";
 import logger from "../util/logger";
 
 const storageFolder = "user"
-const defaultImageURL = `avatar-1.png`
 
 export function newUserService(repository: UserRepository, firebase: admin.app.App, storage: CloudStorage, sendgrid: SendGrid) {
     return new UserService(repository, firebase, storage, sendgrid)
@@ -15,8 +15,11 @@ export function newUserService(repository: UserRepository, firebase: admin.app.A
 
 interface Service {
     // user
-    getUserSrv(filter: FilterUser): Promise<User>
+    getFollowUsersSrv(query: FollowUserPagination, userUUID: string): Promise<{ total: number, data: User[] }>
+    getUserProfileSrv(filter: FilterUser): Promise<User>
     updateUserProfileSrv(user: User, image: File): void
+    followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
+    notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean): void
     resetPasswordSrv(tokenID: string): void
 
     getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
@@ -34,8 +37,72 @@ export class UserService implements Service {
         private sendgrid: SendGrid,
     ) {}
 
-    async getUserSrv(filter: FilterUser) {
-        logger.info(`Start service.user.getUserSrv, "input": ${JSON.stringify(filter)}`)
+    async getFollowUsersSrv(query: FollowUserPagination, userUUID: string) {
+        logger.info(`Start service.user.getFollowUsersSrv, "input": ${JSON.stringify({query, userUUID})}`)
+
+        const selfUser = await this.repository.getUserRepo({ userUUID })
+        if (!selfUser) {
+            logger.error('user is not found')
+            throw Error('user is not found')
+        }
+
+        const userReq = await this.repository.getUserRepo({ userUUID: query.userUUID })
+        if (!userReq) {
+            logger.error('user is not found')
+            throw Error('user is not found')
+        }
+
+        let followUserUUIDs = query.type === 'following' ? userReq.followingUserUUIDs : userReq.followerUserUUIDs
+        if (followUserUUIDs) {
+            followUserUUIDs = followUserUUIDs.sort((a, b) => (selfUser.followingUserUUIDs?.includes(a) ? -1 : 1))
+            const index = followUserUUIDs.findIndex(followUserUUID => followUserUUID === userUUID)
+            if (index !== -1) {
+                followUserUUIDs = followUserUUIDs.filter(followUserUUID => followUserUUID !== userUUID)
+                followUserUUIDs.unshift(userUUID)
+            }
+        }
+        const userUUIDs = followUserUUIDs?.slice(query.offset, query.offset + query.limit)
+
+        let users: User[] = []
+        if (userUUIDs?.length) {
+            users = await this.repository.getFollowUsersRepo(userUUIDs);
+
+            if (users) {
+                for (const user of users) {
+                    user.userImageURL = await this.storage.signedURL(user.userImageURL!)
+                    if (user.userUUID !== userUUID) {
+                        user.isFollowing = selfUser.followingUserUUIDs?.includes(user.userUUID!) || false
+                    } else {
+                        user.isSelf = true
+                    }
+
+                    delete (user as any)._id
+                    delete (user as any).createdAt
+                    delete (user as any).updatedAt
+                    delete user.firebaseID
+                    delete user.isLinkGoogle
+                    delete user.lastLogin
+                    delete user.followerUserUUIDs
+                    delete user.followingUserUUIDs
+                    delete user.notiUserUUIDs
+                }
+            }
+        }
+
+        let data: User[] = [];
+        const total = userUUIDs?.length || 0
+        if (total) {
+            userUUIDs?.forEach(userUUID => data.push(users?.find(user => user.userUUID! === userUUID)!))
+        }
+
+        const res = { total, data }
+
+        logger.info(`End service.user.getFollowUsersSrv, "output": {"total": ${res?.total || 0}, "data.length": ${res?.data?.length || 0}}`)
+        return res
+    }
+
+    async getUserProfileSrv(filter: FilterUser) {
+        logger.info(`Start service.user.getUserProfileSrv, "input": ${JSON.stringify(filter)}`)
 
         let user = await this.repository.getUserRepo(filter);
 
@@ -43,7 +110,7 @@ export class UserService implements Service {
             user.userImageURL = await this.storage.signedURL(user.userImageURL!)
         }
 
-        logger.info(`End service.user.getUserSrv, "output": ${JSON.stringify(user)}`)
+        logger.info(`End service.user.getUserProfileSrv, "output": ${JSON.stringify(user)}`)
         return user
     }
 
@@ -64,6 +131,22 @@ export class UserService implements Service {
 
         logger.info(`End service.user.updateUserProfileSrv`)
         return user
+    }
+
+    async followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean) {
+        logger.info(`Start service.user.followingUserSrv, "input": ${JSON.stringify({followingByUserUUID, followingToUserUUID, isFollowing})}`)
+
+        await this.repository.followingUserRepo(followingByUserUUID, followingToUserUUID, isFollowing)
+
+        logger.info(`End service.user.followingUserSrv`)
+    }
+
+    async notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean) {
+        logger.info(`Start service.user.notiUserSrv, "input": ${JSON.stringify({userUUID, notiUserUUID, isNoti})}`)
+
+        await this.repository.notiUserRepo(userUUID, notiUserUUID, isNoti)
+
+        logger.info(`End service.user.notiUserSrv`)
     }
 
     async getUsersSrv(query: UserPagination) {
@@ -90,10 +173,10 @@ export class UserService implements Service {
         })
 
         user.userDisplayName = user.userFullName
-        user.userImageURL = `${storageFolder}/${uuid()}.${defaultImageURL.substring(defaultImageURL.lastIndexOf('.')+1)}`
+        user.userImageURL = `${storageFolder}/${uuid()}.${filePath.defaultAvatar.substring(filePath.defaultAvatar.lastIndexOf('.')+1)}`
         user.isAnonymous = false
         user.firebaseID = firebaseUser.uid
-        await this.storage.copyFile(`${storageFolder}/${defaultImageURL}`, user.userImageURL)
+        await this.storage.copyFile(`${storageFolder}/${filePath.defaultAvatar}`, user.userImageURL)
         await this.repository.createUserRepo(user);
 
         logger.info(`End service.user.createUserSrv`)
