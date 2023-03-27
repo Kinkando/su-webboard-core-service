@@ -80,9 +80,26 @@ export class CommentRepository implements Repository {
     async getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string) {
         logger.info(`Start mongo.comment.getCommentsRepo, "input": ${JSON.stringify({ forumUUID, filter, userUUID })}`)
 
-        const data = (await this.db.collection(CommentCollection).aggregate([
-            {$sort: { createdAt: 1 }},
+        const options: any = [
             {$match: { forumUUID, replyCommentUUID: null }},
+        ];
+
+        let sortBy: any = {}
+        if (filter.sortBy) {
+            for(let sortField of filter.sortBy.split(',')) {
+                sortField = sortField.trim()
+                const sortOption = sortField.split("@")
+                let field = sortOption[0].trim()
+                sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+            }
+        }
+
+        if (sortBy) {
+            options.push({$sort: sortBy})
+        }
+
+        const data = (await this.db.collection(CommentCollection).aggregate([
+            ...options,
             {$lookup: {
                 from: UserCollection,
                 localField: 'commenterUUID',

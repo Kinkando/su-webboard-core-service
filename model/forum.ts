@@ -32,7 +32,6 @@ export interface Forum {
 
 export interface FilterForum extends Pagination {
     categoryID?: number
-    sortBy?: string
     userUUID?: string
     selfUUID?: string
 }

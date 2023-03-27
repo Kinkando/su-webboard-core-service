@@ -82,6 +82,7 @@ export class CommentHandler {
             }
 
             const schemas = [
+                {field: "sortBy", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
             ]
@@ -94,6 +95,7 @@ export class CommentHandler {
             }
 
             const query: Pagination = {
+                sortBy: req.query.sortBy as string,
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }

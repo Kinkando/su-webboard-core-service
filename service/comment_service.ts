@@ -80,7 +80,6 @@ export class CommentService implements Service {
                                 replyComment.commentImages[i].url = this.storage.publicURL(replyComment.commentImages[i].url)
                             }
                         }
-                        await this.assertAnonymousSrv(replyComment, userUUID)
                     }
                 }
                 await this.assertAnonymousSrv(comment, userUUID)
