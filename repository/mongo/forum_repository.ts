@@ -47,12 +47,9 @@ export class ForumRepository implements Repository {
                 const sortOption = sortField.split("@")
                 let field = sortOption[0].trim()
                 if (field === 'ranking') {
-                    options.push({$addFields: { likeCount: {$size: { "$ifNull": [ "$likeUserUUIDs", [] ] } } }})
                     field = 'likeCount'
-                    sortBy[field] = -1
-                } else {
-                    sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
                 }
+                sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
             }
         }
 
@@ -73,16 +70,39 @@ export class ForumRepository implements Repository {
         }
         if (filter.search) {
             const query = { $regex: `.*${filter.search ?? ''}.*`, $options: "i" }
-            match = {
-                $or: [
-                    { title: query }
-                ]
+
+            const nominateUser = {
+                $and: [
+                    {$or: [
+                        { isAnonymous: true, authorUUID: filter.selfUUID },
+                        { isAnonymous: { $in: [null, false] } },
+                    ]},
+                    {$or: [
+                        { title: query },
+                        { authorName: query },
+                        { 'user.userDisplayName': query },
+                        { 'user.userFullName': query },
+                        { 'user.userEmail': query },
+                    ]}
+                ],
             }
+            const anonymousUser = {
+                $and: [
+                    { isAnonymous: true, authorUUID: {$ne : filter.selfUUID} },
+                    { $or: [ { title: query } ] }
+                ],
+            }
+
+            match = { $or: [ nominateUser, anonymousUser ] }
         }
         if (filter.favoriteUserUUID) {
             match = {
                 favoriteUserUUIDs: { $exists: true, $in: [ filter.favoriteUserUUID ] }
             }
+        }
+
+        if (filter.sortBy?.includes('authorName')) {
+            sortBy = {isAnonymous: 1, ...sortBy}
         }
 
         options.push(
@@ -91,7 +111,6 @@ export class ForumRepository implements Repository {
         )
 
         const data = (await this.db.collection(ForumCollection).aggregate([
-            ...options,
             {$lookup: {
                 from: UserCollection,
                 localField: 'authorUUID',
@@ -105,6 +124,13 @@ export class ForumRepository implements Repository {
                 foreignField: 'categoryID',
                 as: 'categories'
             }},
+            {$addFields: {
+                likeCount: {$size: { "$ifNull": [ "$likeUserUUIDs", [] ] } },
+                authorName: '$user.userDisplayName',
+                authorImageURL: '$user.userImageURL',
+                categoryName: { $min: '$categories.categoryName' },
+            }},
+            ...options,
             {$lookup: {
                 from: CommentCollection,
                 localField: 'forumUUID',
@@ -125,23 +151,27 @@ export class ForumRepository implements Repository {
         ]).map(doc => {
             const data: ForumView[] = []
             doc.data.forEach((forum: ForumView, index: number) => {
-                forum.categories?.forEach(category => {
-                    delete (category as any)._id
-                    delete (category as any).createdAt
-                    delete (category as any).updatedAt
-                })
-                forum.authorName = (forum as any).user.userDisplayName
-                forum.authorImageURL = (forum as any).user.userImageURL
-                if (filter.sortBy?.includes("ranking@ASC")) {
+                if (forum.categories) {
+                    forum.categories = forum.categories.sort((c1, c2) => {
+                        delete (c1 as any)._id
+                        delete (c2 as any)._id
+                        delete (c1 as any).createdAt
+                        delete (c2 as any).createdAt
+                        delete (c1 as any).updatedAt
+                        delete (c2 as any).updatedAt
+                        return c1.categoryName.localeCompare(c2.categoryName, 'th');
+                    })
+                }
+                if (filter.sortBy?.includes("ranking")) {
                     forum.ranking = filter.offset + index + 1
                 }
-                forum.likeCount = forum.likeUserUUIDs?.length || 0;
                 forum.commentCount = (forum as any).comments?.filter((comment: any) => comment.replyCommentUUID == undefined)?.length || 0
                 delete (forum as any)._id
                 delete (forum as any).user
                 delete (forum as any).comments
                 delete (forum as any).categoryIDs
                 delete (forum as any).likeUserUUIDs
+                delete (forum as any).categoryName
                 data.push({...forum})
             })
             return { total: Number(doc.total), data }
@@ -171,11 +201,17 @@ export class ForumRepository implements Repository {
             }},
         ]).map(doc => {
             const forum = doc as ForumView
-            forum.categories?.forEach(category => {
-                delete (category as any)._id
-                delete (category as any).createdAt
-                delete (category as any).updatedAt
-            })
+            if (forum.categories) {
+                forum.categories = forum.categories.sort((c1, c2) => {
+                    delete (c1 as any)._id
+                    delete (c2 as any)._id
+                    delete (c1 as any).createdAt
+                    delete (c2 as any).createdAt
+                    delete (c1 as any).updatedAt
+                    delete (c2 as any).updatedAt
+                    return c1.categoryName.localeCompare(c2.categoryName, 'th');
+                })
+            }
             forum.authorName = (forum as any).user.userDisplayName
             forum.authorImageURL = (forum as any).user.userImageURL
             forum.likeCount = forum.likeUserUUIDs?.length || 0

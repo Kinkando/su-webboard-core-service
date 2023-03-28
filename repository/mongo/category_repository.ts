@@ -66,7 +66,7 @@ export class CategoryRepository implements Repository {
     async getCategoriesRepo() {
         logger.info(`Start mongo.category.getCategoriesRepo`)
 
-        const categoryDocs = await this.db.collection<Category>(CategoryCollection).find({}, { sort: { categoryID: 1 }}).toArray()
+        const categoryDocs = await this.db.collection<Category>(CategoryCollection).find({}, { sort: { categoryName: 1 }}).toArray()
         const categories = categoryDocs.map<Category>(category => {
             return {
                 categoryID: category.categoryID,
