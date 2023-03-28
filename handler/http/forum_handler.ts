@@ -143,7 +143,7 @@ export class ForumHandler {
             const forum: Forum = bind(data, schemas)
             forum.authorUUID = profile.userUUID
 
-            const response = await this.forumService.upsertForumSrv(forum, req.files as any, data.forumImageUUIDs)
+            const response = await this.forumService.upsertForumSrv(profile.userUUID, forum, req.files as any, data.forumImageUUIDs)
 
             logger.info("End http.forum.upsertForum")
             return res.status(HTTP.StatusOK).send(response);

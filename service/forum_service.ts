@@ -15,7 +15,7 @@ export function newForumService(repository: ForumRepository, storage: CloudStora
 interface Service {
     getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string): Promise<{ total: number, data: ForumView[] }>
     getForumDetailSrv(forumUUID: string, userUUID: string): Promise<ForumView>
-    upsertForumSrv(forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
+    upsertForumSrv(userUUID: string, forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
     deleteForumSrv(forumUUID: string): void
     likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean): void
     favoriteForumSrv(forumUUID: string, userUUID: string, isFavorite: boolean): void
@@ -78,8 +78,8 @@ export class ForumService implements Service {
         return forum
     }
 
-    async upsertForumSrv(forum: Forum, files: File[], forumImageUUIDs?: string[]) {
-        logger.info(`Start service.forum.upsertForumSrv, "input": ${JSON.stringify({forum, forumImageUUIDs})}`)
+    async upsertForumSrv(userUUID: string, forum: Forum, files: File[], forumImageUUIDs?: string[]) {
+        logger.info(`Start service.forum.upsertForumSrv, "input": ${JSON.stringify({userUUID, forum, forumImageUUIDs, totalFiles: files?.length || 0})}`)
 
         const uploadForumImage = async (forum: Forum, images?: Document[]) => {
             if (files) {
@@ -112,6 +112,11 @@ export class ForumService implements Service {
             if (!forumReq || !forumReq.forumUUID) {
                 throw Error('forumUUID is not found')
             }
+
+            if (forumReq.authorUUID !== userUUID) {
+                throw Error('unable to update forum: permission is denied')
+            }
+
             if (forumImageUUIDs && forumReq.forumImages) {
                 const forumImageReq = forumReq.forumImages.filter(doc => forumImageUUIDs.includes(doc.uuid))
                 if (forumImageReq) {

@@ -37,6 +37,7 @@ export class CategoryRepository implements Repository {
                 forumCount: { $size: { "$ifNull": [ "$forums", [] ] } },
                 lastActive: { $max: '$forums.createdAt' },
             }},
+            {$sort: { categoryName: 1 }},
         ]).map(doc => {
             delete doc._id
             delete doc._createdAt

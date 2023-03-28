@@ -144,7 +144,7 @@ export class CommentHandler {
             const comment: Comment = bind(data, schemas)
             comment.commenterUUID = profile.userUUID
 
-            const response = await this.commentService.upsertCommentSrv(comment, req.files as any, data.commentImageUUIDs)
+            const response = await this.commentService.upsertCommentSrv(profile.userUUID, comment, req.files as any, data.commentImageUUIDs)
 
             logger.info("End http.comment.upsertComment")
             return res.status(HTTP.StatusOK).send(response);

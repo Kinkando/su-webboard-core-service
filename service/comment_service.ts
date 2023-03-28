@@ -15,7 +15,7 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 interface Service {
     getCommentSrv(commentUUID: string, userUUID: string): Promise<CommentView>
     getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
-    upsertCommentSrv(comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
+    upsertCommentSrv(userUUID: string, comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
     deleteCommentSrv(commentUUID: string): void
     deleteCommentsByForumUUIDSrv(forumUUID: string): void
     likeCommentSrv(commentUUID: string, userUUID: string, isLike: boolean): void
@@ -90,8 +90,8 @@ export class CommentService implements Service {
         return comments
     }
 
-    async upsertCommentSrv(comment: Comment, files: File[], commentImageUUIDs?: string[]) {
-        logger.info(`Start service.comment.upsertCommentSrv, "input": ${JSON.stringify({comment, commentImageUUIDs})}`)
+    async upsertCommentSrv(userUUID: string, comment: Comment, files: File[], commentImageUUIDs?: string[]) {
+        logger.info(`Start service.comment.upsertCommentSrv, "input": ${JSON.stringify({userUUID, comment, commentImageUUIDs, totalFile: files?.length || 0})}`)
 
         const uploadCommentImage = async (comment: Comment, images?: Document[]): Promise<Document[]> => {
             if (files) {
@@ -124,6 +124,11 @@ export class CommentService implements Service {
             if (!commentReq || !commentReq.commentUUID) {
                 throw Error('commentUUID is not found')
             }
+
+            if (commentReq.commenterUUID !== userUUID) {
+                throw Error('unable to update comment: permission is denied')
+            }
+
             if (commentImageUUIDs && commentReq.commentImages) {
                 const commentImageReq = commentReq.commentImages.filter(doc => commentImageUUIDs.includes(doc.uuid))
                 if (commentImageReq) {
