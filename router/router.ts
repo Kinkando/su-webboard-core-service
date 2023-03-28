@@ -68,7 +68,7 @@ export default async function init(config: Configuration) {
 
     const sendgrid = newSendGrid(config.sendgrid)
 
-    api.use(useJWT(config.app.jwtSecretKey, redis as any))
+    const middleware = useJWT(config.app.jwtSecretKey, redis as any)
 
     const server = api.listen(PORT, () => logger.debug(`Server is listening on port :${PORT}`));
 
@@ -102,14 +102,14 @@ export default async function init(config: Configuration) {
 
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
-    api.use('/admin', newAdminHandler(authenService, userService, categoryService, notificationSocket))
-    api.use('/announcement', newAnnouncementHandler(announcementService))
+    api.use('/admin', middleware, newAdminHandler(authenService, userService, categoryService, notificationSocket))
+    api.use('/announcement', middleware, newAnnouncementHandler(announcementService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
-    api.use('/category', newCategoryHandler(categoryService))
-    api.use('/home', newHomeHandler(categoryService, forumService, announcementService))
-    api.use('/forum', newForumHandler(forumService, commentService))
-    api.use('/comment', newCommentHandler(commentService))
-    api.use('/user', newUserHandler(userService))
+    api.use('/category', middleware, newCategoryHandler(categoryService))
+    api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
+    api.use('/forum', middleware, newForumHandler(forumService, commentService))
+    api.use('/comment', middleware, newCommentHandler(commentService))
+    api.use('/user', middleware, newUserHandler(userService))
 
     return api
 }
