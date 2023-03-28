@@ -219,12 +219,12 @@ export class ForumRepository implements Repository {
         if (isLike) {
             await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
                 $addToSet: { likeUserUUIDs: userUUID },
-                $set: { updatedAt: new Date() },
+                // $set: { updatedAt: new Date() },
             })
         } else {
             await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
                 $pull: { likeUserUUIDs: userUUID },
-                $set: { updatedAt: new Date() },
+                // $set: { updatedAt: new Date() },
             })
         }
 
@@ -237,12 +237,12 @@ export class ForumRepository implements Repository {
         if (isFavorite) {
             await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
                 $addToSet: { favoriteUserUUIDs: userUUID },
-                $set: { updatedAt: new Date() },
+                // $set: { updatedAt: new Date() },
             })
         } else {
             await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
                 $pull: { favoriteUserUUIDs: userUUID },
-                $set: { updatedAt: new Date() },
+                // $set: { updatedAt: new Date() },
             })
         }
 
