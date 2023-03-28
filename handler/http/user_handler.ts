@@ -159,6 +159,11 @@ class UserHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
             }
 
+            if (profile.userUUID === req.body.userUUID) {
+                logger.error('unable to following yourself')
+                return res.status(HTTP.StatusBadRequest).send({ error: "unable to following yourself" })
+            }
+
             await this.userService.followingUserSrv(profile.userUUID, req.body.userUUID, req.body.isFollowing as boolean)
 
             logger.info("End http.user.followingUser")
@@ -190,6 +195,11 @@ class UserHandler {
             } catch (error) {
                 logger.error(error)
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            if (profile.userUUID === req.body.userUUID) {
+                logger.error('unable to notify yourself')
+                return res.status(HTTP.StatusBadRequest).send({ error: "unable to notify yourself" })
             }
 
             await this.userService.notiUserSrv(profile.userUUID, req.body.userUUID, req.body.isNoti as boolean)

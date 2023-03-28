@@ -105,7 +105,7 @@ export class AnnouncementHandler {
 
         try {
             const profile = getProfile(req)
-            if (profile.userType === 'adm') {
+            if (profile.userType !== 'tch') {
                 logger.error('permission is denied')
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
@@ -144,7 +144,7 @@ export class AnnouncementHandler {
 
         try {
             const profile = getProfile(req)
-            if (profile.userType === 'adm') {
+            if (profile.userType !== 'tch') {
                 logger.error('permission is denied')
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
