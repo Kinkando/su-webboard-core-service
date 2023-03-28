@@ -32,11 +32,10 @@ export class HomeHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-
             const filter = {
                 offset: 0,
                 limit: 10,
-                sortBy: 'ranking@ASC'
+                sortBy: 'ranking@DESC'
             }
             const announcement = await this.announcementService.getAnnouncementsSrv(filter, true)
             const popularForum = await this.forumService.getForumsSrv(filter, true, profile.userUUID)
