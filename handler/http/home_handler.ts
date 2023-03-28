@@ -39,13 +39,7 @@ export class HomeHandler {
             }
             const announcement = await this.announcementService.getAnnouncementsSrv(filter, true)
             const popularForum = await this.forumService.getForumsSrv(filter, true, profile.userUUID)
-
-            // Mockup for forum count in each category and latest active date
-            const categories = await this.categoryService.getCategoriesSrv()
-            categories.forEach((category: any) => {
-                category.lastActive = new Date()
-                category.forumCount = Math.floor(Math.random() * 1000)
-            })
+            const categories = await this.categoryService.getCategoryDetailsSrv()
 
             logger.info("End http.home.home")
             return res.status(HTTP.StatusOK).send({ announcements: announcement.data, popularTopics: popularForum.data, categories: categories });

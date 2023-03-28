@@ -3,3 +3,8 @@ export interface Category {
     categoryName: string
     categoryHexColor: string
 }
+
+export interface CategoryDetail extends Category {
+    lastActive: Date
+    forumCount: number
+}

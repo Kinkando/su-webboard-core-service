@@ -1,8 +1,9 @@
-import { Category } from "../../model/category";
+import { Category, CategoryDetail } from "../../model/category";
 import logger from "../../util/logger";
 import * as mongoDB from "mongodb";
 import categoryModel from './model/category'
 import { Pagination } from "../../model/common";
+import { ForumCollection } from "./forum_repository";
 
 export function newCategoryRepository(db: mongoDB.Db) {
     return new CategoryRepository(db)
@@ -11,6 +12,7 @@ export function newCategoryRepository(db: mongoDB.Db) {
 export const CategoryCollection = "Category"
 
 interface Repository {
+    getCategoryDetailsRepo(): Promise<CategoryDetail[]>
     getCategoriesPaginationRepo(query: Pagination): Promise<{ total: number, data: Category[] }>
     getCategoriesRepo(): Promise<Category[]>
     createCategoryRepo(category: Category): void
@@ -20,6 +22,32 @@ interface Repository {
 
 export class CategoryRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
+
+    async getCategoryDetailsRepo() {
+        logger.info(`Start mongo.category.getCategoryDetailsRepo`)
+
+        const categories = await this.db.collection(CategoryCollection).aggregate([
+            {$lookup: {
+                from: ForumCollection,
+                localField: 'categoryID',
+                foreignField: 'categoryIDs',
+                as: 'forums'
+            }},
+            {$addFields: {
+                forumCount: { $size: { "$ifNull": [ "$forums", [] ] } },
+                lastActive: { $max: '$forums.createdAt' },
+            }},
+        ]).map(doc => {
+            delete doc._id
+            delete doc._createdAt
+            delete doc._updatedAt
+            delete doc.categories
+            return doc as CategoryDetail
+        }).toArray()
+
+        logger.info(`End mongo.category.getCategoryDetailsRepo, "output": ${JSON.stringify(categories)}`)
+        return categories
+    }
 
     async getCategoriesPaginationRepo(query: Pagination) {
         logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify(query)}`)
