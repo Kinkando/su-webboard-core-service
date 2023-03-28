@@ -119,20 +119,20 @@ export class UserRepository implements Repository {
         if (isFollowing) {
             await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, {
                 $addToSet: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID },
-                $set: { updatedAt: new Date() }
+                // $set: { updatedAt: new Date() }
             })
             await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, {
                 $addToSet: { followerUserUUIDs: followingByUserUUID },
-                $set: { updatedAt: new Date() }
+                // $set: { updatedAt: new Date() }
             })
         } else {
             await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, {
                 $pull: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID },
-                $set: { updatedAt: new Date() }
+                // $set: { updatedAt: new Date() }
             })
             await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, {
                 $pull: { followerUserUUIDs: followingByUserUUID },
-                $set: { updatedAt: new Date() }
+                // $set: { updatedAt: new Date() }
             })
         }
 
@@ -145,12 +145,12 @@ export class UserRepository implements Repository {
         if (isNoti) {
             await this.db.collection(UserCollection).updateOne({ userUUID }, {
                 $addToSet: { notiUserUUIDs: notiUserUUID },
-                $set: { updatedAt: new Date() }
+                // $set: { updatedAt: new Date() }
             })
         } else {
             await this.db.collection(UserCollection).updateOne({ userUUID }, {
                 $pull: { notiUserUUIDs: notiUserUUID },
-                $set: { updatedAt: new Date() }
+                // $set: { updatedAt: new Date() }
             })
         }
 
