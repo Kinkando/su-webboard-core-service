@@ -130,7 +130,7 @@ export class ForumHandler {
                 {field: "title", type: "string", required: true},
                 {field: "description", type: "string", required: true},
                 {field: "categoryIDs", type: "array<number>", required: true},
-                {field: "isAnonymous", type: "boolean", required: true},
+                {field: "isAnonymous", type: "boolean", required: false},
             ]
 
             try {
