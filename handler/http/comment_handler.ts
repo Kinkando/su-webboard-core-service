@@ -7,10 +7,11 @@ import { CommentService } from "../../service/comment_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
+import { ForumSocket } from '../../handler/socket/forum_socket';
 const upload = multer()
 
-export function newCommentHandler(commentService: CommentService) {
-    const commentHandler = new CommentHandler(commentService)
+export function newCommentHandler(commentService: CommentService, forumSocket: ForumSocket) {
+    const commentHandler = new CommentHandler(commentService, forumSocket)
 
     const commentRouter = Router()
     commentRouter.get('/:forumUUID', (req, res, next) => commentHandler.getComments(req, res, next))
@@ -23,7 +24,7 @@ export function newCommentHandler(commentService: CommentService) {
 }
 
 export class CommentHandler {
-    constructor(private commentService: CommentService) {}
+    constructor(private commentService: CommentService, private forumSocket: ForumSocket) {}
 
     async getComment(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.comment.getComment")
@@ -55,6 +56,7 @@ export class CommentHandler {
 
             comment.isLike = comment.likeUserUUIDs?.includes(profile.userUUID) || false
             delete comment.likeUserUUIDs
+            delete (comment as any).forumUUID
 
             logger.info("End http.comment.getComment")
             return res.status(HTTP.StatusOK).send(comment);
@@ -144,7 +146,15 @@ export class CommentHandler {
             const comment: Comment = bind(data, schemas)
             comment.commenterUUID = profile.userUUID
 
+            const isCreate = comment.commentUUID == undefined
+
             const response = await this.commentService.upsertCommentSrv(profile.userUUID, comment, req.files as any, data.commentImageUUIDs)
+
+            if (isCreate) {
+                this.forumSocket.createComment(profile.userUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
+            } else {
+                this.forumSocket.updateComment(profile.userUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
+            }
 
             logger.info("End http.comment.upsertComment")
             return res.status(HTTP.StatusOK).send(response);
@@ -165,12 +175,21 @@ export class CommentHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            if (!req.body.commentUUID) {
+            const commentUUID = req.body.commentUUID
+            if (!commentUUID) {
                 logger.error('commentUUID is required')
                 return res.status(HTTP.StatusBadRequest).send({ error: "commentUUID is required" })
             }
 
-            await this.commentService.deleteCommentSrv(req.body.commentUUID)
+            const comment = await this.commentService.getCommentSrv(commentUUID, profile.userUUID)
+            if (!comment || !comment.commentUUID) {
+                logger.error('comment is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "comment is not found" })
+            }
+
+            await this.commentService.deleteCommentSrv(commentUUID)
+
+            this.forumSocket.deleteComment(profile.userUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
 
             logger.info("End http.comment.deleteComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
@@ -206,7 +225,15 @@ export class CommentHandler {
             const commentUUID = req.body.commentUUID
             const isLike = Boolean(req.body.isLike)
 
+            const comment = await this.commentService.getCommentSrv(commentUUID, profile.userUUID)
+            if (!comment || !comment.commentUUID) {
+                logger.error('comment is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "comment is not found" })
+            }
+
             await this.commentService.likeCommentSrv(commentUUID, profile.userUUID, isLike)
+
+            this.forumSocket.updateComment(profile.userUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
 
             logger.info("End http.comment.likeComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

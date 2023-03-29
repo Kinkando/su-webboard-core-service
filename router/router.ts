@@ -72,17 +72,23 @@ export default async function init(config: Configuration) {
 
     const server = api.listen(PORT, () => logger.debug(`Server is listening on port :${PORT}`));
 
-    let notificationSocket!: NotificationSocket
-    let forumSocket!: ForumSocket
 
     // initialize socket
     const io = new Server(server, { cors: { origin: '*' } })
     io.on('connection', socket => {
-        logger.debug(`Client is connected to socket with id: ${socket.id}`)
         socket.on('ping', () => socket.emit('pong', { message: 'pong' }))
-        notificationSocket = newNotificationSocket(io, socket)
-        forumSocket = newForumSocket(io, socket)
+        socket.on('join', room => {
+            socket.join(room)
+            logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${room}`)
+        })
+        socket.on('leave', room => {
+            logger.debug(`Client is disconnected to socket with id: ${socket.id}, room: ${room}`)
+            socket.leave(room)
+        })
     })
+
+    let notificationSocket = newNotificationSocket(io)
+    let forumSocket = newForumSocket(io)
 
     // define repo
     const announcementRepository = newAnnouncementRepository(mongoDB)
@@ -107,8 +113,8 @@ export default async function init(config: Configuration) {
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', middleware, newCategoryHandler(categoryService))
     api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
-    api.use('/forum', middleware, newForumHandler(forumService, commentService))
-    api.use('/comment', middleware, newCommentHandler(commentService))
+    api.use('/forum', middleware, newForumHandler(forumService, commentService, forumSocket))
+    api.use('/comment', middleware, newCommentHandler(commentService, forumSocket))
     api.use('/user', middleware, newUserHandler(userService))
 
     return api
