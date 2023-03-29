@@ -1,3 +1,4 @@
+import { ForumSocket } from '../../handler/socket/forum_socket';
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
 import HTTP from "../../common/http";
@@ -9,8 +10,8 @@ import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
 const upload = multer()
 
-export function newForumHandler(forumService: ForumService, commentService: CommentService) {
-    const forumHandler = new ForumHandler(forumService, commentService)
+export function newForumHandler(forumService: ForumService, commentService: CommentService, forumSocket: ForumSocket) {
+    const forumHandler = new ForumHandler(forumService, commentService, forumSocket)
 
     const forumRouter = Router()
     forumRouter.get('', (req, res, next) => forumHandler.getForums(req, res, next))
@@ -24,7 +25,7 @@ export function newForumHandler(forumService: ForumService, commentService: Comm
 }
 
 export class ForumHandler {
-    constructor(private forumService: ForumService, private commentService: CommentService) {}
+    constructor(private forumService: ForumService, private commentService: CommentService, private forumSocket: ForumSocket) {}
 
     async getForums(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.forum.getForums")
@@ -143,7 +144,13 @@ export class ForumHandler {
             const forum: Forum = bind(data, schemas)
             forum.authorUUID = profile.userUUID
 
+            let isUpdate = forum.forumUUID !== undefined
+
             const response = await this.forumService.upsertForumSrv(profile.userUUID, forum, req.files as any, data.forumImageUUIDs)
+
+            if (isUpdate) {
+                this.forumSocket.updateForum(profile.userUUID, response.forumUUID)
+            }
 
             logger.info("End http.forum.upsertForum")
             return res.status(HTTP.StatusOK).send(response);
@@ -173,6 +180,8 @@ export class ForumHandler {
             await this.forumService.deleteForumSrv(forumUUID)
 
             await this.commentService.deleteCommentsByForumUUIDSrv(forumUUID)
+
+            this.forumSocket.deleteForum(profile.userUUID, forumUUID)
 
             logger.info("End http.forum.deleteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
@@ -209,6 +218,8 @@ export class ForumHandler {
             const isLike = Boolean(req.body.isLike)
 
             await this.forumService.likeForumSrv(forumUUID, profile.userUUID, isLike)
+
+            this.forumSocket.updateForum(profile.userUUID, forumUUID)
 
             logger.info("End http.forum.likeForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

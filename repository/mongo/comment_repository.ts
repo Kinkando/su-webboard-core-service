@@ -57,7 +57,7 @@ export class CommentRepository implements Repository {
             delete (comment as any).likeUserUUIDs
             delete (comment as any).forum
             // duplicate
-            delete (comment as any).forumUUID
+            // delete (comment as any).forumUUID
             return comment
         }).toArray())[0];
 

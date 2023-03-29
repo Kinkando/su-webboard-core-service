@@ -1,7 +1,7 @@
 import * as mongoDB from "mongodb";
 import { CategoryCollection } from "./category_repository";
 import { UserCollection } from "./user_repository";
-import { FilterForum, Forum, ForumView } from "../../model/forum";
+import { FilterForum, Forum, ForumView, RankingForum } from "../../model/forum";
 import logger from "../../util/logger";
 import { CommentCollection } from "./comment_repository";
 
@@ -13,12 +13,13 @@ export const ForumCollection = "Forum"
 
 interface Repository {
     getForumRepo(forumUUID: string): Promise<Forum>
-    getForumsRepo(filter: FilterForum): Promise<{ total: number, data: ForumView[] }>
+    getForumsRepo(filter: FilterForum, ranking?: RankingForum): Promise<{ total: number, data: ForumView[] }>
     getForumDetailRepo(forumUUID: string): Promise<ForumView>
     createForumRepo(forum: Forum): void
     updateForumRepo(forum: Forum): void
     deleteForumRepo(forumUUID: string): void
 
+    calculateForumRankingsRepo(): Promise<RankingForum>
     likeForumRepo(forumUUID: string, userUUID: string, isLike: boolean): void
     favoriteForumRepo(forumUUID: string, userUUID: string, isFavorite: boolean): void
 }
@@ -35,8 +36,8 @@ export class ForumRepository implements Repository {
         return forum as Forum
     }
 
-    async getForumsRepo(filter: FilterForum) {
-        logger.info(`Start mongo.forum.getForumsRepo, "input": ${JSON.stringify(filter)}`)
+    async getForumsRepo(filter: FilterForum, ranking?: RankingForum) {
+        logger.info(`Start mongo.forum.getForumsRepo, "input": ${JSON.stringify({filter, ranking})}`)
 
         const options: any = [];
 
@@ -162,8 +163,8 @@ export class ForumRepository implements Repository {
                         return c1.categoryName.localeCompare(c2.categoryName, 'th');
                     })
                 }
-                if (filter.sortBy?.includes("ranking")) {
-                    forum.ranking = filter.offset + index + 1
+                if (ranking) {
+                    forum.ranking = ranking[forum.likeCount || 0]
                 }
                 forum.commentCount = (forum as any).comments?.filter((comment: any) => comment.replyCommentUUID == undefined)?.length || 0
                 delete (forum as any)._id
@@ -247,6 +248,20 @@ export class ForumRepository implements Repository {
         await this.db.collection(ForumCollection).deleteOne({ forumUUID })
 
         logger.info(`End mongo.forum.deleteForumRepo`)
+    }
+
+    async calculateForumRankingsRepo() {
+        logger.info(`Start mongo.forum.calculateForumRankingsRepo`)
+
+        const forums: ForumView[] = await this.db.collection<ForumView>(ForumCollection).find().toArray()
+
+        let ranking: RankingForum = {};
+        const uniqueLikeCount = new Set<number>()
+        forums.forEach(forum => uniqueLikeCount.add(forum.likeUserUUIDs?.length || 0));
+        [...uniqueLikeCount].sort((a, b) => b-a).forEach((likeCount, index) => ranking[likeCount] = index+1)
+
+        logger.info(`End mongo.forum.calculateForumRankingsRepo, "output": ${JSON.stringify(ranking)}`)
+        return ranking
     }
 
     async likeForumRepo(forumUUID: string, userUUID: string, isLike: boolean) {

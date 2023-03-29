@@ -38,3 +38,7 @@ export interface FilterForum extends Pagination {
     selfUUID?: string
     favoriteUserUUID?: string
 }
+
+export interface RankingForum {
+    [likeCount: number]: number
+}
