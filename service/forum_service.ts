@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import { filePath } from "../common/file_path";
 import { CloudStorage, File } from '../cloud/google/storage';
 import { Document } from "../model/common";
-import { FilterForum, Forum, ForumView } from "../model/forum";
+import { FilterForum, Forum, ForumView, RankingForum } from "../model/forum";
 import { ForumRepository } from "../repository/mongo/forum_repository";
 import logger from "../util/logger";
 
@@ -43,7 +43,12 @@ export class ForumService implements Service {
     async getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string) {
         logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify({filter, isSignedURL, userUUID})}`)
 
-        const forums = await this.repository.getForumsRepo(filter)
+        let ranking: RankingForum = {}
+        if (filter.sortBy?.includes("ranking")) {
+            ranking = await this.repository.calculateForumRankingsRepo()
+        }
+
+        const forums = await this.repository.getForumsRepo(filter, ranking)
 
         if(forums?.data) {
             for(let forum of forums.data) {
