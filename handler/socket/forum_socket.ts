@@ -1,6 +1,6 @@
-import logger from '@util/logger';
 import { Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import logger from '../../util/logger';
 
 enum ForumEvent {
     UpdateForum = 'updateForum',
