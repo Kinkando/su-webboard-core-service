@@ -39,12 +39,6 @@ import { newCommentRepository } from '../repository/mongo/comment_repository';
 import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCacheRepository } from '../repository/redis/cache_repository';
 
-interface SocketClient {
-    socketID: string
-    sessionUUID: string
-    room: string
-}
-
 export default async function init(config: Configuration) {
     const PORT = process.env.PORT || config.app.port;
 
