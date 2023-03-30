@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors'
+import { Server } from 'socket.io';
 
 import { Configuration } from '../config/config';
 import { newFirebaseAppWithServiceAccount } from '../cloud/google/firebase';
@@ -39,6 +40,12 @@ import { newCommentRepository } from '../repository/mongo/comment_repository';
 import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCacheRepository } from '../repository/redis/cache_repository';
 
+interface SocketClient {
+    socketID: string
+    sessionUUID: string
+    room: string
+}
+
 export default async function init(config: Configuration) {
     const PORT = process.env.PORT || config.app.port;
 
@@ -73,9 +80,43 @@ export default async function init(config: Configuration) {
     const server = api.listen(PORT, () => logger.debug(`Server is listening on port :${PORT}`));
 
     // initialize socket
-    const socket = newSocket(server)
-    const notificationSocket = newNotificationSocket(socket)
-    const forumSocket = newForumSocket(socket)
+    // const socket = newSocket(server)
+    let socketClients: SocketClient[] = []
+
+    const socketServer = new Server(server, { cors: { origin: '*' } })
+    socketServer.on('connection', socket => {
+        socket.on('ping', () => socket.emit('pong', { message: 'pong' }))
+        socket.on('join', (data: {room: string, sessionUUID: string}) => {
+            socketClients = socketClients.filter(client => {
+                const isMatch = client.sessionUUID === data.sessionUUID
+                if (isMatch) {
+                    const matchSocket = socketServer.sockets.sockets.get(client.socketID)
+                    matchSocket?.leave(client.room)
+                    logger.warn(`Client socket is leave room by duplicate sessionUUID with socket id: ${socket.id}, room: ${client.room}, sessionUUID: ${client.sessionUUID}`)
+                }
+                return !isMatch
+            })
+            socketClients.push({
+                room: data.room,
+                sessionUUID: data.sessionUUID,
+                socketID: socket.id,
+            })
+            socket.join(data.room)
+            logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room}, sessionUUID: ${data.sessionUUID}`)
+        })
+        socket.on('disconnect', reason => {
+            logger.warn(`Client is disconnected to socket with id: ${socket.id}`)
+            const socketClient = socketClients.find(client => client.socketID === socket.id)
+            if (socketClient) {
+                socketClients = socketClients.filter(client => client.socketID !== socket.id)
+                socket.leave(socketClient.room)
+                logger.warn(`Client is disconnected to socket with id: ${socket.id}, room: ${socketClient.room}, sessionUUID: ${socketClient.sessionUUID}, reason: ${JSON.stringify(reason)}`)
+            }
+        })
+    })
+
+    const notificationSocket = newNotificationSocket(socketServer)
+    const forumSocket = newForumSocket(socketServer)
 
     // define repo
     const announcementRepository = newAnnouncementRepository(mongoDB)
