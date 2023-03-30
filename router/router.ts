@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors'
-import { Server } from 'socket.io';
 
 import { Configuration } from '../config/config';
 import { newFirebaseAppWithServiceAccount } from '../cloud/google/firebase';
@@ -22,8 +21,9 @@ import { newHomeHandler } from '../handler/http/home_handler';
 import { newCommentHandler } from '../handler/http/comment_handler';
 import { newForumHandler } from '../handler/http/forum_handler';
 import { newUserHandler } from '../handler/http/user_handler';
-import { NotificationSocket, newNotificationSocket } from '../handler/socket/notification_socket';
-import { ForumSocket, newForumSocket } from '../handler/socket/forum_socket';
+import { newNotificationSocket } from '../handler/socket/notification_socket';
+import { newForumSocket } from '../handler/socket/forum_socket';
+import { newSocket } from '../handler/socket/socket';
 
 import { newAuthenService } from '../service/authen_service';
 import { newAnnouncementService } from '../service/announcement_service';
@@ -72,23 +72,10 @@ export default async function init(config: Configuration) {
 
     const server = api.listen(PORT, () => logger.debug(`Server is listening on port :${PORT}`));
 
-
     // initialize socket
-    const io = new Server(server, { cors: { origin: '*' } })
-    io.on('connection', socket => {
-        socket.on('ping', () => socket.emit('pong', { message: 'pong' }))
-        socket.on('join', room => {
-            socket.join(room)
-            logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${room}`)
-        })
-        socket.on('leave', room => {
-            logger.debug(`Client is disconnected to socket with id: ${socket.id}, room: ${room}`)
-            socket.leave(room)
-        })
-    })
-
-    let notificationSocket = newNotificationSocket(io)
-    let forumSocket = newForumSocket(io)
+    const socket = newSocket(server)
+    const notificationSocket = newNotificationSocket(socket)
+    const forumSocket = newForumSocket(socket)
 
     // define repo
     const announcementRepository = newAnnouncementRepository(mongoDB)

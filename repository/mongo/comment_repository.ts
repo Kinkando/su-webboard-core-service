@@ -13,7 +13,7 @@ export function newCommentRepository(db: mongoDB.Db) {
 export const CommentCollection = 'Comment'
 
 interface Repository {
-    getCommentRepo(commentUUID: string): Promise<CommentView>
+    getCommentRepo(commentUUID: string, userUUID: string): Promise<CommentView>
     getCommentAndReplyRepo(commentUUID: string): Promise<CommentView[]>
     getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     getCommentsByForumUUIDRepo(forumUUID: string): Promise<Comment[]>
@@ -27,8 +27,8 @@ interface Repository {
 export class CommentRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getCommentRepo(commentUUID: string) {
-        logger.info(`Start mongo.comment.getCommentRepo, "input": ${JSON.stringify({ commentUUID })}`)
+    async getCommentRepo(commentUUID: string, userUUID: string) {
+        logger.info(`Start mongo.comment.getCommentRepo, "input": ${JSON.stringify({ commentUUID, userUUID })}`)
 
         const comment = (await this.db.collection(CommentCollection).aggregate([
             {$match: { commentUUID }},
@@ -51,6 +51,7 @@ export class CommentRepository implements Repository {
             comment.commenterName = (comment as any).user.userDisplayName
             comment.commenterImageURL = (comment as any).user.userImageURL
             comment.likeCount = comment.likeUserUUIDs?.length || 0
+            comment.isLike = comment.likeUserUUIDs?.includes(userUUID) || false
             comment.isAnonymous = ((comment as any).forum?.isAnonymous || false) && (comment as any).forum?.authorUUID === comment.commenterUUID
             delete (comment as any)._id
             delete (comment as any).user

@@ -53,9 +53,6 @@ export class CommentHandler {
                 logger.error('comment is not found')
                 return res.status(HTTP.StatusNotFound).send({ error: 'comment is not found' })
             }
-
-            comment.isLike = comment.likeUserUUIDs?.includes(profile.userUUID) || false
-            delete comment.likeUserUUIDs
             delete (comment as any).forumUUID
 
             logger.info("End http.comment.getComment")
@@ -151,9 +148,9 @@ export class CommentHandler {
             const response = await this.commentService.upsertCommentSrv(profile.userUUID, comment, req.files as any, data.commentImageUUIDs)
 
             if (isCreate) {
-                this.forumSocket.createComment(profile.userUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
+                this.forumSocket.createComment(profile.sessionUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
             } else {
-                this.forumSocket.updateComment(profile.userUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
+                this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
             }
 
             logger.info("End http.comment.upsertComment")
@@ -189,7 +186,7 @@ export class CommentHandler {
 
             await this.commentService.deleteCommentSrv(commentUUID)
 
-            this.forumSocket.deleteComment(profile.userUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
+            this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
 
             logger.info("End http.comment.deleteComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
@@ -233,7 +230,7 @@ export class CommentHandler {
 
             await this.commentService.likeCommentSrv(commentUUID, profile.userUUID, isLike)
 
-            this.forumSocket.updateComment(profile.userUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
+            this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
 
             logger.info("End http.comment.likeComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

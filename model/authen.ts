@@ -17,6 +17,7 @@ export interface RefreshToken extends JwtPayload {
 export interface Profile {
     userType: UserType
     userUUID: string
+    sessionUUID: string
 }
 
 export type UserType = 'adm' | 'std' | 'tch'

@@ -32,6 +32,7 @@ export function useJWT(jwtSecretKey: string, redis: RedisClientType) {
             (req as CustomRequest).profile = {
                 userUUID: jwtDecode.userUUID,
                 userType: jwtDecode.userType,
+                sessionUUID: jwtDecode.sessionUUID,
             }
         } catch (error) {
             return res.status(HTTP.StatusUnauthorized).send({ error: `invalid JWT token: `+(error as Error).message })

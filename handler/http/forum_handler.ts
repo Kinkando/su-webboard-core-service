@@ -149,7 +149,7 @@ export class ForumHandler {
             const response = await this.forumService.upsertForumSrv(profile.userUUID, forum, req.files as any, data.forumImageUUIDs)
 
             if (isUpdate) {
-                this.forumSocket.updateForum(profile.userUUID, response.forumUUID)
+                this.forumSocket.updateForum(profile.sessionUUID, response.forumUUID)
             }
 
             logger.info("End http.forum.upsertForum")
@@ -181,7 +181,7 @@ export class ForumHandler {
 
             await this.commentService.deleteCommentsByForumUUIDSrv(forumUUID)
 
-            this.forumSocket.deleteForum(profile.userUUID, forumUUID)
+            this.forumSocket.deleteForum(profile.sessionUUID, forumUUID)
 
             logger.info("End http.forum.deleteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
@@ -219,7 +219,7 @@ export class ForumHandler {
 
             await this.forumService.likeForumSrv(forumUUID, profile.userUUID, isLike)
 
-            this.forumSocket.updateForum(profile.userUUID, forumUUID)
+            this.forumSocket.updateForum(profile.sessionUUID, forumUUID)
 
             logger.info("End http.forum.likeForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

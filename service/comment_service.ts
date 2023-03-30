@@ -48,7 +48,7 @@ export class CommentService implements Service {
     async getCommentSrv(commentUUID: string, userUUID: string) {
         logger.info(`Start service.comment.getCommentSrv, "input": ${JSON.stringify({commentUUID, userUUID})}`)
 
-        const comment = await this.repository.getCommentRepo(commentUUID)
+        const comment = await this.repository.getCommentRepo(commentUUID, userUUID)
 
         if (comment?.commentImages) {
             for(let i=0; i<comment.commentImages.length; i++) {
@@ -120,7 +120,7 @@ export class CommentService implements Service {
 
         let newDocuments: Document[] = []
         if (comment.commentUUID) {
-            const commentReq = await this.repository.getCommentRepo(comment.commentUUID)
+            const commentReq = await this.repository.getCommentRepo(comment.commentUUID, userUUID)
             if (!commentReq || !commentReq.commentUUID) {
                 throw Error('commentUUID is not found')
             }
