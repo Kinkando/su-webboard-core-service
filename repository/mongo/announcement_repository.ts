@@ -2,6 +2,7 @@ import * as mongoDB from "mongodb";
 import { Announcement, AnnouncementView, FilterAnnouncement } from "../../model/announcement"
 import { UserCollection } from "./user_repository";
 import logger from "../../util/logger";
+import announcementModel from './model/announcement'
 
 export function newAnnouncementRepository(db: mongoDB.Db) {
     return new AnnouncementRepository(db)
@@ -13,10 +14,13 @@ interface Repository {
     getAnnouncementRepo(announcementUUID: string): Promise<Announcement>
     getAnnouncementDetailRepo(announcementUUID: string): Promise<AnnouncementView>
     getAnnouncementsRepo(filter: FilterAnnouncement): Promise<{ total: number, data: AnnouncementView[] }>
+    getAnnouncementsByAuthorUUIDRepo(authorUUID: string): Promise<Announcement[]>
     createAnnouncementRepo(announcement: Announcement): void
     updateAnnouncementRepo(announcement: Announcement): void
     deleteAnnouncementRepo(announcementUUID: string): void
     seeAnnouncementRepo(announcementUUID: string, userUUID: string): void
+
+    pullSeeCountUUIDFromAnnouncementRepo(userUUID: string): void
 }
 
 export class AnnouncementRepository implements Repository {
@@ -104,6 +108,15 @@ export class AnnouncementRepository implements Repository {
         return data
     }
 
+    async getAnnouncementsByAuthorUUIDRepo(authorUUID: string) {
+        logger.info(`Start mongo.announcement.getAnnouncementsByAuthorUUIDRepo, "input": ${JSON.stringify({authorUUID})}`)
+
+        const announcements: Announcement[] = await this.db.collection<Announcement>(AnnouncementCollection).find({ authorUUID }).toArray()
+
+        logger.info(`End mongo.announcement.getAnnouncementsByAuthorUUIDRepo, "output": ${JSON.stringify(announcements)}`)
+        return announcements
+    }
+
     async createAnnouncementRepo(announcement: Announcement) {
         logger.info(`Start mongo.announcement.createAnnouncementRepo, "input": ${JSON.stringify(announcement)}`)
 
@@ -134,5 +147,18 @@ export class AnnouncementRepository implements Repository {
         await this.db.collection(AnnouncementCollection).updateOne({announcementUUID}, { $addToSet: { seeCountUUIDs: userUUID } })
 
         logger.info(`End mongo.announcement.seeAnnouncementRepo`)
+    }
+
+    async pullSeeCountUUIDFromAnnouncementRepo(userUUID: string) {
+        logger.info(`Start mongo.announcement.pullSeeCountUUIDFromAnnouncementRepo, "input": ${JSON.stringify({ userUUID })}`)
+
+        const result = await announcementModel.updateMany(
+            { seeCountUUIDs: { $exists: true, $in: [ userUUID ] } },
+            { $pull: { seeCountUUIDs: userUUID } },
+        )
+
+        logger.info(`Pull see count out of announcement by userUUID: ${userUUID} to ${result.matchedCount} announcement(s)`)
+
+        logger.info(`End mongo.announcement.pullSeeCountUUIDFromAnnouncementRepo`)
     }
 }

@@ -2,6 +2,7 @@ import { FilterUser, User, UserPagination } from "../../model/user";
 import logger from "../../util/logger";
 import * as mongoDB from "mongodb";
 import { v4 as uuid } from "uuid";
+import userModel from './model/user'
 
 export function newUserRepository(db: mongoDB.Db) {
     return new UserRepository(db)
@@ -79,9 +80,8 @@ export class UserRepository implements Repository {
     async createUserRepo(user: User) {
         logger.info(`Start mongo.user.createUserRepo, "input": ${JSON.stringify(user)}`)
 
-        // add validate unique student id and user email
         user.userUUID = uuid()
-        await this.db.collection(UserCollection).insertOne({...user, createdAt: new Date()})
+        await userModel.create({...user, createdAt: new Date()})
 
         logger.info(`End mongo.user.createUserRepo`)
     }
@@ -89,8 +89,7 @@ export class UserRepository implements Repository {
     async updateUserRepo(user: User) {
         logger.info(`Start mongo.user.updateUserRepo, "input": ${JSON.stringify(user)}`)
 
-        // add validate unique student id and user email
-        await this.db.collection(UserCollection).updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
+        await userModel.updateOne({ userUUID: user.userUUID}, { $set: {...user, updatedAt: new Date()} })
 
         logger.info(`End mongo.user.updateUserRepo`)
     }
@@ -99,6 +98,21 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.deleteUserRepo, "input": "${userUUID}"`)
 
         await this.db.collection(UserCollection).deleteOne({ userUUID })
+
+        const result = await userModel.updateMany(
+            {
+                $or: [
+                    { followerUserUUIDs: { $exists: true, $in: [ userUUID ] } },
+                    { followingUserUUIDs: { $exists: true, $in: [ userUUID ] } },
+                    { notiUserUUIDs: { $exists: true, $in: [ userUUID ] } },
+                ]
+            },
+            {
+                $pull: { followerUserUUIDs: userUUID, followingUserUUIDs: userUUID, notiUserUUIDs: userUUID },
+            },
+        )
+
+        logger.info(`Unsubscribe follower, following and notification from delete user: ${userUUID} to ${result.matchedCount} another user(s)`)
 
         logger.info(`End mongo.user.deleteUserRepo`)
     }
@@ -117,23 +131,11 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.followingUserRepo, "input": "${JSON.stringify({followingByUserUUID, followingToUserUUID, isFollowing})}"`)
 
         if (isFollowing) {
-            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, {
-                $addToSet: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID },
-                // $set: { updatedAt: new Date() }
-            })
-            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, {
-                $addToSet: { followerUserUUIDs: followingByUserUUID },
-                // $set: { updatedAt: new Date() }
-            })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, { $addToSet: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID } })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, { $addToSet: { followerUserUUIDs: followingByUserUUID } })
         } else {
-            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, {
-                $pull: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID },
-                // $set: { updatedAt: new Date() }
-            })
-            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, {
-                $pull: { followerUserUUIDs: followingByUserUUID },
-                // $set: { updatedAt: new Date() }
-            })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingByUserUUID }, { $pull: { followingUserUUIDs: followingToUserUUID, notiUserUUIDs: followingToUserUUID } })
+            await this.db.collection(UserCollection).updateOne({ userUUID: followingToUserUUID }, { $pull: { followerUserUUIDs: followingByUserUUID } })
         }
 
         logger.info(`End mongo.user.followingUserRepo`)
@@ -143,15 +145,9 @@ export class UserRepository implements Repository {
         logger.info(`Start mongo.user.notiUserRepo, "input": "${JSON.stringify({userUUID, notiUserUUID, isNoti})}"`)
 
         if (isNoti) {
-            await this.db.collection(UserCollection).updateOne({ userUUID }, {
-                $addToSet: { notiUserUUIDs: notiUserUUID },
-                // $set: { updatedAt: new Date() }
-            })
+            await this.db.collection(UserCollection).updateOne({ userUUID }, { $addToSet: { notiUserUUIDs: notiUserUUID } })
         } else {
-            await this.db.collection(UserCollection).updateOne({ userUUID }, {
-                $pull: { notiUserUUIDs: notiUserUUID },
-                // $set: { updatedAt: new Date() }
-            })
+            await this.db.collection(UserCollection).updateOne({ userUUID }, { $pull: { notiUserUUIDs: notiUserUUID } })
         }
 
         logger.info(`End mongo.user.notiUserRepo`)

@@ -15,14 +15,29 @@ export function newForumService(repository: ForumRepository, storage: CloudStora
 interface Service {
     getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string): Promise<{ total: number, data: ForumView[] }>
     getForumDetailSrv(forumUUID: string, userUUID: string): Promise<ForumView>
+    getForumByUserUUIDSrv(userUUID: string): Promise<Forum[]>
     upsertForumSrv(userUUID: string, forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
     deleteForumSrv(forumUUID: string): void
     likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean): void
     favoriteForumSrv(forumUUID: string, userUUID: string, isFavorite: boolean): void
+
+    getForumsByLikeUserUUIDSrv(userUUID: string): Promise<Forum[]>
+    pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID: string): void
 }
 
 export class ForumService implements Service {
     constructor(private repository: ForumRepository, private storage: CloudStorage) {}
+
+    private async deleteForumImagesSrv(...documents: Document[]) {
+        for (const document of documents) {
+            try {
+                await this.storage.deleteFile(document.url)
+                logger.warn(`delete forum image from cloud storage with object: ${document.url}`)
+            } catch (error) {
+                logger.error(error)
+            }
+        }
+    }
 
     async assertAnonymousSrv(forum: ForumView, userUUID: string) {
         if (forum.isAnonymous) {
@@ -125,13 +140,7 @@ export class ForumService implements Service {
             if (forumImageUUIDs && forumReq.forumImages) {
                 const forumImageReq = forumReq.forumImages.filter(doc => forumImageUUIDs.includes(doc.uuid))
                 if (forumImageReq) {
-                    for (const forumImage of forumImageReq) {
-                        try {
-                            await this.storage.deleteFile(forumImage.url)
-                        } catch (error) {
-                            logger.error(error)
-                        }
-                    }
+                    await this.deleteForumImagesSrv(...forumImageReq)
                 }
             }
             newDocuments = await uploadForumImage(forum, forumReq?.forumImages)
@@ -171,6 +180,15 @@ export class ForumService implements Service {
         logger.info(`End service.forum.deleteForumSrv`)
     }
 
+    async getForumByUserUUIDSrv(userUUID: string) {
+        logger.info(`Start service.forum.getForumByUserUUIDSrv, "input": ${JSON.stringify({userUUID})}`)
+
+        const forums = await this.repository.getForumsByAuthorUUIDRepo(userUUID)
+
+        logger.info(`End service.forum.getForumByUserUUIDSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        return forums
+    }
+
     async likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean) {
         logger.info(`Start service.forum.likeForumSrv, "input": ${JSON.stringify({forumUUID, userUUID, isLike})}`)
 
@@ -185,5 +203,22 @@ export class ForumService implements Service {
         await this.repository.favoriteForumRepo(forumUUID, userUUID, isFavorite)
 
         logger.info(`End service.forum.favoriteForumSrv`)
+    }
+
+    async getForumsByLikeUserUUIDSrv(userUUID: string) {
+        logger.info(`Start service.forum.getForumsByLikeUserUUIDSrv, "input": ${JSON.stringify({userUUID})}`)
+
+        const forums = await this.repository.getForumsByLikeUserUUIDRepo(userUUID)
+
+        logger.info(`End service.forum.getForumsByLikeUserUUIDSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        return forums
+    }
+
+    async pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID: string) {
+        logger.info(`Start service.forum.pullFavoriteAndLikeUserUUIDFromForumSrv, "input": ${JSON.stringify({ userUUID })}`)
+
+        await this.repository.pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID)
+
+        logger.info(`End service.forum.pullFavoriteAndLikeUserUUIDFromForumSrv`)
     }
 }

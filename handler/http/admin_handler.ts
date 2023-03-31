@@ -1,19 +1,41 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import HTTP from '../../common/http';
+import { ForumSocket } from '../../handler/socket/forum_socket';
+import { NotificationSocket } from '../../handler/socket/notification_socket';
 import { UserType } from '../../model/authen';
-import logger from '../../util/logger';
-import { getProfile } from '../../util/profile';
-import { User, UserPagination } from '../../model/user';
-import { bind, validate } from '../../util/validate';
-import { UserService } from '../../service/user_service';
-import { CategoryService } from '../../service/category_service';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
+import { User, UserPagination } from '../../model/user';
+import { AnnouncementService } from '../../service/announcement_service';
 import { AuthenService } from '../../service/authen_service';
-import { NotificationSocket } from '../../handler/socket/notification_socket';
+import { CategoryService } from '../../service/category_service';
+import { CommentService } from '../../service/comment_service';
+import { ForumService } from '../../service/forum_service';
+import { UserService } from '../../service/user_service';
+import logger from '../../util/logger';
+import { getProfile } from '../../util/profile';
+import { bind, validate } from '../../util/validate';
 
-export function newAdminHandler(authenService: AuthenService, userService: UserService, categoryService: CategoryService, notificationSocket: NotificationSocket) {
-    const adminHandler = new AdminHandler(authenService, userService, categoryService, notificationSocket)
+export function newAdminHandler(
+    announcementService: AnnouncementService,
+    authenService: AuthenService,
+    categoryService: CategoryService,
+    commentService: CommentService,
+    forumService: ForumService,
+    userService: UserService,
+    forumSocket: ForumSocket,
+    notificationSocket: NotificationSocket,
+) {
+    const adminHandler = new AdminHandler(
+        announcementService,
+        authenService,
+        categoryService,
+        commentService,
+        forumService,
+        userService,
+        forumSocket,
+        notificationSocket,
+    )
 
     const adminRouter = Router()
 
@@ -32,9 +54,13 @@ export function newAdminHandler(authenService: AuthenService, userService: UserS
 
 class AdminHandler {
     constructor(
+        private announcementService: AnnouncementService,
         private authenService: AuthenService,
-        private userService: UserService,
         private categoryService: CategoryService,
+        private commentService: CommentService,
+        private forumService: ForumService,
+        private userService: UserService,
+        private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}
 
@@ -235,7 +261,48 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: 'userUUIDs is required' })
             }
 
-            await this.userService.deleteUsersSrv(userUUIDs)
+            for(const userUUID of userUUIDs) {
+                await this.authenService.revokeTokensByAdminSrv(req.body?.userUUIDs)
+
+                await this.userService.deleteUserSrv(userUUID)
+                const forums = await this.forumService.getForumByUserUUIDSrv(userUUID)
+                if (forums) {
+                    for(const forum of forums) {
+                        await this.forumService.deleteForumSrv(forum.forumUUID!)
+                        await this.commentService.deleteCommentsByForumUUIDSrv(forum.forumUUID!)
+                        this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
+                    }
+                }
+                const comments = await this.commentService.getCommentsByCommenterUUIDSrv(userUUID)
+                if (comments) {
+                    for (const comment of comments) {
+                        await this.commentService.deleteCommentSrv(comment.commentUUID!)
+                        this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID!, comment.replyCommentUUID)
+                    }
+                }
+                const announcements = await this.announcementService.getAnnouncementsByAuthorUUIDSrv(userUUID)
+                if (announcements) {
+                    for (const announcement of announcements) {
+                        await this.announcementService.deleteAnnouncementSrv(announcement.announcementUUID!)
+                    }
+                }
+
+                const likeForums = await this.forumService.getForumsByLikeUserUUIDSrv(userUUID)
+                await this.forumService.pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID)
+                if (likeForums) {
+                    for (const forum of likeForums) {
+                        this.forumSocket.updateForum(profile.sessionUUID, forum.forumUUID!)
+                    }
+                }
+                const likeComments = await this.commentService.getCommentsByLikeUserUUIDSrv(userUUID)
+                await this.commentService.pullLikeUserUUIDFromCommentSrv(userUUID)
+                if (likeComments) {
+                    for (const comment of likeComments) {
+                        this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID!, comment.commentUUID!, comment.replyCommentUUID)
+                    }
+                }
+                await this.announcementService.pullSeeCountUUIDFromAnnouncementSrv(userUUID)
+            }
 
             logger.info("End http.admin.deleteUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });

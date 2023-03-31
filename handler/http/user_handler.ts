@@ -226,13 +226,15 @@ class UserHandler {
             const userUUID = req.query.userUUID as string
             const user = await this.userService.getUserProfileSrv({ userUUID: userUUID || profile.userUUID })
             if (!user) {
-                throw Error("user not found")
+                logger.error('user is not found')
+                return res.status(HTTP.StatusUnauthorized).send({ error: 'user is not found' })
             }
 
             if (userUUID && userUUID !== profile.userUUID) {
                 const selfUser = await this.userService.getUserProfileSrv({ userUUID: profile.userUUID })
                 if (!selfUser) {
-                    throw Error("user not found")
+                    logger.error('user is not found')
+                    return res.status(HTTP.StatusUnauthorized).send({ error: 'user is not found' })
                 }
                 user.isFollowing = user.followerUserUUIDs?.includes(profile.userUUID) || false
                 user.isNoti = selfUser.notiUserUUIDs?.includes(user.userUUID!) || false

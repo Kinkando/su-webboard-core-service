@@ -4,6 +4,7 @@ import { UserCollection } from "./user_repository";
 import { FilterForum, Forum, ForumView, RankingForum } from "../../model/forum";
 import logger from "../../util/logger";
 import { CommentCollection } from "./comment_repository";
+import forumModel from './model/forum'
 
 export function newForumRepository(db: mongoDB.Db) {
     return new ForumRepository(db)
@@ -15,6 +16,7 @@ interface Repository {
     getForumRepo(forumUUID: string): Promise<Forum>
     getForumsRepo(filter: FilterForum, ranking?: RankingForum): Promise<{ total: number, data: ForumView[] }>
     getForumDetailRepo(forumUUID: string): Promise<ForumView>
+    getForumsByAuthorUUIDRepo(authorUUID: string): Promise<Forum[]>
     createForumRepo(forum: Forum): void
     updateForumRepo(forum: Forum): void
     deleteForumRepo(forumUUID: string): void
@@ -22,6 +24,9 @@ interface Repository {
     calculateForumRankingsRepo(): Promise<RankingForum>
     likeForumRepo(forumUUID: string, userUUID: string, isLike: boolean): void
     favoriteForumRepo(forumUUID: string, userUUID: string, isFavorite: boolean): void
+
+    getForumsByLikeUserUUIDRepo(userUUID: string): Promise<Forum[]>
+    pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string): void
 }
 
 export class ForumRepository implements Repository {
@@ -151,7 +156,7 @@ export class ForumRepository implements Repository {
             }}
         ]).map(doc => {
             const data: ForumView[] = []
-            doc.data.forEach((forum: ForumView, index: number) => {
+            doc.data.forEach((forum: ForumView) => {
                 if (forum.categories) {
                     forum.categories = forum.categories.sort((c1, c2) => {
                         delete (c1 as any)._id
@@ -226,6 +231,15 @@ export class ForumRepository implements Repository {
         return forumDetail as ForumView
     }
 
+    async getForumsByAuthorUUIDRepo(authorUUID: string) {
+        logger.info(`Start mongo.forum.getForumsByAuthorUUIDRepo, "input": ${JSON.stringify(authorUUID)}`)
+
+        const forums: Forum[] = await this.db.collection<Forum>(ForumCollection).find({ authorUUID }).toArray()
+
+        logger.info(`End mongo.forum.getForumsByAuthorUUIDRepo, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        return forums
+    }
+
     async createForumRepo(forum: Forum) {
         logger.info(`Start mongo.forum.createForumRepo, "input": ${JSON.stringify(forum)}`)
 
@@ -268,15 +282,9 @@ export class ForumRepository implements Repository {
         logger.info(`Start mongo.forum.likeForumRepo, "input": ${JSON.stringify({forumUUID, userUUID, isLike})}`)
 
         if (isLike) {
-            await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
-                $addToSet: { likeUserUUIDs: userUUID },
-                // $set: { updatedAt: new Date() },
-            })
+            await this.db.collection(ForumCollection).updateOne({ forumUUID }, { $addToSet: { likeUserUUIDs: userUUID } })
         } else {
-            await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
-                $pull: { likeUserUUIDs: userUUID },
-                // $set: { updatedAt: new Date() },
-            })
+            await this.db.collection(ForumCollection).updateOne({ forumUUID }, { $pull: { likeUserUUIDs: userUUID } })
         }
 
         logger.info(`End mongo.forum.likeForumRepo`)
@@ -286,17 +294,40 @@ export class ForumRepository implements Repository {
         logger.info(`Start mongo.forum.favoriteForumRepo, "input": ${JSON.stringify({forumUUID, userUUID, isFavorite})}`)
 
         if (isFavorite) {
-            await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
-                $addToSet: { favoriteUserUUIDs: userUUID },
-                // $set: { updatedAt: new Date() },
-            })
+            await this.db.collection(ForumCollection).updateOne({ forumUUID }, { $addToSet: { favoriteUserUUIDs: userUUID } })
         } else {
-            await this.db.collection(ForumCollection).updateOne({ forumUUID }, {
-                $pull: { favoriteUserUUIDs: userUUID },
-                // $set: { updatedAt: new Date() },
-            })
+            await this.db.collection(ForumCollection).updateOne({ forumUUID }, { $pull: { favoriteUserUUIDs: userUUID } })
         }
 
         logger.info(`End mongo.forum.favoriteForumRepo`)
+    }
+
+    async getForumsByLikeUserUUIDRepo(userUUID: string) {
+        logger.info(`Start mongo.forum.getForumsByLikeUserUUIDRepo, "input": ${JSON.stringify({ userUUID })}`)
+
+        const forums: Forum[] = await this.db.collection<Forum>(ForumCollection).find({ likeUserUUIDs: { $elemMatch: { $eq: userUUID } } }).toArray()
+
+        logger.info(`End mongo.forum.getForumsByLikeUserUUIDRepo, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        return forums
+    }
+
+    async pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string) {
+        logger.info(`Start mongo.forum.pullFavoriteAndLikeUserUUIDFromForumRepo, "input": ${JSON.stringify({ userUUID })}`)
+
+        const result = await forumModel.updateMany(
+            {
+                $or: [
+                    { favoriteUserUUIDs: { $elemMatch: { $eq: userUUID } } },
+                    { likeUserUUIDs: { $elemMatch: { $eq: userUUID } } },
+                ]
+            },
+            {
+                $pull: { favoriteUserUUIDs: userUUID, likeUserUUIDs: userUUID },
+            },
+        )
+
+        logger.info(`Pull favorite and like out of forum by userUUID: ${userUUID} to ${result.matchedCount} forum(s)`)
+
+        logger.info(`End mongo.forum.pullFavoriteAndLikeUserUUIDFromForumRepo`)
     }
 }

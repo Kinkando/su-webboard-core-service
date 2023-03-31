@@ -15,14 +15,29 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 interface Service {
     getCommentSrv(commentUUID: string, userUUID: string): Promise<CommentView>
     getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
+    getCommentsByCommenterUUIDSrv(commenterUUID: string): Promise<Comment[]>
     upsertCommentSrv(userUUID: string, comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
     deleteCommentSrv(commentUUID: string): void
     deleteCommentsByForumUUIDSrv(forumUUID: string): void
     likeCommentSrv(commentUUID: string, userUUID: string, isLike: boolean): void
+
+    getCommentsByLikeUserUUIDSrv(userUUID: string): Promise<Comment[]>
+    pullLikeUserUUIDFromCommentSrv(userUUID: string): void
 }
 
 export class CommentService implements Service {
     constructor(private repository: CommentRepository, private storage: CloudStorage) {}
+
+    private async deleteCommentImagesSrv(...documents: Document[]) {
+        for (const document of documents) {
+            try {
+                await this.storage.deleteFile(document.url)
+                logger.warn(`delete comment image from cloud storage with object: ${document.url}`)
+            } catch (error) {
+                logger.error(error)
+            }
+        }
+    }
 
     private async assertAnonymousSrv(comment: CommentView, userUUID: string) {
         const injectAnonymous = async (comment: CommentView) => {
@@ -90,6 +105,15 @@ export class CommentService implements Service {
         return comments
     }
 
+    async getCommentsByCommenterUUIDSrv(commenterUUID: string) {
+        logger.info(`Start service.comment.getCommentsByCommenterUUIDSrv, "input": ${JSON.stringify({ commenterUUID })}`)
+
+        const comments = await this.repository.getCommentsByUUIDRepo({ commenterUUID })
+
+        logger.info(`End service.comment.getCommentsByCommenterUUIDSrv, "output": ${JSON.stringify(comments)}`)
+        return comments
+    }
+
     async upsertCommentSrv(userUUID: string, comment: Comment, files: File[], commentImageUUIDs?: string[]) {
         logger.info(`Start service.comment.upsertCommentSrv, "input": ${JSON.stringify({userUUID, comment, commentImageUUIDs, totalFile: files?.length || 0})}`)
 
@@ -132,13 +156,7 @@ export class CommentService implements Service {
             if (commentImageUUIDs && commentReq.commentImages) {
                 const commentImageReq = commentReq.commentImages.filter(doc => commentImageUUIDs.includes(doc.uuid))
                 if (commentImageReq) {
-                    for (const commentImage of commentImageReq) {
-                        try {
-                            await this.storage.deleteFile(commentImage.url)
-                        } catch (error) {
-                            logger.error(error)
-                        }
-                    }
+                    await this.deleteCommentImagesSrv(...commentImageReq)
                 }
             }
             newDocuments = await uploadCommentImage(comment, commentReq?.commentImages)
@@ -165,13 +183,7 @@ export class CommentService implements Service {
 
         for (const comment of comments) {
             if (comment.commentImages) {
-                for (const commentImage of comment.commentImages) {
-                    try {
-                        await this.storage.deleteFile(commentImage.url)
-                    } catch (error) {
-                        logger.error(error)
-                    }
-                }
+                await this.deleteCommentImagesSrv(...comment.commentImages)
             }
         }
 
@@ -183,18 +195,12 @@ export class CommentService implements Service {
     async deleteCommentsByForumUUIDSrv(forumUUID: string) {
         logger.info(`Start service.comment.deleteCommentsByForumUUIDSrv, "input": ${JSON.stringify(forumUUID)}`)
 
-        const comments = await this.repository.getCommentsByForumUUIDRepo(forumUUID)
+        const comments = await this.repository.getCommentsByUUIDRepo({forumUUID})
 
         if (comments) {
             for (const comment of comments) {
                 if (comment.commentImages) {
-                    for (const commentImage of comment.commentImages) {
-                        try {
-                            await this.storage.deleteFile(commentImage.url)
-                        } catch (error) {
-                            logger.error(error)
-                        }
-                    }
+                    await this.deleteCommentImagesSrv(...comment.commentImages)
                 }
             }
         }
@@ -210,5 +216,22 @@ export class CommentService implements Service {
         await this.repository.likeCommentRepo(commentUUID, userUUID, isLike)
 
         logger.info(`End service.comment.likeCommentSrv`)
+    }
+
+    async getCommentsByLikeUserUUIDSrv(userUUID: string) {
+        logger.info(`Start service.forum.getCommentsByLikeUserUUIDSrv, "input": ${JSON.stringify({userUUID})}`)
+
+        const forums = await this.repository.getCommentsByLikeUserUUIDRepo(userUUID)
+
+        logger.info(`End service.forum.getCommentsByLikeUserUUIDSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        return forums
+    }
+
+    async pullLikeUserUUIDFromCommentSrv(userUUID: string) {
+        logger.info(`Start service.forum.pullLikeUserUUIDFromCommentSrv, "input": ${JSON.stringify({ userUUID })}`)
+
+        await this.repository.pullLikeUserUUIDFromCommentRepo(userUUID)
+
+        logger.info(`End service.forum.pullLikeUserUUIDFromCommentSrv`)
     }
 }

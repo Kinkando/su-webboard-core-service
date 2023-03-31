@@ -5,6 +5,7 @@ import { User } from "../../model/user";
 import logger from "../../util/logger";
 import { ForumCollection } from "./forum_repository";
 import { UserCollection } from "./user_repository";
+import commentModel from './model/comment'
 
 export function newCommentRepository(db: mongoDB.Db) {
     return new CommentRepository(db)
@@ -16,12 +17,15 @@ interface Repository {
     getCommentRepo(commentUUID: string, userUUID: string): Promise<CommentView>
     getCommentAndReplyRepo(commentUUID: string): Promise<CommentView[]>
     getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
-    getCommentsByForumUUIDRepo(forumUUID: string): Promise<Comment[]>
+    getCommentsByUUIDRepo(key: { forumUUID?: string, commenterUUID?: string }): Promise<Comment[]>
     createCommentRepo(comment: Comment): void
     updateCommentRepo(comment: Comment): void
     deleteCommentRepo(commentUUID: string): void
     deleteCommentsByForumUUIDRepo(forumUUID: string): void
     likeCommentRepo(commentUUID: string, userUUID: string, isLike: boolean): void
+
+    getCommentsByLikeUserUUIDRepo(userUUID: string): Promise<Comment[]>
+    pullLikeUserUUIDFromCommentRepo(userUUID: string): void
 }
 
 export class CommentRepository implements Repository {
@@ -180,10 +184,12 @@ export class CommentRepository implements Repository {
         return data
     }
 
-    async getCommentsByForumUUIDRepo(forumUUID: string) {
-        logger.info(`Start mongo.comment.getCommentsByForumUUIDRepo, "input": ${JSON.stringify({ forumUUID })}`)
+    async getCommentsByUUIDRepo(key: { forumUUID?: string, commenterUUID?: string }) {
+        logger.info(`Start mongo.comment.getCommentsByForumUUIDRepo, "input": ${JSON.stringify(key)}`)
 
-        const commentsDoc = await this.db.collection<Comment>(CommentCollection).find({ forumUUID }).toArray()
+        const find = key.forumUUID ? { forumUUID: key.forumUUID } : { commenterUUID: key.commenterUUID }
+
+        const commentsDoc = await this.db.collection<Comment>(CommentCollection).find(find).toArray()
         const comments = commentsDoc.map(comment => {
             delete (comment as any)._id
             delete (comment as any).createdAt
@@ -240,4 +246,25 @@ export class CommentRepository implements Repository {
         logger.info(`End mongo.comment.likeCommentRepo`)
     }
 
+    async getCommentsByLikeUserUUIDRepo(userUUID: string) {
+        logger.info(`Start mongo.comment.getCommentsByLikeUserUUIDRepo, "input": ${JSON.stringify({ userUUID })}`)
+
+        const forums: Comment[] = await this.db.collection<Comment>(CommentCollection).find({ likeUserUUIDs: { $elemMatch: { $eq: userUUID } } }).toArray()
+
+        logger.info(`End mongo.comment.getCommentsByLikeUserUUIDRepo, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        return forums
+    }
+
+    async pullLikeUserUUIDFromCommentRepo(userUUID: string) {
+        logger.info(`Start mongo.comment.pullLikeUserUUIDFromCommentRepo, "input": ${JSON.stringify({ userUUID })}`)
+
+        const result = await commentModel.updateMany(
+            { likeUserUUIDs: { $elemMatch: { $eq: userUUID } } },
+            { $pull: { likeUserUUIDs: userUUID } },
+        )
+
+        logger.info(`Pull like out of comment by userUUID: ${userUUID} to ${result.matchedCount} comment(s)`)
+
+        logger.info(`End mongo.comment.pullLikeUserUUIDFromCommentRepo`)
+    }
 }

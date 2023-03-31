@@ -14,9 +14,12 @@ export function newAnnouncementService(repository: AnnouncementRepository, stora
 interface Service {
     getAnnouncementsSrv(filter: FilterAnnouncement, isSignedURL: boolean): Promise<{ total: number, data: AnnouncementView[] }>
     getAnnouncementDetailSrv(announcementUUID: string): Promise<AnnouncementView>
+    getAnnouncementsByAuthorUUIDSrv(authorUUID: string): Promise<Announcement[]>
     upsertAnnouncementSrv(announcement: Announcement, files: File[], announcementImageUUIDs?: string[]): Promise<{ announcementUUID: string, documents: Document[] }>
     deleteAnnouncementSrv(announcementUUID: string): void
     seeAnnouncementSrv(announcementUUID: string, userUUID: string): void
+
+    pullSeeCountUUIDFromAnnouncementSrv(userUUID: string): void
 }
 
 export class AnnouncementService implements Service {
@@ -60,6 +63,15 @@ export class AnnouncementService implements Service {
 
         logger.info(`End service.announcement.getAnnouncementDetailSrv, "output": ${JSON.stringify(announcement)}`)
         return announcement
+    }
+
+    async getAnnouncementsByAuthorUUIDSrv(authorUUID: string) {
+        logger.info(`Start service.announcement.getAnnouncementsByAuthorUUIDSrv, "input": ${JSON.stringify({ authorUUID })}`)
+
+        const announcements = await this.repository.getAnnouncementsByAuthorUUIDRepo(authorUUID)
+
+        logger.info(`End service.announcement.getAnnouncementsByAuthorUUIDSrv, "output": ${JSON.stringify({ total: announcements?.length || 0 })}`)
+        return announcements
     }
 
     async upsertAnnouncementSrv(announcement: Announcement, files: File[], announcementImageUUIDs?: string[]) {
@@ -151,5 +163,13 @@ export class AnnouncementService implements Service {
         await this.repository.seeAnnouncementRepo(announcementUUID, userUUID)
 
         logger.info(`End service.announcement.seeAnnouncementSrv`)
+    }
+
+    async pullSeeCountUUIDFromAnnouncementSrv(userUUID: string) {
+        logger.info(`Start service.announcement.pullSeeCountUUIDFromAnnouncementSrv, "input": ${JSON.stringify({ userUUID })}`)
+
+        await this.repository.pullSeeCountUUIDFromAnnouncementRepo(userUUID)
+
+        logger.info(`End service.announcement.pullSeeCountUUIDFromAnnouncementSrv`)
     }
 }

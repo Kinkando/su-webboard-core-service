@@ -11,7 +11,6 @@ export interface CommentView {
     commenterImageURL: string
     isLike: boolean
     likeCount: number
-    // commentCount: number
     createdAt: Date
     updatedAt?: Date
     likeUserUUIDs?: string[] // db only

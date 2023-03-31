@@ -95,7 +95,16 @@ export default async function init(config: Configuration) {
 
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
-    api.use('/admin', middleware, newAdminHandler(authenService, userService, categoryService, notificationSocket))
+    api.use('/admin', middleware, newAdminHandler(
+        announcementService,
+        authenService,
+        categoryService,
+        commentService,
+        forumService,
+        userService,
+        forumSocket,
+        notificationSocket,
+    ))
     api.use('/announcement', middleware, newAnnouncementHandler(announcementService))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', middleware, newCategoryHandler(categoryService))
