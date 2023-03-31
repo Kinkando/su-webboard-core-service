@@ -13,16 +13,15 @@ export function newForumService(repository: ForumRepository, storage: CloudStora
 }
 
 interface Service {
-    getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string): Promise<{ total: number, data: ForumView[] }>
+    getForumsPaginationSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string): Promise<{ total: number, data: ForumView[] }>
     getForumDetailSrv(forumUUID: string, userUUID: string): Promise<ForumView>
-    getForumByUserUUIDSrv(userUUID: string): Promise<Forum[]>
+    getForumsSrv(key: { authorUUID?: string, categoryID?: number, likeUserUUID?: string }): Promise<Forum[]>
     upsertForumSrv(userUUID: string, forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
-    deleteForumSrv(forumUUID: string): void
+    deleteForumSrv(forumUUID: string, userUUID?: string): void
     likeForumSrv(forumUUID: string, userUUID: string, isLike: boolean): void
     favoriteForumSrv(forumUUID: string, userUUID: string, isFavorite: boolean): void
-
-    getForumsByLikeUserUUIDSrv(userUUID: string): Promise<Forum[]>
     pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID: string): void
+    deleteCategoryIDToForumSrv(forumUUID: string, categoryID: number): void
 }
 
 export class ForumService implements Service {
@@ -55,15 +54,15 @@ export class ForumService implements Service {
         delete forum.favoriteUserUUIDs
     }
 
-    async getForumsSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string) {
-        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify({filter, isSignedURL, userUUID})}`)
+    async getForumsPaginationSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string) {
+        logger.info(`Start service.forum.getForumsPaginationSrv, "input": ${JSON.stringify({filter, isSignedURL, userUUID})}`)
 
         let ranking: RankingForum = {}
         if (filter.sortBy?.includes("ranking")) {
             ranking = await this.repository.calculateForumRankingsRepo()
         }
 
-        const forums = await this.repository.getForumsRepo(filter, ranking)
+        const forums = await this.repository.getForumsPaginationRepo(filter, ranking)
 
         if(forums?.data) {
             for(let forum of forums.data) {
@@ -76,7 +75,7 @@ export class ForumService implements Service {
             }
         }
 
-        logger.info(`End service.forum.getForumsSrv, "output": {"total": ${forums?.total || 0}, "data.length": ${forums?.data?.length || 0}}`)
+        logger.info(`End service.forum.getForumsPaginationSrv, "output": {"total": ${forums?.total || 0}, "data.length": ${forums?.data?.length || 0}}`)
         return forums
     }
 
@@ -157,12 +156,16 @@ export class ForumService implements Service {
         return res
     }
 
-    async deleteForumSrv(forumUUID: string) {
-        logger.info(`Start service.forum.deleteForumSrv, "input": ${JSON.stringify(forumUUID)}`)
+    async deleteForumSrv(forumUUID: string, userUUID?: string) {
+        logger.info(`Start service.forum.deleteForumSrv, "input": ${JSON.stringify({forumUUID, userUUID})}`)
 
         const forum = await this.repository.getForumRepo(forumUUID)
         if (!forum) {
             throw Error('forumUUID is not found')
+        }
+
+        if (userUUID && userUUID !== forum.authorUUID) {
+            throw Error('unable to delete forum: permission is denied')
         }
 
         if (forum.forumImages) {
@@ -180,12 +183,12 @@ export class ForumService implements Service {
         logger.info(`End service.forum.deleteForumSrv`)
     }
 
-    async getForumByUserUUIDSrv(userUUID: string) {
-        logger.info(`Start service.forum.getForumByUserUUIDSrv, "input": ${JSON.stringify({userUUID})}`)
+    async getForumsSrv(key: { authorUUID?: string, categoryID?: number, likeUserUUID?: string }) {
+        logger.info(`Start service.forum.getForumsSrv, "input": ${JSON.stringify(key)}`)
 
-        const forums = await this.repository.getForumsByAuthorUUIDRepo(userUUID)
+        const forums = await this.repository.getForumsRepo(key)
 
-        logger.info(`End service.forum.getForumByUserUUIDSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        logger.info(`End service.forum.getForumsSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
         return forums
     }
 
@@ -205,20 +208,19 @@ export class ForumService implements Service {
         logger.info(`End service.forum.favoriteForumSrv`)
     }
 
-    async getForumsByLikeUserUUIDSrv(userUUID: string) {
-        logger.info(`Start service.forum.getForumsByLikeUserUUIDSrv, "input": ${JSON.stringify({userUUID})}`)
-
-        const forums = await this.repository.getForumsByLikeUserUUIDRepo(userUUID)
-
-        logger.info(`End service.forum.getForumsByLikeUserUUIDSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
-        return forums
-    }
-
     async pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID: string) {
         logger.info(`Start service.forum.pullFavoriteAndLikeUserUUIDFromForumSrv, "input": ${JSON.stringify({ userUUID })}`)
 
         await this.repository.pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID)
 
         logger.info(`End service.forum.pullFavoriteAndLikeUserUUIDFromForumSrv`)
+    }
+
+    async deleteCategoryIDToForumSrv(forumUUID: string, categoryID: number) {
+        logger.info(`Start service.forum.deleteCategoryIDToForumSrv, "input": ${JSON.stringify({ forumUUID, categoryID })}`)
+
+        await this.repository.deleteCategoryIDToForumRepo(forumUUID, categoryID)
+
+        logger.info(`End service.forum.deleteCategoryIDToForumSrv`)
     }
 }

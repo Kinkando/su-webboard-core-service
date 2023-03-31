@@ -14,9 +14,9 @@ export const ForumCollection = "Forum"
 
 interface Repository {
     getForumRepo(forumUUID: string): Promise<Forum>
-    getForumsRepo(filter: FilterForum, ranking?: RankingForum): Promise<{ total: number, data: ForumView[] }>
+    getForumsPaginationRepo(filter: FilterForum, ranking?: RankingForum): Promise<{ total: number, data: ForumView[] }>
     getForumDetailRepo(forumUUID: string): Promise<ForumView>
-    getForumsByAuthorUUIDRepo(authorUUID: string): Promise<Forum[]>
+    getForumsRepo(key: { authorUUID?: string, categoryID?: number, likeUserUUID?: string }): Promise<Forum[]>
     createForumRepo(forum: Forum): void
     updateForumRepo(forum: Forum): void
     deleteForumRepo(forumUUID: string): void
@@ -24,9 +24,8 @@ interface Repository {
     calculateForumRankingsRepo(): Promise<RankingForum>
     likeForumRepo(forumUUID: string, userUUID: string, isLike: boolean): void
     favoriteForumRepo(forumUUID: string, userUUID: string, isFavorite: boolean): void
-
-    getForumsByLikeUserUUIDRepo(userUUID: string): Promise<Forum[]>
     pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string): void
+    deleteCategoryIDToForumRepo(forumUUID: string, categoryID: number): void
 }
 
 export class ForumRepository implements Repository {
@@ -41,8 +40,8 @@ export class ForumRepository implements Repository {
         return forum as Forum
     }
 
-    async getForumsRepo(filter: FilterForum, ranking?: RankingForum) {
-        logger.info(`Start mongo.forum.getForumsRepo, "input": ${JSON.stringify({filter, ranking})}`)
+    async getForumsPaginationRepo(filter: FilterForum, ranking?: RankingForum) {
+        logger.info(`Start mongo.forum.getForumsPaginationRepo, "input": ${JSON.stringify({filter, ranking})}`)
 
         const options: any = [];
 
@@ -183,7 +182,7 @@ export class ForumRepository implements Repository {
             return { total: Number(doc.total), data }
         }).toArray())[0];
 
-        logger.info(`End mongo.forum.getForumsRepo, "output": ${JSON.stringify(data)}`)
+        logger.info(`End mongo.forum.getForumsPaginationRepo, "output": ${JSON.stringify(data)}`)
         return data
     }
 
@@ -231,12 +230,23 @@ export class ForumRepository implements Repository {
         return forumDetail as ForumView
     }
 
-    async getForumsByAuthorUUIDRepo(authorUUID: string) {
-        logger.info(`Start mongo.forum.getForumsByAuthorUUIDRepo, "input": ${JSON.stringify(authorUUID)}`)
+    async getForumsRepo(key: { authorUUID?: string, categoryID?: number, likeUserUUID?: string }) {
+        logger.info(`Start mongo.forum.getForumsRepo, "input": ${JSON.stringify(key)}`)
 
-        const forums: Forum[] = await this.db.collection<Forum>(ForumCollection).find({ authorUUID }).toArray()
+        let filter: any = {}
+        if (key.authorUUID) {
+            filter.authorUUID = key.authorUUID
+        }
+        if (key.categoryID) {
+            filter.categoryIDs = { $elemMatch: { $eq: key.categoryID } }
+        }
+        if (key.likeUserUUID) {
+            filter.likeUserUUIDs = { $elemMatch: { $eq: key.likeUserUUID } }
+        }
 
-        logger.info(`End mongo.forum.getForumsByAuthorUUIDRepo, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
+        const forums: Forum[] = await this.db.collection<Forum>(ForumCollection).find(filter).toArray()
+
+        logger.info(`End mongo.forum.getForumsRepo, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
         return forums
     }
 
@@ -302,15 +312,6 @@ export class ForumRepository implements Repository {
         logger.info(`End mongo.forum.favoriteForumRepo`)
     }
 
-    async getForumsByLikeUserUUIDRepo(userUUID: string) {
-        logger.info(`Start mongo.forum.getForumsByLikeUserUUIDRepo, "input": ${JSON.stringify({ userUUID })}`)
-
-        const forums: Forum[] = await this.db.collection<Forum>(ForumCollection).find({ likeUserUUIDs: { $elemMatch: { $eq: userUUID } } }).toArray()
-
-        logger.info(`End mongo.forum.getForumsByLikeUserUUIDRepo, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
-        return forums
-    }
-
     async pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string) {
         logger.info(`Start mongo.forum.pullFavoriteAndLikeUserUUIDFromForumRepo, "input": ${JSON.stringify({ userUUID })}`)
 
@@ -329,5 +330,15 @@ export class ForumRepository implements Repository {
         logger.info(`Pull favorite and like out of forum by userUUID: ${userUUID} to ${result.matchedCount} forum(s)`)
 
         logger.info(`End mongo.forum.pullFavoriteAndLikeUserUUIDFromForumRepo`)
+    }
+
+    async deleteCategoryIDToForumRepo(forumUUID: string, categoryID: number) {
+        logger.info(`Start mongo.forum.deleteCategoryIDToForumRepo, "input": ${JSON.stringify({ forumUUID, categoryID })}`)
+
+        const result = await this.db.collection(ForumCollection).updateOne({forumUUID}, { $pull: { categoryIDs: categoryID } })
+
+        logger.info(`delete category: ${categoryID} out of forum to forumUUID: ${forumUUID}`)
+
+        logger.info(`End mongo.forum.deleteCategoryIDToForumRepo`)
     }
 }

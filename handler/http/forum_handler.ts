@@ -65,7 +65,7 @@ export class ForumHandler {
                 selfUUID: profile.userUUID,
             }
 
-            const forums = await this.forumService.getForumsSrv(query, false, profile.userUUID)
+            const forums = await this.forumService.getForumsPaginationSrv(query, false, profile.userUUID)
             if (!forums || !forums.total) {
                 logger.error('forums are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -146,6 +146,11 @@ export class ForumHandler {
 
             let isUpdate = forum.forumUUID !== undefined
 
+            if (forum.categoryIDs.length > 5) {
+                logger.error('categoryIDs is limit at 5')
+                return res.status(HTTP.StatusBadRequest).send({ error: "categoryIDs is limit at 5" })
+            }
+
             const response = await this.forumService.upsertForumSrv(profile.userUUID, forum, req.files as any, data.forumImageUUIDs)
 
             if (isUpdate) {
@@ -177,7 +182,7 @@ export class ForumHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
             }
 
-            await this.forumService.deleteForumSrv(forumUUID)
+            await this.forumService.deleteForumSrv(forumUUID, profile.userUUID)
 
             await this.commentService.deleteCommentsByForumUUIDSrv(forumUUID)
 

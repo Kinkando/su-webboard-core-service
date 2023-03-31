@@ -265,7 +265,7 @@ class AdminHandler {
                 await this.authenService.revokeTokensByAdminSrv(req.body?.userUUIDs)
 
                 await this.userService.deleteUserSrv(userUUID)
-                const forums = await this.forumService.getForumByUserUUIDSrv(userUUID)
+                const forums = await this.forumService.getForumsSrv({ authorUUID: userUUID })
                 if (forums) {
                     for(const forum of forums) {
                         await this.forumService.deleteForumSrv(forum.forumUUID!)
@@ -273,7 +273,7 @@ class AdminHandler {
                         this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
                     }
                 }
-                const comments = await this.commentService.getCommentsByCommenterUUIDSrv(userUUID)
+                const comments = await this.commentService.getCommentsSrv({ commenterUUID: userUUID })
                 if (comments) {
                     for (const comment of comments) {
                         await this.commentService.deleteCommentSrv(comment.commentUUID!)
@@ -287,14 +287,14 @@ class AdminHandler {
                     }
                 }
 
-                const likeForums = await this.forumService.getForumsByLikeUserUUIDSrv(userUUID)
+                const likeForums = await this.forumService.getForumsSrv({ likeUserUUID: userUUID })
                 await this.forumService.pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID)
                 if (likeForums) {
                     for (const forum of likeForums) {
                         this.forumSocket.updateForum(profile.sessionUUID, forum.forumUUID!)
                     }
                 }
-                const likeComments = await this.commentService.getCommentsByLikeUserUUIDSrv(userUUID)
+                const likeComments = await this.commentService.getCommentsSrv({ likeUserUUID: userUUID })
                 await this.commentService.pullLikeUserUUIDFromCommentSrv(userUUID)
                 if (likeComments) {
                     for (const comment of likeComments) {
@@ -383,10 +383,12 @@ class AdminHandler {
 
             const category: Category = bind(req.body, schemas)
 
+            const isCreate = category.categoryID == undefined
+
             await this.categoryService.upsertCategorySrv(category)
 
             logger.info("End http.admin.upsertCategory")
-            return res.status(HTTP.StatusOK).send({ message: "success" });
+            return res.status(isCreate ? HTTP.StatusCreated : HTTP.StatusOK).send({ message: "success" });
 
         } catch (error) {
             logger.error(error)
@@ -404,12 +406,28 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            if (!req.body.categoryIDs) {
+            const categoryIDs = req.body.categoryIDs as number[]
+            if (!categoryIDs) {
                 logger.error('categoryIDs is required')
                 return res.status(HTTP.StatusBadRequest).send({ error: "categoryIDs is required" })
             }
 
-            await this.categoryService.deleteCategoriesSrv(req.body.categoryIDs as number[])
+            for (const categoryID of categoryIDs) {
+                const forums = await this.forumService.getForumsSrv({ categoryID })
+                if (forums) {
+                    for(const forum of forums) {
+                        if (forum.categoryIDs.length == 1 && forum.categoryIDs[0] === categoryID) {
+                            await this.forumService.deleteForumSrv(forum.forumUUID!)
+                            await this.commentService.deleteCommentsByForumUUIDSrv(forum.forumUUID!)
+                            this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
+                        } else {
+                            await this.forumService.deleteCategoryIDToForumSrv(forum.forumUUID!, categoryID)
+                        }
+                    }
+                }
+                await this.categoryService.deleteCategorySrv(categoryID)
+            }
+
 
             logger.info("End http.admin.deleteCategory")
             return res.status(HTTP.StatusOK).send({ message: "success" });

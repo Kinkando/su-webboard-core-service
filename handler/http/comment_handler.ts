@@ -99,7 +99,7 @@ export class CommentHandler {
                 offset: Number(req.query.offset) || 0,
             }
 
-            const comments = await this.commentService.getCommentsSrv(forumUUID, query, profile.userUUID)
+            const comments = await this.commentService.getCommentsPaginationSrv(forumUUID, query, profile.userUUID)
             if (!comments || !comments.total) {
                 logger.error('comments are not found')
                 return res.status(HTTP.StatusNoContent).send()

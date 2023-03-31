@@ -16,15 +16,13 @@ export const CommentCollection = 'Comment'
 interface Repository {
     getCommentRepo(commentUUID: string, userUUID: string): Promise<CommentView>
     getCommentAndReplyRepo(commentUUID: string): Promise<CommentView[]>
-    getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
-    getCommentsByUUIDRepo(key: { forumUUID?: string, commenterUUID?: string }): Promise<Comment[]>
+    getCommentsPaginationRepo(forumUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
+    getCommentsRepo(key: { forumUUID?: string, commenterUUID?: string, likeUserUUID?: string }): Promise<Comment[]>
     createCommentRepo(comment: Comment): void
     updateCommentRepo(comment: Comment): void
     deleteCommentRepo(commentUUID: string): void
     deleteCommentsByForumUUIDRepo(forumUUID: string): void
     likeCommentRepo(commentUUID: string, userUUID: string, isLike: boolean): void
-
-    getCommentsByLikeUserUUIDRepo(userUUID: string): Promise<Comment[]>
     pullLikeUserUUIDFromCommentRepo(userUUID: string): void
 }
 
@@ -82,8 +80,8 @@ export class CommentRepository implements Repository {
         return comment
     }
 
-    async getCommentsRepo(forumUUID: string, filter: Pagination, userUUID: string) {
-        logger.info(`Start mongo.comment.getCommentsRepo, "input": ${JSON.stringify({ forumUUID, filter, userUUID })}`)
+    async getCommentsPaginationRepo(forumUUID: string, filter: Pagination, userUUID: string) {
+        logger.info(`Start mongo.comment.getCommentsPaginationRepo, "input": ${JSON.stringify({ forumUUID, filter, userUUID })}`)
 
         const options: any = [
             {$match: { forumUUID, replyCommentUUID: null }},
@@ -180,16 +178,25 @@ export class CommentRepository implements Repository {
             return { total: Number(doc.total), data }
         }).toArray())[0];
 
-        logger.info(`End mongo.comment.getCommentsRepo, "output": ${JSON.stringify(data)}`)
+        logger.info(`End mongo.comment.getCommentsPaginationRepo, "output": ${JSON.stringify(data)}`)
         return data
     }
 
-    async getCommentsByUUIDRepo(key: { forumUUID?: string, commenterUUID?: string }) {
-        logger.info(`Start mongo.comment.getCommentsByForumUUIDRepo, "input": ${JSON.stringify(key)}`)
+    async getCommentsRepo(key: { forumUUID?: string, commenterUUID?: string, likeUserUUID?: string }) {
+        logger.info(`Start mongo.comment.getCommentsRepo, "input": ${JSON.stringify(key)}`)
 
-        const find = key.forumUUID ? { forumUUID: key.forumUUID } : { commenterUUID: key.commenterUUID }
+        let filter: any = {}
+        if (key.forumUUID) {
+            filter.forumUUID = key.forumUUID
+        }
+        if (key.commenterUUID) {
+            filter.commenterUUID = key.commenterUUID
+        }
+        if (key.likeUserUUID) {
+            filter.likeUserUUIDs = { $elemMatch: { $eq: key.likeUserUUID } }
+        }
 
-        const commentsDoc = await this.db.collection<Comment>(CommentCollection).find(find).toArray()
+        const commentsDoc = await this.db.collection<Comment>(CommentCollection).find(filter).toArray()
         const comments = commentsDoc.map(comment => {
             delete (comment as any)._id
             delete (comment as any).createdAt
@@ -197,7 +204,7 @@ export class CommentRepository implements Repository {
             return comment
         })
 
-        logger.info(`End mongo.comment.getCommentsByForumUUIDRepo, "output": ${JSON.stringify(comments)}`)
+        logger.info(`End mongo.comment.getCommentsRepo, "output": ${JSON.stringify(comments)}`)
         return comments
     }
 

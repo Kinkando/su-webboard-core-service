@@ -14,14 +14,12 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 
 interface Service {
     getCommentSrv(commentUUID: string, userUUID: string): Promise<CommentView>
-    getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
-    getCommentsByCommenterUUIDSrv(commenterUUID: string): Promise<Comment[]>
+    getCommentsPaginationSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
+    getCommentsSrv(key: { forumUUID?: string, commenterUUID?: string, likeUserUUID?: string }): Promise<Comment[]>
     upsertCommentSrv(userUUID: string, comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
     deleteCommentSrv(commentUUID: string): void
     deleteCommentsByForumUUIDSrv(forumUUID: string): void
     likeCommentSrv(commentUUID: string, userUUID: string, isLike: boolean): void
-
-    getCommentsByLikeUserUUIDSrv(userUUID: string): Promise<Comment[]>
     pullLikeUserUUIDFromCommentSrv(userUUID: string): void
 }
 
@@ -76,10 +74,10 @@ export class CommentService implements Service {
         return comment
     }
 
-    async getCommentsSrv(commentUUID: string, filter: Pagination, userUUID: string) {
-        logger.info(`Start service.comment.getCommentsSrv, "input": ${JSON.stringify({commentUUID, filter, userUUID})}`)
+    async getCommentsPaginationSrv(commentUUID: string, filter: Pagination, userUUID: string) {
+        logger.info(`Start service.comment.getCommentsPaginationSrv, "input": ${JSON.stringify({commentUUID, filter, userUUID})}`)
 
-        const comments = await this.repository.getCommentsRepo(commentUUID, filter, userUUID)
+        const comments = await this.repository.getCommentsPaginationRepo(commentUUID, filter, userUUID)
 
         if(comments?.data) {
             for(let comment of comments.data) {
@@ -101,16 +99,16 @@ export class CommentService implements Service {
             }
         }
 
-        logger.info(`End service.comment.getCommentsSrv, "output": {"total": ${comments?.total || 0}, "data.length": ${comments?.data?.length || 0}}`)
+        logger.info(`End service.comment.getCommentsPaginationSrv, "output": {"total": ${comments?.total || 0}, "data.length": ${comments?.data?.length || 0}}`)
         return comments
     }
 
-    async getCommentsByCommenterUUIDSrv(commenterUUID: string) {
-        logger.info(`Start service.comment.getCommentsByCommenterUUIDSrv, "input": ${JSON.stringify({ commenterUUID })}`)
+    async getCommentsSrv(key: { forumUUID?: string, commenterUUID?: string, likeUserUUID?: string }) {
+        logger.info(`Start service.comment.getCommentsSrv, "input": ${JSON.stringify(key)}`)
 
-        const comments = await this.repository.getCommentsByUUIDRepo({ commenterUUID })
+        const comments = await this.repository.getCommentsRepo(key)
 
-        logger.info(`End service.comment.getCommentsByCommenterUUIDSrv, "output": ${JSON.stringify(comments)}`)
+        logger.info(`End service.comment.getCommentsSrv, "output": ${JSON.stringify(comments)}`)
         return comments
     }
 
@@ -174,7 +172,7 @@ export class CommentService implements Service {
     }
 
     async deleteCommentSrv(commentUUID: string) {
-        logger.info(`Start service.comment.deleteCommentSrv, "input": ${JSON.stringify(commentUUID)}`)
+        logger.info(`Start service.comment.deleteCommentSrv, "input": ${JSON.stringify({commentUUID})}`)
 
         const comments = await this.repository.getCommentAndReplyRepo(commentUUID)
         if (!comments || !comments.length) {
@@ -195,7 +193,7 @@ export class CommentService implements Service {
     async deleteCommentsByForumUUIDSrv(forumUUID: string) {
         logger.info(`Start service.comment.deleteCommentsByForumUUIDSrv, "input": ${JSON.stringify(forumUUID)}`)
 
-        const comments = await this.repository.getCommentsByUUIDRepo({forumUUID})
+        const comments = await this.repository.getCommentsRepo({forumUUID})
 
         if (comments) {
             for (const comment of comments) {
@@ -216,15 +214,6 @@ export class CommentService implements Service {
         await this.repository.likeCommentRepo(commentUUID, userUUID, isLike)
 
         logger.info(`End service.comment.likeCommentSrv`)
-    }
-
-    async getCommentsByLikeUserUUIDSrv(userUUID: string) {
-        logger.info(`Start service.forum.getCommentsByLikeUserUUIDSrv, "input": ${JSON.stringify({userUUID})}`)
-
-        const forums = await this.repository.getCommentsByLikeUserUUIDRepo(userUUID)
-
-        logger.info(`End service.forum.getCommentsByLikeUserUUIDSrv, "output": ${JSON.stringify({ found: forums?.length || 0 })}`)
-        return forums
     }
 
     async pullLikeUserUUIDFromCommentSrv(userUUID: string) {
