@@ -1,14 +1,17 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import { GoogleService } from '../../cloud/google/google';
 import HTTP from '../../common/http';
+import { User } from '../../model/user';
 import { AuthenService } from "../../service/authen_service";
 import { UserService } from '../../service/user_service';
 import logger from '../../util/logger';
-import { GoogleService } from '../../cloud/google/google';
+import { validate } from '../../util/validate';
 
 export function newAuthenHandler(apiKey: string, googleService: GoogleService, authenService: AuthenService, userService: UserService) {
     const authenHandler = new AuthenHandler(apiKey, googleService, authenService, userService)
 
     const authRouter = Router()
+    authRouter.post('/user', (req, res, next) => authenHandler.createUser(req, res, next))
     authRouter.post('/reset-password', (req, res, next) => authenHandler.resetPassword(req, res, next))
 
     const tokenRouter = authRouter.use('/token', authRouter)
@@ -28,6 +31,73 @@ class AuthenHandler {
         private authenService: AuthenService,
         private userService: UserService,
     ) {}
+
+    async createUser(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.createUser")
+
+        try {
+            const apiKey = req.get('X-Api-Key')
+            if (apiKey !== this.apiKey) {
+                throw new Error("apiKey is invalid")
+            }
+
+            const schemas = [
+                {field: "userDisplayName", type: "string", required: true},
+                {field: "userFullName", type: "string", required: true},
+                {field: "studentID", type: "string", required: true},
+                {field: "idToken", type: "string", required: true},
+            ]
+
+            try {
+                validate(schemas, req.body)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const userType = 'std'
+            const user: User = {
+                userDisplayName: req.body.userDisplayName.trim(),
+                userFullName: req.body.userFullName.trim(),
+                studentID: req.body.studentID.trim(),
+                userType,
+            }
+
+            const firebase = await this.authenService.verifyFirebaseTokenSrv(req.body.idToken)
+            if (!firebase || !firebase.uid || !firebase.email) {
+                logger.error('idToken is invalid')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'idToken is invalid' })
+            }
+            user.userEmail = firebase.email
+            user.firebaseID = firebase.uid
+
+            const isExistEmail = await this.userService.isExistEmailSrv(user.userEmail!)
+            if (isExistEmail) {
+                logger.error(`email: ${user.userEmail!} is exist`)
+                return res.status(HTTP.StatusBadRequest).send({ error: `email: ${user.userEmail!} is exist` })
+            }
+
+            const userUUID = await this.userService.registerUserSrv(user)
+            if (!userUUID) {
+                logger.error(`unable to register`)
+                return res.status(HTTP.StatusInternalServerError).send({ error: `unable to register` })
+            }
+
+            await this.userService.updateUserSrv({ userUUID, lastLogin: new Date() })
+
+            const jwt = this.authenService.encodeJWTSrv(userUUID, userType)
+
+            await this.authenService.createTokenSrv(jwt.accessToken, 'access')
+            await this.authenService.createTokenSrv(jwt.refreshToken, 'refresh')
+
+            logger.info("End http.admin.createUser")
+            return res.status(HTTP.StatusCreated).send(jwt);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
 
     async verifyGoogle(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.authen.verifyGoogle")
@@ -77,7 +147,7 @@ class AuthenHandler {
                 throw new Error("apiKey is invalid")
             }
             const idToken = req.body.idToken!
-            const firebaseID = await this.authenService.verifyFirebaseTokenSrv(idToken)
+            const { uid: firebaseID } = await this.authenService.verifyFirebaseTokenSrv(idToken)
             const user = await this.userService.getUserProfileSrv({ firebaseID })
             if (!user) {
                 logger.error('user is not found')

@@ -1,5 +1,4 @@
-import * as admin from 'firebase-admin';
-import { UserRecord } from 'firebase-admin/lib/auth/user-record';
+import { Auth } from 'firebase-admin/lib/auth/auth';
 import { v4 as uuid } from 'uuid';
 import { filePath } from '../common/file_path';
 import { CloudStorage, File } from '../cloud/google/storage';
@@ -10,8 +9,8 @@ import logger from "../util/logger";
 
 const storageFolder = "user"
 
-export function newUserService(repository: UserRepository, firebase: admin.app.App, storage: CloudStorage, sendgrid: SendGrid) {
-    return new UserService(repository, firebase, storage, sendgrid)
+export function newUserService(repository: UserRepository, firebaseAuth: Auth, storage: CloudStorage, sendgrid: SendGrid) {
+    return new UserService(repository, firebaseAuth, storage, sendgrid)
 }
 
 interface Service {
@@ -28,12 +27,13 @@ interface Service {
     updateUserSrv(user: User): void
     deleteUserSrv(userUUID: string): void
     isExistEmailSrv(email: string): Promise<boolean>
+    registerUserSrv(user: User): Promise<string>
 }
 
 export class UserService implements Service {
     constructor(
         private repository: UserRepository,
-        private firebase: admin.app.App,
+        private firebaseAuth: Auth,
         private storage: CloudStorage,
         private sendgrid: SendGrid,
     ) {}
@@ -169,7 +169,7 @@ export class UserService implements Service {
 
         let firebaseUserUID: string = "";
         try {
-            const firebaseUser = await this.firebase.auth().createUser({
+            const firebaseUser = await this.firebaseAuth.createUser({
                 email: user.userEmail,
                 password: user.studentID || "test123!",
             })
@@ -182,7 +182,7 @@ export class UserService implements Service {
             await this.repository.createUserRepo(user);
         } catch (error) {
             if (firebaseUserUID) {
-                await this.firebase.auth().deleteUser(firebaseUserUID)
+                await this.firebaseAuth.deleteUser(firebaseUserUID)
             }
             throw error
         }
@@ -204,7 +204,7 @@ export class UserService implements Service {
             if (isExistEmail) {
                 throw Error(`email: ${user.userEmail} is exist`)
             }
-            await this.firebase.auth().updateUser(u.firebaseID!, { email: user.userEmail })
+            await this.firebaseAuth.updateUser(u.firebaseID!, { email: user.userEmail })
         }
 
         await this.repository.updateUserRepo(user);
@@ -224,7 +224,7 @@ export class UserService implements Service {
 
             await this.storage.deleteFile(u.userImageURL!)
 
-            await this.firebase.auth().deleteUser(u.firebaseID!)
+            await this.firebaseAuth.deleteUser(u.firebaseID!)
 
             await this.repository.deleteUserRepo(userUUID);
 
@@ -250,5 +250,16 @@ export class UserService implements Service {
         this.sendgrid.sendEmailTemplate("")
 
         logger.info(`End service.user.resetPasswordSrv`)
+    }
+
+    async registerUserSrv(user: User) {
+        logger.info(`Start service.user.registerUserSrv, "input": ${JSON.stringify(user)}`)
+
+        user.userImageURL = `${storageFolder}/${uuid()}.${filePath.defaultAvatar.substring(filePath.defaultAvatar.lastIndexOf('.')+1)}`
+        await this.storage.copyFile(`${storageFolder}/${filePath.defaultAvatar}`, user.userImageURL)
+        const userUUID = await this.repository.createUserRepo(user);
+
+        logger.info(`End service.user.registerUserSrv, "output": ${JSON.stringify({userUUID})}`)
+        return userUUID
     }
 }

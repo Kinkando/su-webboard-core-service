@@ -14,7 +14,7 @@ interface Repository {
     getFollowUsersRepo(userUUIDs: string[]): Promise<User[]>
     getUsersRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
     getUserRepo(filter: FilterUser): Promise<User>
-    createUserRepo(user: User): void
+    createUserRepo(user: User): Promise<string>
     updateUserRepo(user: User): void
     deleteUserRepo(userUUID: string): void
     isExistEmailRepo(email: string): Promise<boolean>
@@ -85,7 +85,8 @@ export class UserRepository implements Repository {
         user.userUUID = uuid()
         await userModel.create({...user, createdAt: new Date()})
 
-        logger.info(`End mongo.user.createUserRepo`)
+        logger.info(`End mongo.user.createUserRepo, "output": ${JSON.stringify({userUUID: user.userUUID})}`)
+        return user.userUUID!
     }
 
     async updateUserRepo(user: User) {

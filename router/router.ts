@@ -63,6 +63,7 @@ export default async function init(config: Configuration) {
     const googleService = newGoogleService()
 
     const firebaseApp = newFirebaseAppWithServiceAccount(config.google.firebaseCredential)
+    const firebaseAuth = firebaseApp.auth()
 
     const storage = newCloudStorage(firebaseApp, config.google.storage)
 
@@ -87,11 +88,11 @@ export default async function init(config: Configuration) {
 
     // define service
     const announcementService = newAnnouncementService(announcementRepository, storage)
-    const authenService = newAuthenService(config.app, firebaseApp, cacheRepository)
+    const authenService = newAuthenService(config.app, firebaseAuth, cacheRepository)
     const categoryService = newCategoryService(categoryRepository)
     const commentService = newCommentService(commentRepository, storage)
     const forumService = newForumService(forumRepository, storage)
-    const userService = newUserService(userRepository, firebaseApp, storage, sendgrid)
+    const userService = newUserService(userRepository, firebaseAuth, storage, sendgrid)
 
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))

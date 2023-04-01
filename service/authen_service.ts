@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import { Auth } from 'firebase-admin/lib/auth/auth';
 import {v4 as uuidv4} from 'uuid';
 import jwt, { Secret } from 'jsonwebtoken';
 import { AccessToken, RefreshToken, UserType } from "../model/authen";
@@ -6,12 +6,12 @@ import logger from "../util/logger";
 import { CacheRepository } from '../repository/redis/cache_repository';
 import { AppConfiguration } from '../config/config';
 
-export function newAuthenService(appConfig: AppConfiguration, firebase: admin.app.App, cacheRepository: CacheRepository) {
-    return new AuthenService(appConfig, firebase, cacheRepository)
+export function newAuthenService(appConfig: AppConfiguration, firebaseAuth: Auth, cacheRepository: CacheRepository) {
+    return new AuthenService(appConfig, firebaseAuth, cacheRepository)
 }
 
 interface Service {
-    verifyFirebaseTokenSrv(idToken: string): Promise<string | undefined>
+    verifyFirebaseTokenSrv(idToken: string): Promise<{uid: string, email: string} | undefined>
     encodeJWTSrv(userUUID: string, userType: string): { accessToken: string, refreshToken: string }
     decodeJWTSrv(token: string, type: 'access' | 'refresh'): AccessToken | RefreshToken
     createTokenSrv(token: string, type: 'access' | 'refresh'): void
@@ -24,21 +24,22 @@ interface Service {
 export class AuthenService implements Service {
     constructor(
         private appConfig: AppConfiguration,
-        private firebase: admin.app.App,
+        private firebaseAuth: Auth,
         private cacheRepository: CacheRepository,
     ) {}
 
     async verifyFirebaseTokenSrv(idToken: string) {
-        logger.info("Start service.authen.verifyFirebaseTokenSrv", idToken)
+        logger.info(`Start service.authen.verifyFirebaseTokenSrv, "input": ${JSON.stringify({idToken})}`)
 
         try {
-            const client = this.firebase.auth()
-            const token = await client.verifyIdToken(idToken)
+            const token = await this.firebaseAuth.verifyIdToken(idToken)
             if (!token) {
                 throw new Error("idToken is invalid")
             }
-            logger.info("End service.authen.verifyFirebaseTokenSrv", token.uid)
-            return token.uid
+            const res = { uid: token.uid, email: token.email! }
+
+            logger.info(`End service.authen.verifyFirebaseTokenSrv, "output": ${JSON.stringify(res)}`)
+            return res
 
         } catch (error) {
             logger.error(error)
