@@ -8,10 +8,19 @@ import { ForumService } from "../../service/forum_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
+import { NotificationService } from '../../service/notification_service';
+import { NotificationSocket } from '../socket/notification_socket';
+
 const upload = multer()
 
-export function newForumHandler(forumService: ForumService, commentService: CommentService, forumSocket: ForumSocket) {
-    const forumHandler = new ForumHandler(forumService, commentService, forumSocket)
+export function newForumHandler(
+    forumService: ForumService,
+    commentService: CommentService,
+    notificationService: NotificationService,
+    forumSocket: ForumSocket,
+    notificationSocket: NotificationSocket,
+) {
+    const forumHandler = new ForumHandler(forumService, commentService, notificationService, forumSocket, notificationSocket)
 
     const forumRouter = Router()
     forumRouter.get('', (req, res, next) => forumHandler.getForums(req, res, next))
@@ -25,7 +34,13 @@ export function newForumHandler(forumService: ForumService, commentService: Comm
 }
 
 export class ForumHandler {
-    constructor(private forumService: ForumService, private commentService: CommentService, private forumSocket: ForumSocket) {}
+    constructor(
+        private forumService: ForumService,
+        private commentService: CommentService,
+        private notificationService: NotificationService,
+        private forumSocket: ForumSocket,
+        private notificationSocket: NotificationSocket,
+    ) {}
 
     async getForums(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.forum.getForums")

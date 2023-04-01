@@ -15,6 +15,7 @@ import { UserService } from '../../service/user_service';
 import logger from '../../util/logger';
 import { getProfile } from '../../util/profile';
 import { bind, validate } from '../../util/validate';
+import { NotificationService } from '../../service/notification_service';
 
 export function newAdminHandler(
     announcementService: AnnouncementService,
@@ -23,6 +24,7 @@ export function newAdminHandler(
     commentService: CommentService,
     forumService: ForumService,
     userService: UserService,
+    notificationService: NotificationService,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
@@ -33,6 +35,7 @@ export function newAdminHandler(
         commentService,
         forumService,
         userService,
+        notificationService,
         forumSocket,
         notificationSocket,
     )
@@ -60,6 +63,7 @@ class AdminHandler {
         private commentService: CommentService,
         private forumService: ForumService,
         private userService: UserService,
+        private notificationService: NotificationService,
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}

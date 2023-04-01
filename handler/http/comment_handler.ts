@@ -8,10 +8,18 @@ import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
 import { ForumSocket } from '../../handler/socket/forum_socket';
+import { NotificationService } from '../../service/notification_service';
+import { NotificationSocket } from '../socket/notification_socket';
+
 const upload = multer()
 
-export function newCommentHandler(commentService: CommentService, forumSocket: ForumSocket) {
-    const commentHandler = new CommentHandler(commentService, forumSocket)
+export function newCommentHandler(
+    commentService: CommentService,
+    notificationService: NotificationService,
+    forumSocket: ForumSocket,
+    notificationSocket: NotificationSocket,
+) {
+    const commentHandler = new CommentHandler(commentService, notificationService, forumSocket, notificationSocket)
 
     const commentRouter = Router()
     commentRouter.get('/:forumUUID', (req, res, next) => commentHandler.getComments(req, res, next))
@@ -24,7 +32,12 @@ export function newCommentHandler(commentService: CommentService, forumSocket: F
 }
 
 export class CommentHandler {
-    constructor(private commentService: CommentService, private forumSocket: ForumSocket) {}
+    constructor(
+        private commentService: CommentService,
+        private notificationService: NotificationService,
+        private forumSocket: ForumSocket,
+        private notificationSocket: NotificationSocket,
+    ) {}
 
     async getComment(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.comment.getComment")

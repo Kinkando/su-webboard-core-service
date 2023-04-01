@@ -6,12 +6,14 @@ import { File } from '../../cloud/google/storage';
 import HTTP from '../../common/http';
 import { FollowUserPagination, User } from '../../model/user';
 import { UserService } from "../../service/user_service";
+import { NotificationService } from '../../service/notification_service';
 import logger from '../../util/logger';
 import { getProfile } from '../../util/profile';
+import { NotificationSocket } from '../socket/notification_socket';
 const upload = multer()
 
-export function newUserHandler(userService: UserService) {
-    const userHandler = new UserHandler(userService)
+export function newUserHandler(userService: UserService, notificationService: NotificationService, notificationSocket: NotificationSocket) {
+    const userHandler = new UserHandler(userService, notificationService, notificationSocket)
 
     const userRouter = Router()
     userRouter.get('', (req, res, next) => userHandler.searchUsers(req, res, next))
@@ -25,7 +27,11 @@ export function newUserHandler(userService: UserService) {
 }
 
 class UserHandler {
-    constructor(private userService: UserService) {}
+    constructor(
+        private userService: UserService,
+        private notificationService: NotificationService,
+        private notificationSocket: NotificationSocket,
+    ) {}
 
     async searchUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.user.searchUsers")
@@ -164,7 +170,11 @@ class UserHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "unable to following yourself" })
             }
 
-            await this.userService.followingUserSrv(profile.userUUID, req.body.userUUID, req.body.isFollowing as boolean)
+            const isFollowing = req.body.isFollowing as boolean
+            await this.userService.followingUserSrv(profile.userUUID, req.body.userUUID, isFollowing)
+
+            const noti = {notiBody: `กำลังติดตามคุณ`, notiUserUUID: profile.userUUID, userUUID: req.body.userUUID, followerUserUUID: profile.userUUID}
+            await this.notificationService.createUpdateDeleteNotificationSrv(noti, isFollowing ? 'push' : 'pop')
 
             logger.info("End http.user.followingUser")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

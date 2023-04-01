@@ -6,10 +6,13 @@ import { AnnouncementService } from "../../service/announcement_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
+import { NotificationService } from '../../service/notification_service';
+import { NotificationSocket } from '../socket/notification_socket';
+
 const upload = multer()
 
-export function newAnnouncementHandler(announcementService: AnnouncementService) {
-    const announcementHandler = new AnnouncementHandler(announcementService)
+export function newAnnouncementHandler(announcementService: AnnouncementService, notificationService: NotificationService, notificationSocket: NotificationSocket,) {
+    const announcementHandler = new AnnouncementHandler(announcementService, notificationService, notificationSocket)
 
     const announcementRouter = Router()
     announcementRouter.get('', (req, res, next) => announcementHandler.getAnnouncements(req, res, next))
@@ -21,7 +24,7 @@ export function newAnnouncementHandler(announcementService: AnnouncementService)
 }
 
 export class AnnouncementHandler {
-    constructor(private announcementService: AnnouncementService) {}
+    constructor(private announcementService: AnnouncementService, private notificationService: NotificationService, private notificationSocket: NotificationSocket) {}
 
     async getAnnouncements(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.announcement.getAnnouncements")

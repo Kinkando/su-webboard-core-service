@@ -12,7 +12,7 @@ export function newAuthenHandler(apiKey: string, googleService: GoogleService, a
 
     const authRouter = Router()
     authRouter.post('/user', (req, res, next) => authenHandler.createUser(req, res, next))
-    authRouter.post('/reset-password', (req, res, next) => authenHandler.resetPassword(req, res, next))
+    // authRouter.post('/reset-password', (req, res, next) => authenHandler.resetPassword(req, res, next))
 
     const tokenRouter = authRouter.use('/token', authRouter)
     tokenRouter.post('/google', (req, res, next) => authenHandler.verifyGoogle(req, res, next))

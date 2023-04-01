@@ -20,6 +20,7 @@ import { newHealthHandler } from '../handler/http/health_handler';
 import { newHomeHandler } from '../handler/http/home_handler';
 import { newCommentHandler } from '../handler/http/comment_handler';
 import { newForumHandler } from '../handler/http/forum_handler';
+import { newNotificationHandler } from '../handler/http/notification_handler';
 import { newUserHandler } from '../handler/http/user_handler';
 import { newNotificationSocket } from '../handler/socket/notification_socket';
 import { newForumSocket } from '../handler/socket/forum_socket';
@@ -30,12 +31,14 @@ import { newAnnouncementService } from '../service/announcement_service';
 import { newCategoryService } from '../service/category_service';
 import { newCommentService } from '../service/comment_service';
 import { newForumService } from '../service/forum_service';
+import { newNotificationService } from '../service/notification_service';
 import { newUserService } from '../service/user_service';
 
 import { newAnnouncementRepository } from '../repository/mongo/announcement_repository';
 import { newCategoryRepository } from '../repository/mongo/category_repository';
 import { newForumRepository } from '../repository/mongo/forum_repository';
 import { newCommentRepository } from '../repository/mongo/comment_repository';
+import { newNotificationRepository } from '../repository/mongo/notification_repository';
 import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCacheRepository } from '../repository/redis/cache_repository';
 
@@ -84,6 +87,7 @@ export default async function init(config: Configuration) {
     const categoryRepository = newCategoryRepository(mongoDB)
     const commentRepository = newCommentRepository(mongoDB)
     const forumRepository = newForumRepository(mongoDB)
+    const notificationRepository = newNotificationRepository(mongoDB)
     const userRepository = newUserRepository(mongoDB)
 
     // define service
@@ -92,6 +96,7 @@ export default async function init(config: Configuration) {
     const categoryService = newCategoryService(categoryRepository)
     const commentService = newCommentService(commentRepository, storage)
     const forumService = newForumService(forumRepository, storage)
+    const notificationService = newNotificationService(notificationRepository, forumService, storage)
     const userService = newUserService(userRepository, firebaseAuth, storage, sendgrid)
 
     // define handler
@@ -103,16 +108,18 @@ export default async function init(config: Configuration) {
         commentService,
         forumService,
         userService,
+        notificationService,
         forumSocket,
         notificationSocket,
     ))
-    api.use('/announcement', middleware, newAnnouncementHandler(announcementService))
+    api.use('/announcement', middleware, newAnnouncementHandler(announcementService, notificationService, notificationSocket))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', middleware, newCategoryHandler(categoryService))
     api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
-    api.use('/forum', middleware, newForumHandler(forumService, commentService, forumSocket))
-    api.use('/comment', middleware, newCommentHandler(commentService, forumSocket))
-    api.use('/user', middleware, newUserHandler(userService))
+    api.use('/forum', middleware, newForumHandler(forumService, commentService, notificationService, forumSocket, notificationSocket))
+    api.use('/comment', middleware, newCommentHandler(commentService, notificationService, forumSocket, notificationSocket))
+    api.use('/user', middleware, newUserHandler(userService, notificationService, notificationSocket))
+    api.use('/notification', middleware, newNotificationHandler(notificationService, notificationSocket))
 
     return api
 }
