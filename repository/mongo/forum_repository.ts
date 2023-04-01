@@ -88,6 +88,7 @@ export class ForumRepository implements Repository {
                         { 'user.userDisplayName': query },
                         { 'user.userFullName': query },
                         { 'user.userEmail': query },
+                        { 'user.studentID': query },
                     ]}
                 ],
             }
