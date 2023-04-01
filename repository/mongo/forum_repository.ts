@@ -337,7 +337,7 @@ export class ForumRepository implements Repository {
 
         const result = await this.db.collection(ForumCollection).updateOne({forumUUID}, { $pull: { categoryIDs: categoryID } })
 
-        logger.info(`delete category: ${categoryID} out of forum to forumUUID: ${forumUUID}`)
+        logger.info(`delete category: ${categoryID} out of forum to forumUUID: ${forumUUID} successfully: ${result.upsertedCount} item`)
 
         logger.info(`End mongo.forum.deleteCategoryIDToForumRepo`)
     }

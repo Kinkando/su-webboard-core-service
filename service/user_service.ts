@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { UserRecord } from 'firebase-admin/lib/auth/user-record';
 import { v4 as uuid } from 'uuid';
 import { filePath } from '../common/file_path';
 import { CloudStorage, File } from '../cloud/google/storage';
@@ -166,16 +167,25 @@ export class UserService implements Service {
     async createUserSrv(user: User) {
         logger.info(`Start service.user.createUserSrv, "input": ${JSON.stringify(user)}`)
 
-        const firebaseUser = await this.firebase.auth().createUser({
-            email: user.userEmail,
-            password: user.studentID || "test123!",
-        })
+        let firebaseUserUID: string = "";
+        try {
+            const firebaseUser = await this.firebase.auth().createUser({
+                email: user.userEmail,
+                password: user.studentID || "test123!",
+            })
+            firebaseUserUID = firebaseUser.uid
 
-        user.userDisplayName = user.userFullName
-        user.userImageURL = `${storageFolder}/${uuid()}.${filePath.defaultAvatar.substring(filePath.defaultAvatar.lastIndexOf('.')+1)}`
-        user.firebaseID = firebaseUser.uid
-        await this.storage.copyFile(`${storageFolder}/${filePath.defaultAvatar}`, user.userImageURL)
-        await this.repository.createUserRepo(user);
+            user.userDisplayName = user.userFullName
+            user.userImageURL = `${storageFolder}/${uuid()}.${filePath.defaultAvatar.substring(filePath.defaultAvatar.lastIndexOf('.')+1)}`
+            user.firebaseID = firebaseUserUID
+            await this.storage.copyFile(`${storageFolder}/${filePath.defaultAvatar}`, user.userImageURL)
+            await this.repository.createUserRepo(user);
+        } catch (error) {
+            if (firebaseUserUID) {
+                await this.firebase.auth().deleteUser(firebaseUserUID)
+            }
+            throw error
+        }
 
         logger.info(`End service.user.createUserSrv`)
         return user

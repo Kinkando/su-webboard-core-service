@@ -37,9 +37,11 @@ export class UserRepository implements Repository {
     async getUsersRepo(query: UserPagination) {
         logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
 
+        const sort = query.userType ? { studentID: 1, userFullName: 1 } : { userDisplayName: 1 }
+
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const users = (await this.db.collection(UserCollection).aggregate([
-            {$sort: { studentID: 1, createdAt: 1 }},
+            {$sort: sort},
             {$match:{
                 $and: [
                     { userType: { $in: query.userType ? [query.userType] : ["std", "tch"] } },
