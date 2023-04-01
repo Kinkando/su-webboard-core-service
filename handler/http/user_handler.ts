@@ -270,14 +270,14 @@ class UserHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            if (req.files && req.files.length > 1) {
+            if (req.files && (req.files as File[]).length > 1) {
                 logger.error('file is limit at 1')
                 return res.status(HTTP.StatusBadRequest).send({ error: "file is limit at 1" })
             }
             const data = JSON.parse(req.body.data);
             let user: User = {userUUID: profile.userUUID}
             if (data.userDisplayName && typeof data.userDisplayName === 'string') {
-                user.userDisplayName = data.userDisplayName
+                user.userDisplayName = data.userDisplayName.trim()
             }
             await this.userService.updateUserProfileSrv(user, (req.files as any)[0] as File)
 

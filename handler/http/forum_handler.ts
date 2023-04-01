@@ -143,6 +143,7 @@ export class ForumHandler {
 
             const forum: Forum = bind(data, schemas)
             forum.authorUUID = profile.userUUID
+            forum.title = forum.title.trim()
 
             let isUpdate = forum.forumUUID !== undefined
 

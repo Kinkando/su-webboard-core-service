@@ -175,8 +175,8 @@ class AdminHandler {
             }
 
             const user: User = {
-                userFullName: req.body.userFullName,
-                userEmail: req.body.userEmail,
+                userFullName: req.body.userFullName.trim(),
+                userEmail: req.body.userEmail.trim(),
                 userType,
             }
 
@@ -231,6 +231,9 @@ class AdminHandler {
             }
 
             const user: User = bind(req.body, schemas)
+            user.userDisplayName = user.userDisplayName?.trim()
+            user.userFullName = user.userFullName?.trim()
+            user.userEmail = user.userEmail?.trim()
 
             await this.userService.updateUserSrv(user)
 
@@ -382,6 +385,8 @@ class AdminHandler {
             }
 
             const category: Category = bind(req.body, schemas)
+            category.categoryName = category.categoryName.trim()
+            category.categoryHexColor = category.categoryHexColor.trim()
 
             const isCreate = category.categoryID == undefined
 

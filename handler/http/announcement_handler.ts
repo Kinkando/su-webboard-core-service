@@ -127,6 +127,7 @@ export class AnnouncementHandler {
 
             const announcement: Announcement = bind(data, schemas)
             announcement.authorUUID = profile.userUUID
+            announcement.title = announcement.title.trim()
 
             const response = await this.announcementService.upsertAnnouncementSrv(announcement, req.files as any, data.announcementImageUUIDs)
 
