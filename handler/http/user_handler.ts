@@ -165,16 +165,22 @@ class UserHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
             }
 
-            if (profile.userUUID === req.body.userUUID) {
+            const followingUserUUID = req.body.userUUID
+            if (profile.userUUID === followingUserUUID) {
                 logger.error('unable to following yourself')
                 return res.status(HTTP.StatusBadRequest).send({ error: "unable to following yourself" })
             }
 
             const isFollowing = req.body.isFollowing as boolean
-            await this.userService.followingUserSrv(profile.userUUID, req.body.userUUID, isFollowing)
+            await this.userService.followingUserSrv(profile.userUUID, followingUserUUID, isFollowing)
 
-            const noti = {notiBody: `กำลังติดตามคุณ`, notiUserUUID: profile.userUUID, userUUID: req.body.userUUID, followerUserUUID: profile.userUUID}
-            await this.notificationService.createUpdateDeleteNotificationSrv(noti, isFollowing ? 'push' : 'pop')
+            const noti = {notiBody: `กำลังติดตามคุณ`, notiUserUUID: profile.userUUID, userUUID: followingUserUUID, followerUserUUID: profile.userUUID}
+            const { notiUUID } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, isFollowing ? 'push' : 'pop')
+            if (isFollowing) {
+                this.notificationSocket.createNotification(followingUserUUID, notiUUID)
+            } else {
+                this.notificationSocket.deleteNotification(followingUserUUID, notiUUID)
+            }
 
             logger.info("End http.user.followingUser")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

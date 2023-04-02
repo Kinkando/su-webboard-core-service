@@ -133,6 +133,7 @@ export class NotificationHandler {
             }
 
             await this.notificationService.readNotificationSrv(notiUUID)
+            this.notificationSocket.readNotification(profile.userUUID, notiUUID)
 
             logger.info("End http.notification.readNotification")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

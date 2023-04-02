@@ -13,7 +13,7 @@ export function newNotificationService(repository: NotificationRepository, forum
 interface Service {
     getNotificationsPaginationSrv(query: Pagination, userUUID: string): Promise<{total: number, data: NotificationView[]}>
     getNotificationDetailSrv(notiUUID: string, userUUID: string): Promise<NotificationView>
-    createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop'): Promise<'create' | 'update' | 'delete' | 'invalid'>
+    createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop'): Promise<{mode: 'create' | 'update' | 'delete' | 'invalid', notiUUID: string}>
     readNotificationSrv(notiUUID: string): void
     countUnreadNotificationSrv(userUUID: string): Promise<number>
 }
@@ -71,27 +71,27 @@ export class NotificationService implements Service {
     async createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop') {
         logger.info(`Start service.notification.createUpdateDeleteNotificationSrv, "output": ${JSON.stringify({noti, action})}`)
 
+        let notiUUID = ""
         let mode: 'create' | 'update' | 'delete' | 'invalid' = 'invalid';
 
         const notiModel = await this.repository.getNotificationRepo(noti)
 
         if (!notiModel) {
-            await this.repository.createNotificationRepo(noti)
+            notiUUID = await this.repository.createNotificationRepo(noti)
             mode = 'create'
         } else {
-            if (notiModel) {
-                if (notiModel.notiUserUUIDs.length <= 1 && action === 'pop') {
-                    await this.repository.deleteNotificationRepo(notiModel.notiUUID)
-                    mode = 'delete'
-                } else {
-                    await this.repository.updateNotificationRepo(noti, action)
-                    mode = 'update'
-                }
+            notiUUID = notiModel.notiUUID
+            if (notiModel.notiUserUUIDs.length <= 1 && action === 'pop') {
+                await this.repository.deleteNotificationRepo(notiModel.notiUUID)
+                mode = 'delete'
+            } else {
+                await this.repository.updateNotificationRepo(noti, action)
+                mode = 'update'
             }
         }
 
-        logger.info(`End service.notification.createUpdateDeleteNotificationSrv, "output": ${JSON.stringify({mode})}`)
-        return mode
+        logger.info(`End service.notification.createUpdateDeleteNotificationSrv, "output": ${JSON.stringify({mode, notiUUID})}`)
+        return {mode, notiUUID}
     }
 
     async readNotificationSrv(notiUUID: string) {

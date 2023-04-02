@@ -2,6 +2,13 @@ import logger from '@util/logger';
 import { Namespace, Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 
+enum NotificationEvent {
+    CreateNotification = 'createNotification',
+    UpdateNotification = 'updateNotification',
+    DeleteNotification = 'deleteNotification',
+    ReadNotification = 'readNotification',
+}
+
 export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
     const notificationNamespace = io.of('/notification')
     notificationNamespace.on('connection', socket => {
@@ -17,4 +24,22 @@ export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEvents
 
 export class NotificationSocket {
     constructor( private sockets: Namespace ) {}
+
+    createNotification(userUUID: string, notiUUID: string) {
+        logger.info(`Start socket.notification.createNotification, "input": ${JSON.stringify({ userUUID, notiUUID })}`)
+        this.sockets.to(userUUID).emit(NotificationEvent.CreateNotification, notiUUID)
+        logger.info(`End socket.notification.createNotification`)
+    }
+
+    readNotification(userUUID: string, notiUUID: string) {
+        logger.info(`Start socket.notification.readNotification, "input": ${JSON.stringify({ userUUID, notiUUID })}`)
+        this.sockets.to(userUUID).emit(NotificationEvent.ReadNotification, notiUUID)
+        logger.info(`End socket.notification.readNotification`)
+    }
+
+    deleteNotification(userUUID: string, notiUUID: string) {
+        logger.info(`Start socket.notification.deleteNotification, "input": ${JSON.stringify({ userUUID, notiUUID })}`)
+        this.sockets.to(userUUID).emit(NotificationEvent.DeleteNotification, notiUUID)
+        logger.info(`End socket.notification.deleteNotification`)
+    }
 }
