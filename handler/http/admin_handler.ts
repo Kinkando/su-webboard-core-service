@@ -309,6 +309,7 @@ class AdminHandler {
                     }
                 }
                 await this.announcementService.pullSeeCountUUIDFromAnnouncementSrv(userUUID)
+                // delete all noti and update report status invalid
             }
 
             logger.info("End http.admin.deleteUser")

@@ -16,6 +16,7 @@ export const NotificationCollection = "Notification"
 
 interface Repository {
     getNotificationsPaginationRepo(query: Pagination, userUUID: string): Promise<{ total: number, data: NotificationView[] }>
+    getNotificationDetailRepo(notiUUID: string, userUUID: string): Promise<NotificationView>
     getNotificationRepo(noti: Notification): Promise<NotificationModel | null>
     createNotificationRepo(noti: Notification): Promise<string>
     updateNotificationRepo(noti: Notification, action: 'push' | 'pop'): void
@@ -78,9 +79,49 @@ export class NotificationRepository implements Repository {
             })
             return { total: doc.total, data: notiView }
         })[0]
-        // check forum is anonymous before
 
         logger.info(`End mongo.notification.getNotificationsPaginationRepo, "output": ${JSON.stringify(res)}`)
+        return res
+    }
+
+    async getNotificationDetailRepo(notiUUID: string, userUUID: string): Promise<NotificationView> {
+        logger.info(`Start mongo.notification.getNotificationDetailRepo, "input": ${JSON.stringify({notiUUID, userUUID})}`)
+
+        const res = (await notificationModel.aggregate<NotificationModel>([
+            {$match: { notiUUID }},
+            {$addFields: { notiUserUUID: { $last: "$notiUserUUIDs" } }},
+            {$lookup: {
+                from: UserCollection,
+                localField: 'notiUserUUID',
+                foreignField: 'userUUID',
+                as: 'user'
+            }},
+            {$unwind: "$user"},
+            {$lookup: {
+                from: ForumCollection,
+                localField: 'forumUUID',
+                foreignField: 'forumUUID',
+                as: 'forums'
+            }},
+            {$addFields: {
+                notiUserDisplayName: '$user.userDisplayName',
+                notiUserImageURL: '$user.userImageURL',
+            }},
+        ])).map(noti => {
+            const notiData = noti as any
+            notiData.isAnonymous = notiData.forums?.length === 1 && notiData.forums[0].isAnonymous && notiData.forums[0].authorUUID !== userUUID
+            notiData.isRead = notiData.notiUserUUIDs?.length === notiData.notiReadUserUUIDs?.length || false
+            notiData.notiAt = noti.createdAt
+            delete notiData._id
+            delete notiData.user
+            delete notiData.forums
+            delete notiData.notiReadUserUUIDs
+            delete noti.createdAt
+            delete noti.updatedAt
+            return notiData as NotificationView
+        })[0]
+
+        logger.info(`End mongo.notification.getNotificationDetailRepo, "output": ${JSON.stringify(res)}`)
         return res
     }
 

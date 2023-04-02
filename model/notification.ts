@@ -1,11 +1,13 @@
 export interface NotificationView {
     notiUUID: string
     notiBody: string
+    notiUserUUID: string
     notiUserDisplayName: string
     notiUserImageURL: string
     notiLink: string
     notiAt: Date
     isRead: boolean
+    userUUID: string
     notiUserUUIDs?: string[] // db only
     isAnonymous?: boolean // db only
     forumUUID?: string // db only

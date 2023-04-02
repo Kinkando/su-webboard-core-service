@@ -13,6 +13,7 @@ export function newNotificationHandler(notificationService: NotificationService,
     const notificationRouter = Router()
     notificationRouter.get('', (req, res, next) => notificationHandler.getNotifications(req, res, next))
     notificationRouter.get('/count', (req, res, next) => notificationHandler.getUnreadNotificationCount(req, res, next))
+    notificationRouter.get('/:notiUUID', (req, res, next) => notificationHandler.getNotificationDetail(req, res, next))
     notificationRouter.patch('/:notiUUID', (req, res, next) => notificationHandler.readNotification(req, res, next))
 
     return notificationRouter
@@ -84,6 +85,37 @@ export class NotificationHandler {
         }
     }
 
+    async getNotificationDetail(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.notification.getNotificationDetail")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const notiUUID = req.params['notiUUID'] as string
+            if (!notiUUID) {
+                logger.error('notiUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "notiUUID is required" })
+            }
+
+            const notiDetail = await this.notificationService.getNotificationDetailSrv(notiUUID, profile.userUUID)
+            if (!notiDetail) {
+                logger.error('notiUUID is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "notiUUID is not found" })
+            }
+
+            logger.info("End http.notification.getNotificationDetail")
+            return res.status(HTTP.StatusOK).send(notiDetail);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
     async readNotification(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.notification.readNotification")
 
@@ -103,7 +135,7 @@ export class NotificationHandler {
             await this.notificationService.readNotificationSrv(notiUUID)
 
             logger.info("End http.notification.readNotification")
-            return res.status(HTTP.StatusOK).send();
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
 
         } catch (error) {
             logger.error(error)

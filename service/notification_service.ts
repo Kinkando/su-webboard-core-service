@@ -12,6 +12,7 @@ export function newNotificationService(repository: NotificationRepository, forum
 
 interface Service {
     getNotificationsPaginationSrv(query: Pagination, userUUID: string): Promise<{total: number, data: NotificationView[]}>
+    getNotificationDetailSrv(notiUUID: string, userUUID: string): Promise<NotificationView>
     createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop'): Promise<'create' | 'update' | 'delete' | 'invalid'>
     readNotificationSrv(notiUUID: string): void
     countUnreadNotificationSrv(userUUID: string): Promise<number>
@@ -20,30 +21,51 @@ interface Service {
 export class NotificationService implements Service {
     constructor(private repository: NotificationRepository, private forumService: ForumService, private storage: CloudStorage) {}
 
+    private async assertNotificationDetail(noti: NotificationView) {
+        if (noti.isAnonymous) {
+            noti.notiUserDisplayName = 'ผู้ใช้นิรนาม'
+            if (noti.notiUserUUID === noti.userUUID) {
+                noti.notiUserDisplayName += ' (คุณ)'
+            } else {
+                noti.notiUserUUID = "unknown"
+            }
+        }
+        if (noti.notiUserUUIDs && noti.notiUserUUIDs.length > 1) {
+            noti.notiBody = noti.notiUserDisplayName + ` และคนอื่นๆอีก ${noti.notiUserUUIDs.length - 1}` + noti.notiBody
+        } else {
+            noti.notiBody = noti.notiUserDisplayName + ' ' + noti.notiBody
+        }
+        noti.notiUserImageURL = await this.storage.signedURL(noti.isAnonymous ? filePath.anonymousAvatar : noti.notiUserImageURL)
+        noti.notiLink = mapNotiLink({commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
+        delete noti.followerUserUUID
+        delete noti.notiUserUUIDs
+        delete noti.isAnonymous
+    }
+
     async getNotificationsPaginationSrv(query: Pagination, userUUID: string) {
         logger.info(`Start service.notification.getNotificationsPaginationSrv, "output": ${JSON.stringify({query, userUUID})}`)
 
         const notification = await this.repository.getNotificationsPaginationRepo(query, userUUID)
         if (notification && notification.data) {
             for (const noti of notification.data) {
-                if (noti.isAnonymous) {
-                    noti.notiUserDisplayName = 'ผู้ใช้นิรนาม'
-                }
-                if (noti.notiUserUUIDs && noti.notiUserUUIDs.length > 1) {
-                    noti.notiBody = noti.notiUserDisplayName + ` และคนอื่นๆอีก ${noti.notiUserUUIDs.length - 1}` + noti.notiBody
-                } else {
-                    noti.notiBody = noti.notiUserDisplayName + ' ' + noti.notiBody
-                }
-                noti.notiUserImageURL = await this.storage.signedURL(noti.isAnonymous ? filePath.anonymousAvatar : noti.notiUserImageURL)
-                noti.notiLink = mapNotiLink({commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
-                delete noti.followerUserUUID
-                delete noti.notiUserUUIDs
-                delete noti.isAnonymous
+                await this.assertNotificationDetail(noti)
             }
         }
 
         logger.info(`End service.notification.getNotificationsPaginationSrv, "output": {"total": ${notification?.total || 0}, "data.length": ${notification?.data?.length || 0}}`)
         return notification
+    }
+
+    async getNotificationDetailSrv(notiUUID: string, userUUID: string): Promise<NotificationView> {
+        logger.info(`Start service.notification.getNotificationDetailSrv, "output": ${JSON.stringify({notiUUID, userUUID})}`)
+
+        const notiDetail = await this.repository.getNotificationDetailRepo(notiUUID, userUUID)
+        if (notiDetail) {
+            await this.assertNotificationDetail(notiDetail)
+        }
+
+        logger.info(`End service.notification.getNotificationDetailSrv, "output": ${JSON.stringify(notiDetail)}`)
+        return notiDetail
     }
 
     async createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop') {
