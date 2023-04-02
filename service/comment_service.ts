@@ -13,7 +13,7 @@ export function newCommentService(repository: CommentRepository, storage: CloudS
 }
 
 interface Service {
-    getCommentSrv(commentUUID: string, userUUID: string): Promise<CommentView>
+    getCommentSrv(commentUUID: string, userUUID: string, isRaw: boolean): Promise<CommentView>
     getCommentsPaginationSrv(commentUUID: string, filter: Pagination, userUUID: string): Promise<{ total: number, data: CommentView[] }>
     getCommentsSrv(key: { forumUUID?: string, commenterUUID?: string, likeUserUUID?: string }): Promise<Comment[]>
     upsertCommentSrv(userUUID: string, comment: Comment, files: File[], commentImageUUIDs?: string[]): Promise<{ commentUUID: string, documents: Document[] }>
@@ -58,16 +58,18 @@ export class CommentService implements Service {
         }
     }
 
-    async getCommentSrv(commentUUID: string, userUUID: string) {
+    async getCommentSrv(commentUUID: string, userUUID: string, isRaw: boolean = false) {
         logger.info(`Start service.comment.getCommentSrv, "input": ${JSON.stringify({commentUUID, userUUID})}`)
 
         const comment = await this.repository.getCommentRepo(commentUUID, userUUID)
 
-        if (comment?.commentImages) {
-            for(let i=0; i<comment.commentImages.length; i++) {
-                comment.commentImages[i].url = this.storage.publicURL(comment.commentImages[i].url)
+        if (!isRaw) {
+            if (comment?.commentImages) {
+                for(let i=0; i<comment.commentImages.length; i++) {
+                    comment.commentImages[i].url = this.storage.publicURL(comment.commentImages[i].url)
+                }
+                await this.assertAnonymousSrv(comment, userUUID)
             }
-            await this.assertAnonymousSrv(comment, userUUID)
         }
 
         logger.info(`End service.comment.getCommentSrv, "output": ${JSON.stringify(comment)}`)

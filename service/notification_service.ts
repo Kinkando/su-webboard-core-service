@@ -59,7 +59,7 @@ export class NotificationService implements Service {
     async getNotificationDetailSrv(notiUUID: string, userUUID: string): Promise<NotificationView> {
         logger.info(`Start service.notification.getNotificationDetailSrv, "output": ${JSON.stringify({notiUUID, userUUID})}`)
 
-        const notiDetail = await this.repository.getNotificationDetailRepo(notiUUID, userUUID)
+        const notiDetail = await this.repository.getNotificationDetailRepo(notiUUID)
         if (notiDetail) {
             await this.assertNotificationDetail(notiDetail)
         }
@@ -76,11 +76,12 @@ export class NotificationService implements Service {
 
         const notiModel = await this.repository.getNotificationRepo(noti)
 
-        if (!notiModel) {
+        if (!notiModel && action === 'push') {
             notiUUID = await this.repository.createNotificationRepo(noti)
             mode = 'create'
-        } else {
+        } else if (notiModel) {
             notiUUID = notiModel.notiUUID
+            noti.notiUUID = notiModel.notiUUID
             if (notiModel.notiUserUUIDs.length <= 1 && action === 'pop') {
                 await this.repository.deleteNotificationRepo(notiModel.notiUUID)
                 mode = 'delete'
@@ -88,6 +89,8 @@ export class NotificationService implements Service {
                 await this.repository.updateNotificationRepo(noti, action)
                 mode = 'update'
             }
+        } else {
+            logger.error('invalid action')
         }
 
         logger.info(`End service.notification.createUpdateDeleteNotificationSrv, "output": ${JSON.stringify({mode, notiUUID})}`)

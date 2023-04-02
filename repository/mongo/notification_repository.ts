@@ -4,7 +4,7 @@ import { Pagination } from "../../model/common";
 import { Notification, NotificationView } from "../../model/notification";
 import logger from "../../util/logger";
 import { v4 as uuid } from "uuid";
-import { UpdateQuery } from "mongoose";
+import { FilterQuery, UpdateQuery } from "mongoose";
 import { UserCollection } from "./user_repository";
 import { ForumCollection } from "./forum_repository";
 
@@ -16,7 +16,7 @@ export const NotificationCollection = "Notification"
 
 interface Repository {
     getNotificationsPaginationRepo(query: Pagination, userUUID: string): Promise<{ total: number, data: NotificationView[] }>
-    getNotificationDetailRepo(notiUUID: string, userUUID: string): Promise<NotificationView>
+    getNotificationDetailRepo(notiUUID: string): Promise<NotificationView>
     getNotificationRepo(noti: Notification): Promise<NotificationModel | null>
     createNotificationRepo(noti: Notification): Promise<string>
     updateNotificationRepo(noti: Notification, action: 'push' | 'pop'): void
@@ -33,6 +33,7 @@ export class NotificationRepository implements Repository {
 
         const res = (await notificationModel.aggregate<{ total: number, data: NotificationModel[] }>([
             {$match: { userUUID }},
+            {$sort: { createdAt: -1 }},
             {$addFields: { notiUserUUID: { $last: "$notiUserUUIDs" } }},
             {$lookup: {
                 from: UserCollection,
@@ -84,8 +85,8 @@ export class NotificationRepository implements Repository {
         return res
     }
 
-    async getNotificationDetailRepo(notiUUID: string, userUUID: string): Promise<NotificationView> {
-        logger.info(`Start mongo.notification.getNotificationDetailRepo, "input": ${JSON.stringify({notiUUID, userUUID})}`)
+    async getNotificationDetailRepo(notiUUID: string): Promise<NotificationView> {
+        logger.info(`Start mongo.notification.getNotificationDetailRepo, "input": ${JSON.stringify({notiUUID})}`)
 
         const res = (await notificationModel.aggregate<NotificationModel>([
             {$match: { notiUUID }},
@@ -109,7 +110,7 @@ export class NotificationRepository implements Repository {
             }},
         ])).map(noti => {
             const notiData = noti as any
-            notiData.isAnonymous = notiData.forums?.length === 1 && notiData.forums[0].isAnonymous && notiData.forums[0].authorUUID !== userUUID
+            notiData.isAnonymous = notiData.forums?.length === 1 && notiData.forums[0].isAnonymous && notiData.forums[0].authorUUID === notiData.user.userUUID
             notiData.isRead = notiData.notiUserUUIDs?.length === notiData.notiReadUserUUIDs?.length || false
             notiData.notiAt = noti.createdAt
             delete notiData._id
@@ -128,18 +129,18 @@ export class NotificationRepository implements Repository {
     async getNotificationRepo(noti: Notification) {
         logger.info(`Start mongo.notification.getNotificationRepo, "input": ${JSON.stringify(noti)}`)
 
-        let filter: any = {}
+        let filter: FilterQuery<any> = { $and: [] }
         if (noti.userUUID) {
-            filter.userUUID = noti.userUUID
+            filter.$and?.push({userUUID: noti.userUUID})
         }
         if (noti.forumUUID) {
-            filter.forumUUID = noti.forumUUID
+            filter.$and?.push({forumUUID: noti.forumUUID})
         }
         if (noti.commentUUID) {
-            filter.commentUUID = noti.commentUUID
+            filter.$and?.push({commentUUID: noti.commentUUID})
         }
         if (noti.followerUserUUID) {
-            filter.followerUserUUID = noti.followerUserUUID
+            filter.$and?.push({followerUserUUID: noti.followerUserUUID})
         }
         const notiModel = await notificationModel.findOne<NotificationModel>(filter)
 
@@ -160,11 +161,11 @@ export class NotificationRepository implements Repository {
     async updateNotificationRepo(noti: Notification, action: 'push' | 'pop') {
         logger.info(`Start mongo.notification.updateNotificationRepo, "input": ${JSON.stringify({noti, action})}`)
 
-        const set: UpdateQuery<any> = { $set: { notiBody: noti.notiBody } }
+        let set: UpdateQuery<any> = {}
         if (action === 'push') {
-            set.$addToSet = { notiUserUUIDs: noti.notiUserUUID }
+            set = { $addToSet: { notiUserUUIDs: noti.notiUserUUID }, $set: { createdAt: new Date() } }
         } else {
-            set.$pull = { notiUserUUIDs: noti.notiUserUUID, notiReadUserUUIDs: noti.notiUserUUID }
+            set = { $pull: { notiUserUUIDs: noti.notiUserUUID, notiReadUserUUIDs: noti.notiUserUUID } }
         }
 
         await notificationModel.updateOne({ notiUUID: noti.notiUUID! }, set)
@@ -183,6 +184,7 @@ export class NotificationRepository implements Repository {
     async readNotificationRepo(notiUUID: string) {
         logger.info(`Start mongo.notification.readNotificationRepo, "input": ${JSON.stringify({notiUUID})}`)
 
+        // copy notiUserUUIDs to notiReadUserUUIDs
         await notificationModel.updateOne({ notiUUID }, { $set: { notiReadUserUUIDs: '$notiUserUUIDs', updatedAt: new Date() } })
 
         logger.info(`End mongo.notification.readNotificationRepo`)

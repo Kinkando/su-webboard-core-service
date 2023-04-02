@@ -31,6 +31,12 @@ export class NotificationSocket {
         logger.info(`End socket.notification.createNotification`)
     }
 
+    updateNotification(userUUID: string, notiUUID: string, action: 'push' | 'pop') {
+        logger.info(`Start socket.notification.updateNotification, "input": ${JSON.stringify({ userUUID, notiUUID, action })}`)
+        this.sockets.to(userUUID).emit(NotificationEvent.UpdateNotification, {notiUUID, action})
+        logger.info(`End socket.notification.updateNotification`)
+    }
+
     readNotification(userUUID: string, notiUUID: string) {
         logger.info(`Start socket.notification.readNotification, "input": ${JSON.stringify({ userUUID, notiUUID })}`)
         this.sockets.to(userUUID).emit(NotificationEvent.ReadNotification, notiUUID)

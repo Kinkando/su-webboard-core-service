@@ -235,7 +235,7 @@ export class CommentHandler {
             const commentUUID = req.body.commentUUID
             const isLike = Boolean(req.body.isLike)
 
-            const comment = await this.commentService.getCommentSrv(commentUUID, profile.userUUID)
+            const comment = await this.commentService.getCommentSrv(commentUUID, profile.userUUID, true)
             if (!comment || !comment.commentUUID) {
                 logger.error('comment is not found')
                 return res.status(HTTP.StatusNotFound).send({ error: "comment is not found" })
@@ -244,6 +244,19 @@ export class CommentHandler {
             await this.commentService.likeCommentSrv(commentUUID, profile.userUUID, isLike)
 
             this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
+
+            const action = isLike ? 'push' : 'pop'
+            if (profile.userUUID !== comment.commenterUUID) {
+                const noti = {notiBody: `ถูกใจความคิดเห็นของคุณ`, notiUserUUID: profile.userUUID, userUUID: comment.commenterUUID, forumUUID: comment.forumUUID, commentUUID}
+                const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, action)
+                if (mode === 'create') {
+                    this.notificationSocket.createNotification(comment.commenterUUID, notiUUID)
+                } else if (mode === 'update') {
+                    this.notificationSocket.updateNotification(comment.commenterUUID, notiUUID, action)
+                } else {
+                    this.notificationSocket.deleteNotification(comment.commenterUUID, notiUUID)
+                }
+            }
 
             logger.info("End http.comment.likeComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

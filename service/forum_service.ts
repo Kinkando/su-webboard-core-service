@@ -14,7 +14,7 @@ export function newForumService(repository: ForumRepository, storage: CloudStora
 
 interface Service {
     getForumsPaginationSrv(filter: FilterForum, isSignedURL: boolean, userUUID: string): Promise<{ total: number, data: ForumView[] }>
-    getForumDetailSrv(forumUUID: string, userUUID: string): Promise<ForumView>
+    getForumDetailSrv(forumUUID: string, userUUID: string, isRaw: boolean): Promise<ForumView>
     getForumsSrv(key: { authorUUID?: string, categoryID?: number, likeUserUUID?: string }): Promise<Forum[]>
     upsertForumSrv(userUUID: string, forum: Forum, files: File[], forumImageUUIDs?: string[]): Promise<{ forumUUID: string, documents: Document[] }>
     deleteForumSrv(forumUUID: string, userUUID?: string): void
@@ -79,12 +79,12 @@ export class ForumService implements Service {
         return forums
     }
 
-    async getForumDetailSrv(forumUUID: string, userUUID: string) {
+    async getForumDetailSrv(forumUUID: string, userUUID: string, isRaw = false) {
         logger.info(`Start service.forum.getForumDetailSrv, "input": ${JSON.stringify({ forumUUID, userUUID })}`)
 
         const forum = await this.repository.getForumDetailRepo(forumUUID)
 
-        if(forum) {
+        if(!isRaw && forum) {
             if (forum.forumImages) {
                 for(let i=0; i<forum.forumImages.length; i++) {
                     forum.forumImages[i].url = this.storage.publicURL(forum.forumImages[i].url)

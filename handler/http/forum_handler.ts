@@ -238,9 +238,28 @@ export class ForumHandler {
             const forumUUID = req.body.forumUUID
             const isLike = Boolean(req.body.isLike)
 
+            const forum = await this.forumService.getForumDetailSrv(forumUUID, profile.userUUID, true)
+            if (!forum || !forum.forumUUID) {
+                logger.error('forumUUID is not found')
+                return res.status(HTTP.StatusBadRequest).send({ error: 'forumUUID is not found' })
+            }
+
             await this.forumService.likeForumSrv(forumUUID, profile.userUUID, isLike)
 
             this.forumSocket.updateForum(profile.sessionUUID, forumUUID)
+
+            const action = isLike ? 'push' : 'pop'
+            if (profile.userUUID !== forum.authorUUID) {
+                const noti = {notiBody: `ถูกใจกระทู้ของคุณ`, notiUserUUID: profile.userUUID, userUUID: forum.authorUUID, forumUUID: forum.forumUUID}
+                const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, action)
+                if (mode === 'create') {
+                    this.notificationSocket.createNotification(forum.authorUUID, notiUUID)
+                } else if (mode === 'update') {
+                    this.notificationSocket.updateNotification(forum.authorUUID, notiUUID, action)
+                } else {
+                    this.notificationSocket.deleteNotification(forum.authorUUID, notiUUID)
+                }
+            }
 
             logger.info("End http.forum.likeForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
