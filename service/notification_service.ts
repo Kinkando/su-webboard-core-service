@@ -1,18 +1,19 @@
 import { filePath } from "../common/file_path";
 import { CloudStorage } from "../cloud/google/storage";
-import { Pagination } from "../model/common";
-import { Notification, NotificationView, mapNotiLink } from "../model/notification";
+import { FilterNotification, Notification, NotificationView, mapNotiLink } from "../model/notification";
 import { NotificationRepository } from "../repository/mongo/notification_repository";
 import logger from "../util/logger";
 import { ForumService } from "./forum_service";
+import { NotificationModel } from "../repository/mongo/model/notification";
 
 export function newNotificationService(repository: NotificationRepository, forumService: ForumService, storage: CloudStorage) {
     return new NotificationService(repository, forumService, storage)
 }
 
 interface Service {
-    getNotificationsPaginationSrv(query: Pagination, userUUID: string): Promise<{total: number, data: NotificationView[]}>
+    getNotificationsPaginationSrv(query: FilterNotification, userUUID: string): Promise<{total: number, data: NotificationView[]}>
     getNotificationDetailSrv(notiUUID: string, userUUID: string, isRaw: boolean): Promise<NotificationView>
+    getNotificationsSrv(noti: Notification): Promise<NotificationModel[]>
     createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop' | 'remove'): Promise<{mode: 'create' | 'update' | 'delete' | 'invalid', notiUUID: string}>
     readNotificationSrv(notiUUID: string, notiUserUUIDs: string[]): void
     readAllNotificationSrv(userUUID: string): void
@@ -50,7 +51,7 @@ export class NotificationService implements Service {
         delete noti.isAnonymous
     }
 
-    async getNotificationsPaginationSrv(query: Pagination, userUUID: string) {
+    async getNotificationsPaginationSrv(query: FilterNotification, userUUID: string) {
         logger.info(`Start service.notification.getNotificationsPaginationSrv, "input": ${JSON.stringify({query, userUUID})}`)
 
         const notification = await this.repository.getNotificationsPaginationRepo(query, userUUID)
@@ -64,7 +65,7 @@ export class NotificationService implements Service {
         return notification
     }
 
-    async getNotificationDetailSrv(notiUUID: string, userUUID: string, isRaw = false): Promise<NotificationView> {
+    async getNotificationDetailSrv(notiUUID: string, userUUID: string, isRaw = false) {
         logger.info(`Start service.notification.getNotificationDetailSrv, "input": ${JSON.stringify({notiUUID, userUUID})}`)
 
         const notiDetail = await this.repository.getNotificationDetailRepo(notiUUID)
@@ -74,6 +75,15 @@ export class NotificationService implements Service {
 
         logger.info(`End service.notification.getNotificationDetailSrv, "output": ${JSON.stringify(notiDetail)}`)
         return notiDetail
+    }
+
+    async getNotificationsSrv(noti: Notification) {
+        logger.info(`Start service.notification.getNotificationsSrv, "input": ${JSON.stringify(noti)}`)
+
+        const notifications = await this.repository.getNotificationsRepo(noti)
+
+        logger.info(`End service.notification.getNotificationsSrv, "output": ${JSON.stringify({total: notifications?.length || 0})}`)
+        return notifications
     }
 
     async createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop' | 'remove') {
@@ -123,7 +133,7 @@ export class NotificationService implements Service {
     async readAllNotificationSrv(userUUID: string) {
         logger.info(`Start service.notification.readAllNotificationSrv, "input": ${JSON.stringify({userUUID})}`)
 
-        const notifications = await this.repository.getNotificationsRepo(userUUID)
+        const notifications = await this.repository.getNotificationsRepo({userUUID} as any)
 
         if(notifications) {
             for (const noti of notifications) {

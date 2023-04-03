@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import HTTP from "../../common/http";
-import { Pagination } from "../../model/common";
+import { FilterNotification } from "../../model/notification";
 import { NotificationService } from '../../service/notification_service';
 import logger from "../../util/logger";
 import { getProfile } from "../../util/profile";
@@ -35,6 +35,7 @@ export class NotificationHandler {
             }
 
             const schemas = [
+                {field: "isRead", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
             ]
@@ -46,10 +47,12 @@ export class NotificationHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
             }
 
-            const filter: Pagination = {
+            const filter: FilterNotification = {
+                isRead: req.query.isRead?.toString() as any || 'all',
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
+            console.log(req.query.isRead, filter)
 
             const notification = await this.notificationService.getNotificationsPaginationSrv(filter, profile.userUUID)
             if (!notification || !notification.total) {

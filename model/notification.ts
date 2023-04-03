@@ -1,3 +1,5 @@
+import { Pagination } from "./common"
+
 export interface NotificationView {
     notiUUID: string
     notiBody: string
@@ -29,6 +31,10 @@ export interface Notification {
     replyCommentUUID?: string // db only
     announcementUUID?: string // db only
     followerUserUUID?: string // db only
+}
+
+export interface FilterNotification extends Pagination {
+    isRead?: 'all' | 'unread' | 'read'
 }
 
 export enum NotificationBody {

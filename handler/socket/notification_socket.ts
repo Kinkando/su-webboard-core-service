@@ -7,6 +7,7 @@ enum NotificationEvent {
     UpdateNotification = 'updateNotification',
     DeleteNotification = 'deleteNotification',
     ReadNotification = 'readNotification',
+    RefreshNotification = 'refreshNotification',
 }
 
 export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
@@ -17,6 +18,8 @@ export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEvents
             socket.join(data.room)
             logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room} (same with userUUID)`)
         })
+        socket.on('refresh', (userUUID: string) => notificationNamespace.to(userUUID).emit(NotificationEvent.RefreshNotification))
+        socket.on('read', (data: {userUUID: string, notiUUID?: string}) => notificationNamespace.to(data.userUUID).emit(NotificationEvent.ReadNotification, data.notiUUID))
     })
 
     return new NotificationSocket(notificationNamespace)
@@ -47,5 +50,11 @@ export class NotificationSocket {
         logger.info(`Start socket.notification.deleteNotification, "input": ${JSON.stringify({ userUUID, notiUUID })}`)
         this.sockets.to(userUUID).emit(NotificationEvent.DeleteNotification, notiUUID)
         logger.info(`End socket.notification.deleteNotification`)
+    }
+
+    refreshNotification(userUUID: string) {
+        logger.info(`Start socket.notification.refreshNotification, "input": ${JSON.stringify({ userUUID })}`)
+        this.sockets.to(userUUID).emit(NotificationEvent.RefreshNotification)
+        logger.info(`End socket.notification.refreshNotification`)
     }
 }

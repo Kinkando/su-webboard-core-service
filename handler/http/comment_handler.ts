@@ -184,7 +184,7 @@ export class CommentHandler {
                 }
 
                 if (replyToUserUUID !== profile.userUUID && replyToUserUUID && notiBody) {
-                    const noti = {notiBody, notiUserUUID: profile.userUUID, userUUID: replyToUserUUID, forumUUID: comment.forumUUID, commentUUID: response.commentUUID}
+                    const noti = {notiBody, notiUserUUID: profile.userUUID, userUUID: replyToUserUUID, forumUUID: comment.forumUUID, commentUUID: response.commentUUID, replyCommentUUID: comment.replyCommentUUID}
                     const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'push')
                     if (mode === 'create') {
                         this.notificationSocket.createNotification(replyToUserUUID, notiUUID)
@@ -228,9 +228,21 @@ export class CommentHandler {
 
             await this.commentService.deleteCommentSrv(commentUUID)
 
+            const notifications = await this.notificationService.getNotificationsSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
+
             this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
 
             await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: comment.forumUUID, commentUUID, replyCommentUUID: comment.replyCommentUUID} as any, 'remove')
+
+            if (notifications) {
+                const notiUserUUIDs = new Set<string>()
+                for(const noti of notifications) {
+                    notiUserUUIDs.add(noti.userUUID)
+                }
+                for (const userUUID of notiUserUUIDs) {
+                    this.notificationSocket.refreshNotification(userUUID)
+                }
+            }
 
             logger.info("End http.comment.deleteComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

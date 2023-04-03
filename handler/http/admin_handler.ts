@@ -269,6 +269,8 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: 'userUUIDs is required' })
             }
 
+            const notiUserUUIDs = new Set<string>()
+
             for(const userUUID of userUUIDs) {
                 await this.authenService.revokeTokensByAdminSrv(req.body?.userUUIDs)
 
@@ -279,6 +281,13 @@ class AdminHandler {
                         await this.forumService.deleteForumSrv(forum.forumUUID!)
                         await this.commentService.deleteCommentsByForumUUIDSrv(forum.forumUUID!)
                         this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
+
+                        const notifications = await this.notificationService.getNotificationsSrv({forumUUID: forum.forumUUID} as any)
+                        if (notifications) {
+                            for(const noti of notifications) {
+                                notiUserUUIDs.add(noti.userUUID)
+                            }
+                        }
                         this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID!} as any, 'remove')
                     }
                 }
@@ -287,6 +296,13 @@ class AdminHandler {
                     for (const comment of comments) {
                         await this.commentService.deleteCommentSrv(comment.commentUUID!)
                         this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID!, comment.replyCommentUUID)
+
+                        const notifications = await this.notificationService.getNotificationsSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
+                        if (notifications) {
+                            for(const noti of notifications) {
+                                notiUserUUIDs.add(noti.userUUID)
+                            }
+                        }
                         await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID!, replyCommentUUID: comment.replyCommentUUID} as any, 'remove')
                     }
                 }
@@ -294,6 +310,13 @@ class AdminHandler {
                 if (announcements) {
                     for (const announcement of announcements) {
                         await this.announcementService.deleteAnnouncementSrv(announcement.announcementUUID!)
+
+                        const notifications = await this.notificationService.getNotificationsSrv({announcementUUID: announcement.announcementUUID} as any)
+                        if (notifications) {
+                            for(const noti of notifications) {
+                                notiUserUUIDs.add(noti.userUUID)
+                            }
+                        }
                         await this.notificationService.createUpdateDeleteNotificationSrv({announcementUUID: announcement.announcementUUID!} as any, 'remove')
                     }
                 }
@@ -303,6 +326,13 @@ class AdminHandler {
                 if (likeForums) {
                     for (const forum of likeForums) {
                         this.forumSocket.updateForum(profile.sessionUUID, forum.forumUUID!)
+
+                        const notifications = await this.notificationService.getNotificationsSrv({forumUUID: forum.forumUUID} as any)
+                        if (notifications) {
+                            for(const noti of notifications) {
+                                notiUserUUIDs.add(noti.userUUID)
+                            }
+                        }
                         const noti = {notiBody: NotificationBody.LikeForum, notiUserUUID: userUUID, userUUID: forum.authorUUID, forumUUID: forum.forumUUID}
                         await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'pop')
                     }
@@ -312,6 +342,13 @@ class AdminHandler {
                 if (likeComments) {
                     for (const comment of likeComments) {
                         this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID!, comment.commentUUID!, comment.replyCommentUUID)
+
+                        const notifications = await this.notificationService.getNotificationsSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
+                        if (notifications) {
+                            for(const noti of notifications) {
+                                notiUserUUIDs.add(noti.userUUID)
+                            }
+                        }
                         const noti: Notification = {
                             notiBody: NotificationBody.LikeComment,
                             notiUserUUID: userUUID,
@@ -324,6 +361,12 @@ class AdminHandler {
                     }
                 }
                 await this.announcementService.pullSeeCountUUIDFromAnnouncementSrv(userUUID)
+
+                if (notiUserUUIDs) {
+                    for (const userUUID of notiUserUUIDs) {
+                        this.notificationSocket.refreshNotification(userUUID)
+                    }
+                }
                 // delete all noti and update report status invalid
             }
 
@@ -437,6 +480,7 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "categoryIDs is required" })
             }
 
+            const notiUserUUIDs = new Set<string>()
             for (const categoryID of categoryIDs) {
                 const forums = await this.forumService.getForumsSrv({ categoryID })
                 if (forums) {
@@ -445,8 +489,15 @@ class AdminHandler {
                             await this.forumService.deleteForumSrv(forum.forumUUID!)
                             await this.commentService.deleteCommentsByForumUUIDSrv(forum.forumUUID!)
                             this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
+
+                            const notifications = await this.notificationService.getNotificationsSrv({forumUUID: forum.forumUUID} as any)
+                            if (notifications) {
+                                for(const noti of notifications) {
+                                    notiUserUUIDs.add(noti.userUUID)
+                                }
+                            }
                             this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID!} as any, 'remove')
-                            // remove all notification forums
+                            // change status report to invalid
                         } else {
                             await this.forumService.deleteCategoryIDToForumSrv(forum.forumUUID!, categoryID)
                         }
@@ -455,6 +506,11 @@ class AdminHandler {
                 await this.categoryService.deleteCategorySrv(categoryID)
             }
 
+            if (notiUserUUIDs) {
+                for (const userUUID of notiUserUUIDs) {
+                    this.notificationSocket.refreshNotification(userUUID)
+                }
+            }
 
             logger.info("End http.admin.deleteCategory")
             return res.status(HTTP.StatusOK).send({ message: "success" });

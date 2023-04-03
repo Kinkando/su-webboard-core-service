@@ -1,7 +1,6 @@
 import * as mongoDB from "mongodb";
 import notificationModel, { NotificationModel, newNotificationModel } from './model/notification'
-import { Pagination } from "../../model/common";
-import { Notification, NotificationView } from "../../model/notification";
+import { FilterNotification, Notification, NotificationView } from "../../model/notification";
 import logger from "../../util/logger";
 import { v4 as uuid } from "uuid";
 import { FilterQuery, UpdateQuery } from "mongoose";
@@ -15,9 +14,9 @@ export function newNotificationRepository(db: mongoDB.Db) {
 export const NotificationCollection = "Notification"
 
 interface Repository {
-    getNotificationsPaginationRepo(query: Pagination, userUUID: string): Promise<{ total: number, data: NotificationView[] }>
+    getNotificationsPaginationRepo(query: FilterNotification, userUUID: string): Promise<{ total: number, data: NotificationView[] }>
     getNotificationDetailRepo(notiUUID: string): Promise<NotificationView>
-    getNotificationsRepo(userUUID: string): Promise<NotificationModel[]>
+    getNotificationsRepo(noti: Notification): Promise<NotificationModel[]>
     getNotificationRepo(noti: Notification): Promise<NotificationModel | null>
     createNotificationRepo(noti: Notification): Promise<string>
     updateNotificationRepo(noti: Notification, action: 'push' | 'pop'): void
@@ -29,11 +28,17 @@ interface Repository {
 export class NotificationRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getNotificationsPaginationRepo(query: Pagination, userUUID: string) {
+    async getNotificationsPaginationRepo(query: FilterNotification, userUUID: string) {
         logger.info(`Start mongo.notification.getNotificationsPaginationRepo, "input": ${JSON.stringify({query, userUUID})}`)
 
+        const filter: any = { userUUID }
+        if (query.isRead === 'read') {
+            filter.$expr = { $eq : [ {$size : "$notiUserUUIDs"}, {$size : "$notiReadUserUUIDs"} ] }
+        } else if (query.isRead === 'unread') {
+            filter.$expr = { $ne : [ {$size : "$notiUserUUIDs"}, {$size : "$notiReadUserUUIDs"} ] }
+        }
         const res = (await notificationModel.aggregate<{ total: number, data: NotificationModel[] }>([
-            {$match: { userUUID }},
+            {$match: filter},
             {$sort: { createdAt: -1 }},
             {$addFields: { notiUserUUID: { $last: "$notiUserUUIDs" } }},
             {$lookup: {
@@ -127,14 +132,13 @@ export class NotificationRepository implements Repository {
         return res
     }
 
-    async getNotificationsRepo(userUUID: string) {
-        logger.info(`Start mongo.notification.getNotificationsRepo, "input": ${JSON.stringify({userUUID})}`)
+    async getNotificationsRepo(noti: Notification) {
+        logger.info(`Start mongo.notification.getNotificationsRepo, "input": ${JSON.stringify(noti)}`)
 
-        const notifications: NotificationModel[] = await notificationModel.find({ userUUID })
+        const notifications: NotificationModel[] = await notificationModel.find(noti)
 
         logger.info(`End mongo.notification.getNotificationsRepo, "output": ${JSON.stringify({total: notifications?.length || 0})}`)
         return notifications
-
     }
 
     async getNotificationRepo(noti: Notification) {

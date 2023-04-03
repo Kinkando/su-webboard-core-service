@@ -178,7 +178,19 @@ export class AnnouncementHandler {
 
             await this.announcementService.deleteAnnouncementSrv(announcementUUID)
 
+            const notifications = await this.notificationService.getNotificationsSrv({announcementUUID} as any)
+
             await this.notificationService.createUpdateDeleteNotificationSrv({announcementUUID} as any, 'remove')
+
+            if (notifications) {
+                const notiUserUUIDs = new Set<string>()
+                for(const noti of notifications) {
+                    notiUserUUIDs.add(noti.userUUID)
+                }
+                for (const userUUID of notiUserUUIDs) {
+                    this.notificationSocket.refreshNotification(userUUID)
+                }
+            }
 
             logger.info("End http.announcement.deleteAnnouncement")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
