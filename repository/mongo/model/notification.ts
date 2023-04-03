@@ -8,6 +8,7 @@ export interface NotificationModel {
     notiBody: string
     forumUUID?: string
     commentUUID?: string
+    replyCommentUUID?: string
     followerUserUUID?: string
     notiUserUUIDs: string[] // noti by userUUIDs ?
     notiReadUserUUIDs: string[] // read noti that includes all of userUUID list
@@ -21,6 +22,7 @@ interface INotification extends Document {
     notiBody: string
     forumUUID?: string
     commentUUID?: string
+    replyCommentUUID?: string
     followerUserUUID?: string
     notiUserUUIDs: string[] // noti by userUUIDs ?
     notiReadUserUUIDs: string[] // read noti that includes all of userUUID list
@@ -35,6 +37,7 @@ const notificationSchema: Schema = new Schema(
         notiBody: { type: String, unique: false, required: true },
         forumUUID: { type: String, unique: false, required: false },
         commentUUID: { type: String, unique: false, required: false },
+        replyCommentUUID: { type: String, unique: false, required: false },
         followerUserUUID: { type: String, unique: false, required: false },
         notiUserUUIDs: { type: Array<String>, unique: false, required: true },
         notiReadUserUUIDs: { type: Array<String>, unique: false, required: false },
@@ -57,6 +60,7 @@ export function newNotificationModel(noti: Notification): NotificationModel {
         notiBody: noti.notiBody,
         forumUUID: noti.forumUUID,
         commentUUID: noti.commentUUID,
+        replyCommentUUID: noti.replyCommentUUID,
         followerUserUUID: noti.followerUserUUID,
         notiUserUUIDs: [noti.notiUserUUID],
         notiReadUserUUIDs: [],

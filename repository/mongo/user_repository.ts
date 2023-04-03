@@ -11,8 +11,8 @@ export function newUserRepository(db: mongoDB.Db) {
 export const UserCollection = "User"
 
 interface Repository {
-    getFollowUsersRepo(userUUIDs: string[]): Promise<User[]>
-    getUsersRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
+    getUsersRepo(query: {userUUIDs?: string[], notiUserUUID?: string}): Promise<User[]>
+    getUsersPaginationRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
     getUserRepo(filter: FilterUser): Promise<User>
     createUserRepo(user: User): Promise<string>
     updateUserRepo(user: User): void
@@ -25,17 +25,18 @@ interface Repository {
 export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getFollowUsersRepo(userUUIDs: string[]) {
-        logger.info(`Start mongo.user.getFollowUsersRepo, "input": ${JSON.stringify(userUUIDs)}`)
+    async getUsersRepo(query: {userUUIDs?: string[], notiUserUUID?: string}) {
+        logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
 
-        const users = await this.db.collection<User>(UserCollection).find({ userUUID: { $in: userUUIDs } }).toArray()
+        const filter = query.userUUIDs ? { userUUID: { $in: query.userUUIDs } } : { notiUserUUIDs: { $elemMatch: { $eq: query.notiUserUUID } } }
+        const users = await this.db.collection<User>(UserCollection).find(filter).toArray()
 
-        logger.info(`End mongo.user.getFollowUsersRepo, "output": ${JSON.stringify(users)}`)
+        logger.info(`End mongo.user.getUsersRepo, "output": ${JSON.stringify(users)}`)
         return users as User[]
     }
 
-    async getUsersRepo(query: UserPagination) {
-        logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
+    async getUsersPaginationRepo(query: UserPagination) {
+        logger.info(`Start mongo.user.getUsersPaginationRepo, "input": ${JSON.stringify(query)}`)
 
         const sort = query.userType ? { studentID: 1, userFullName: 1 } : { userDisplayName: 1 }
 
@@ -66,7 +67,7 @@ export class UserRepository implements Repository {
             }}
         ]).map(doc => { return { total: Number(doc.total), data: doc.data as User[] }}).toArray())[0];
 
-        logger.info(`End mongo.user.getUsersRepo, "output": ${JSON.stringify(users)}`)
+        logger.info(`End mongo.user.getUsersPaginationRepo, "output": ${JSON.stringify(users)}`)
         return users
     }
 

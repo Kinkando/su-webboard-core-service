@@ -20,8 +20,8 @@ interface Repository {
     getNotificationRepo(noti: Notification): Promise<NotificationModel | null>
     createNotificationRepo(noti: Notification): Promise<string>
     updateNotificationRepo(noti: Notification, action: 'push' | 'pop'): void
-    deleteNotificationRepo(notiUUID: string): void
-    readNotificationRepo(notiUUID: string): void
+    deleteNotificationRepo(noti: Notification): void
+    readNotificationRepo(notiUUID: string, notiUserUUIDs: string[]): void
     countUnreadNotificationRepo(userUUID: string): Promise<number>
 }
 
@@ -173,19 +173,18 @@ export class NotificationRepository implements Repository {
         logger.info(`End mongo.notification.updateNotificationRepo`)
     }
 
-    async deleteNotificationRepo(notiUUID: string) {
-        logger.info(`Start mongo.notification.deleteNotificationRepo, "input": ${JSON.stringify({notiUUID})}`)
+    async deleteNotificationRepo(noti: Notification) {
+        logger.info(`Start mongo.notification.deleteNotificationRepo, "input": ${JSON.stringify(noti)}`)
 
-        await notificationModel.deleteOne({ notiUUID })
+        await notificationModel.deleteMany(noti)
 
         logger.info(`End mongo.notification.deleteNotificationRepo`)
     }
 
-    async readNotificationRepo(notiUUID: string) {
-        logger.info(`Start mongo.notification.readNotificationRepo, "input": ${JSON.stringify({notiUUID})}`)
+    async readNotificationRepo(notiUUID: string, notiUserUUIDs: string[]) {
+        logger.info(`Start mongo.notification.readNotificationRepo, "input": ${JSON.stringify({notiUUID, notiUserUUIDs})}`)
 
-        // copy notiUserUUIDs to notiReadUserUUIDs
-        await notificationModel.updateOne({ notiUUID }, { $set: { notiReadUserUUIDs: '$notiUserUUIDs', updatedAt: new Date() } })
+        await notificationModel.updateOne({ notiUUID }, { $set: { notiReadUserUUIDs: notiUserUUIDs, updatedAt: new Date() } })
 
         logger.info(`End mongo.notification.readNotificationRepo`)
     }

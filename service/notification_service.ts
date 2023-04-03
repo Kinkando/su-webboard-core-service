@@ -12,9 +12,9 @@ export function newNotificationService(repository: NotificationRepository, forum
 
 interface Service {
     getNotificationsPaginationSrv(query: Pagination, userUUID: string): Promise<{total: number, data: NotificationView[]}>
-    getNotificationDetailSrv(notiUUID: string, userUUID: string): Promise<NotificationView>
-    createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop'): Promise<{mode: 'create' | 'update' | 'delete' | 'invalid', notiUUID: string}>
-    readNotificationSrv(notiUUID: string): void
+    getNotificationDetailSrv(notiUUID: string, userUUID: string, isRaw: boolean): Promise<NotificationView>
+    createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop' | 'remove'): Promise<{mode: 'create' | 'update' | 'delete' | 'invalid', notiUUID: string}>
+    readNotificationSrv(notiUUID: string, notiUserUUIDs: string[]): void
     countUnreadNotificationSrv(userUUID: string): Promise<number>
 }
 
@@ -36,14 +36,14 @@ export class NotificationService implements Service {
             noti.notiBody = noti.notiUserDisplayName + ' ' + noti.notiBody
         }
         noti.notiUserImageURL = await this.storage.signedURL(noti.isAnonymous ? filePath.anonymousAvatar : noti.notiUserImageURL)
-        noti.notiLink = mapNotiLink({commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
+        noti.notiLink = mapNotiLink({replyCommentUUID: noti.replyCommentUUID, commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
         delete noti.followerUserUUID
         delete noti.notiUserUUIDs
         delete noti.isAnonymous
     }
 
     async getNotificationsPaginationSrv(query: Pagination, userUUID: string) {
-        logger.info(`Start service.notification.getNotificationsPaginationSrv, "output": ${JSON.stringify({query, userUUID})}`)
+        logger.info(`Start service.notification.getNotificationsPaginationSrv, "input": ${JSON.stringify({query, userUUID})}`)
 
         const notification = await this.repository.getNotificationsPaginationRepo(query, userUUID)
         if (notification && notification.data) {
@@ -56,11 +56,11 @@ export class NotificationService implements Service {
         return notification
     }
 
-    async getNotificationDetailSrv(notiUUID: string, userUUID: string): Promise<NotificationView> {
-        logger.info(`Start service.notification.getNotificationDetailSrv, "output": ${JSON.stringify({notiUUID, userUUID})}`)
+    async getNotificationDetailSrv(notiUUID: string, userUUID: string, isRaw = false): Promise<NotificationView> {
+        logger.info(`Start service.notification.getNotificationDetailSrv, "input": ${JSON.stringify({notiUUID, userUUID})}`)
 
         const notiDetail = await this.repository.getNotificationDetailRepo(notiUUID)
-        if (notiDetail) {
+        if (!isRaw && notiDetail) {
             await this.assertNotificationDetail(notiDetail)
         }
 
@@ -68,45 +68,52 @@ export class NotificationService implements Service {
         return notiDetail
     }
 
-    async createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop') {
-        logger.info(`Start service.notification.createUpdateDeleteNotificationSrv, "output": ${JSON.stringify({noti, action})}`)
+    async createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop' | 'remove') {
+        logger.info(`Start service.notification.createUpdateDeleteNotificationSrv, "input": ${JSON.stringify({noti, action})}`)
 
         let notiUUID = ""
         let mode: 'create' | 'update' | 'delete' | 'invalid' = 'invalid';
 
-        const notiModel = await this.repository.getNotificationRepo(noti)
+        if (action === 'remove') {
+            await this.repository.deleteNotificationRepo(noti)
+            mode = 'delete'
 
-        if (!notiModel && action === 'push') {
-            notiUUID = await this.repository.createNotificationRepo(noti)
-            mode = 'create'
-        } else if (notiModel) {
-            notiUUID = notiModel.notiUUID
-            noti.notiUUID = notiModel.notiUUID
-            if (notiModel.notiUserUUIDs.length <= 1 && action === 'pop') {
-                await this.repository.deleteNotificationRepo(notiModel.notiUUID)
-                mode = 'delete'
-            } else {
-                await this.repository.updateNotificationRepo(noti, action)
-                mode = 'update'
-            }
         } else {
-            logger.error('invalid action')
+            const notiModel = await this.repository.getNotificationRepo(noti)
+
+            if (!notiModel && action === 'push') {
+                notiUUID = await this.repository.createNotificationRepo(noti)
+                mode = 'create'
+            } else if (notiModel) {
+                notiUUID = notiModel.notiUUID
+                noti.notiUUID = notiModel.notiUUID
+                if (notiModel.notiUserUUIDs.length <= 1 && action === 'pop') {
+                    await this.repository.deleteNotificationRepo({notiUUID: notiModel.notiUUID} as any)
+                    mode = 'delete'
+                } else {
+                    await this.repository.updateNotificationRepo(noti, action)
+                    mode = 'update'
+                }
+            } else {
+                logger.error('invalid action')
+            }
         }
+
 
         logger.info(`End service.notification.createUpdateDeleteNotificationSrv, "output": ${JSON.stringify({mode, notiUUID})}`)
         return {mode, notiUUID}
     }
 
-    async readNotificationSrv(notiUUID: string) {
-        logger.info(`Start service.notification.readNotificationSrv, "output": ${JSON.stringify({notiUUID})}`)
+    async readNotificationSrv(notiUUID: string, notiUserUUIDs: string[]) {
+        logger.info(`Start service.notification.readNotificationSrv, "input": ${JSON.stringify({notiUUID, notiUserUUIDs})}`)
 
-        await this.repository.readNotificationRepo(notiUUID)
+        await this.repository.readNotificationRepo(notiUUID, notiUserUUIDs)
 
         logger.info(`End service.notification.readNotificationSrv`)
     }
 
     async countUnreadNotificationSrv(userUUID: string) {
-        logger.info(`Start service.notification.countUnreadNotificationSrv, "output": ${JSON.stringify({userUUID})}`)
+        logger.info(`Start service.notification.countUnreadNotificationSrv, "input": ${JSON.stringify({userUUID})}`)
 
         const count = await this.repository.countUnreadNotificationRepo(userUUID)
 

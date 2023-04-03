@@ -132,7 +132,13 @@ export class NotificationHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "notiUUID is required" })
             }
 
-            await this.notificationService.readNotificationSrv(notiUUID)
+            const noti = await this.notificationService.getNotificationDetailSrv(notiUUID, profile.userUUID, true)
+            if (!noti || !noti.notiUUID) {
+                logger.error('notiUUID is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "notiUUID is not found" })
+            }
+
+            await this.notificationService.readNotificationSrv(notiUUID, noti.notiUserUUIDs!)
             this.notificationSocket.readNotification(profile.userUUID, notiUUID)
 
             logger.info("End http.notification.readNotification")

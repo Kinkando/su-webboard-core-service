@@ -12,6 +12,7 @@ export interface NotificationView {
     isAnonymous?: boolean // db only
     forumUUID?: string // db only
     commentUUID?: string // db only
+    replyCommentUUID?: string // db only
     followerUserUUID?: string // db only
 }
 
@@ -24,12 +25,13 @@ export interface Notification {
     userUUID: string
     forumUUID?: string // db only
     commentUUID?: string // db only
+    replyCommentUUID?: string // db only
     followerUserUUID?: string // db only
 }
 
 // delete user/comment/forum => delete notification
 
-export function mapNotiLink(data: {forumUUID?: string, commentUUID?: string, followerUserUUID?: string}): string {
+export function mapNotiLink(data: {forumUUID?: string, commentUUID?: string, replyCommentUUID?: string, followerUserUUID?: string}): string {
     if (data.followerUserUUID) {
         return '/profile/' + data.followerUserUUID
     }
@@ -39,6 +41,9 @@ export function mapNotiLink(data: {forumUUID?: string, commentUUID?: string, fol
     }
     if (data.commentUUID) {
         link += '?commentUUID=' + data.commentUUID
+    }
+    if (data.replyCommentUUID) {
+        link += '&replyCommentUUID=' + data.replyCommentUUID
     }
     return link
 }

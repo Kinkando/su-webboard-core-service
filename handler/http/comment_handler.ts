@@ -3,11 +3,13 @@ import multer from 'multer'
 import HTTP from "../../common/http";
 import { Pagination } from '../../model/common';
 import { Comment } from '../../model/comment';
+import { Notification } from '../../model/notification';
 import { CommentService } from "../../service/comment_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
 import { ForumSocket } from '../../handler/socket/forum_socket';
+import { ForumService } from '../../service/forum_service';
 import { NotificationService } from '../../service/notification_service';
 import { NotificationSocket } from '../socket/notification_socket';
 
@@ -15,11 +17,12 @@ const upload = multer()
 
 export function newCommentHandler(
     commentService: CommentService,
+    forumService: ForumService,
     notificationService: NotificationService,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
-    const commentHandler = new CommentHandler(commentService, notificationService, forumSocket, notificationSocket)
+    const commentHandler = new CommentHandler(commentService, forumService, notificationService, forumSocket, notificationSocket)
 
     const commentRouter = Router()
     commentRouter.get('/:forumUUID', (req, res, next) => commentHandler.getComments(req, res, next))
@@ -34,6 +37,7 @@ export function newCommentHandler(
 export class CommentHandler {
     constructor(
         private commentService: CommentService,
+        private forumService: ForumService,
         private notificationService: NotificationService,
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
@@ -162,6 +166,31 @@ export class CommentHandler {
 
             if (isCreate) {
                 this.forumSocket.createComment(profile.sessionUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
+
+                let replyToUserUUID = ""
+                let notiBody = ""
+                if (comment.replyCommentUUID) {
+                    const cm = await this.commentService.getCommentSrv(comment.replyCommentUUID, profile.userUUID, true)
+                    if (cm) {
+                        replyToUserUUID = cm.commenterUUID
+                        notiBody = "ตอบกลับความคิดเห็นของคุณ"
+                    }
+                } else {
+                    const forum = await this.forumService.getForumDetailSrv(comment.forumUUID, profile.userUUID, true)
+                    if (forum) {
+                        replyToUserUUID = forum.authorUUID
+                        notiBody = "แสดงความคิดเห็นบนกระทู้ของคุณ"
+                    }
+                }
+
+                if (replyToUserUUID !== profile.userUUID && replyToUserUUID && notiBody) {
+                    const noti = {notiBody, notiUserUUID: profile.userUUID, userUUID: replyToUserUUID, forumUUID: comment.forumUUID, commentUUID: response.commentUUID}
+                    const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'push')
+                    if (mode === 'create') {
+                        this.notificationSocket.createNotification(replyToUserUUID, notiUUID)
+                    }
+                }
+
             } else {
                 this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
             }
@@ -200,6 +229,8 @@ export class CommentHandler {
             await this.commentService.deleteCommentSrv(commentUUID)
 
             this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
+
+            await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: comment.forumUUID, commentUUID, replyCommentUUID: comment.replyCommentUUID} as any, 'remove')
 
             logger.info("End http.comment.deleteComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
@@ -247,7 +278,14 @@ export class CommentHandler {
 
             const action = isLike ? 'push' : 'pop'
             if (profile.userUUID !== comment.commenterUUID) {
-                const noti = {notiBody: `ถูกใจความคิดเห็นของคุณ`, notiUserUUID: profile.userUUID, userUUID: comment.commenterUUID, forumUUID: comment.forumUUID, commentUUID}
+                const noti: Notification = {
+                    notiBody: `ถูกใจความคิดเห็นของคุณ`,
+                    notiUserUUID: profile.userUUID,
+                    userUUID: comment.commenterUUID,
+                    forumUUID: comment.forumUUID,
+                    commentUUID,
+                    replyCommentUUID: comment.replyCommentUUID,
+                }
                 const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, action)
                 if (mode === 'create') {
                     this.notificationSocket.createNotification(comment.commenterUUID, notiUUID)

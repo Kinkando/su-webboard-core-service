@@ -62,7 +62,7 @@ class UserHandler {
                 offset: Number(req.query.offset) || 0,
             }
 
-            const users = await this.userService.getUsersSrv(query)
+            const users = await this.userService.getUsersPaginationSrv(query)
             if (!users || !users.total) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()

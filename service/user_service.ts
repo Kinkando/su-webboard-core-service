@@ -20,9 +20,10 @@ interface Service {
     updateUserProfileSrv(user: User, image: File): void
     followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
     notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean): void
+    getUsersSrv(query: {userUUIDs?: string[], notiUserUUID?: string}): Promise<User[]>
     resetPasswordSrv(tokenID: string): void
 
-    getUsersSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
+    getUsersPaginationSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
     createUserSrv(user: User): void
     updateUserSrv(user: User): void
     deleteUserSrv(userUUID: string): void
@@ -66,7 +67,7 @@ export class UserService implements Service {
 
         let users: User[] = []
         if (userUUIDs?.length) {
-            users = await this.repository.getFollowUsersRepo(userUUIDs);
+            users = await this.repository.getUsersRepo({userUUIDs});
 
             if (users) {
                 for (const user of users) {
@@ -149,10 +150,19 @@ export class UserService implements Service {
         logger.info(`End service.user.notiUserSrv`)
     }
 
-    async getUsersSrv(query: UserPagination) {
+    async getUsersSrv(query: { userUUIDs?: string[], notiUserUUID?: string }) {
         logger.info(`Start service.user.getUsersSrv, "input": ${JSON.stringify(query)}`)
 
         const users = await this.repository.getUsersRepo(query)
+
+        logger.info(`End service.user.getUsersSrv, "output": ${JSON.stringify({total: users?.length || 0})}`)
+        return users
+    }
+
+    async getUsersPaginationSrv(query: UserPagination) {
+        logger.info(`Start service.user.getUsersPaginationSrv, "input": ${JSON.stringify(query)}`)
+
+        const users = await this.repository.getUsersPaginationRepo(query)
 
         if (users?.data) {
             for (const user of users?.data) {
@@ -160,7 +170,7 @@ export class UserService implements Service {
             }
         }
 
-        logger.info(`End service.user.getUsersSrv, "output": {"total": ${users?.total || 0}, "data.length": ${users?.data?.length || 0}}`)
+        logger.info(`End service.user.getUsersPaginationSrv, "output": {"total": ${users?.total || 0}, "data.length": ${users?.data?.length || 0}}`)
         return users
     }
 

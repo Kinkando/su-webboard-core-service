@@ -10,6 +10,7 @@ import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
 import { NotificationService } from '../../service/notification_service';
 import { NotificationSocket } from '../socket/notification_socket';
+import { UserService } from '@service/user_service';
 
 const upload = multer()
 
@@ -17,10 +18,11 @@ export function newForumHandler(
     forumService: ForumService,
     commentService: CommentService,
     notificationService: NotificationService,
+    userService: UserService,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
-    const forumHandler = new ForumHandler(forumService, commentService, notificationService, forumSocket, notificationSocket)
+    const forumHandler = new ForumHandler(forumService, commentService, notificationService, userService, forumSocket, notificationSocket)
 
     const forumRouter = Router()
     forumRouter.get('', (req, res, next) => forumHandler.getForums(req, res, next))
@@ -38,6 +40,7 @@ export class ForumHandler {
         private forumService: ForumService,
         private commentService: CommentService,
         private notificationService: NotificationService,
+        private userService: UserService,
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}
@@ -171,6 +174,17 @@ export class ForumHandler {
 
             if (isUpdate) {
                 this.forumSocket.updateForum(profile.sessionUUID, response.forumUUID)
+            } else {
+                const notiUsers = await this.userService.getUsersSrv({notiUserUUID: profile.userUUID})
+                if (notiUsers) {
+                    for(const notiUser of notiUsers) {
+                        const noti = {notiBody: `สร้างกระทู้ใหม่`, notiUserUUID: profile.userUUID, userUUID: notiUser.userUUID!, forumUUID: response.forumUUID}
+                        const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti as any, 'push')
+                        if (mode === 'create') {
+                            this.notificationSocket.createNotification(notiUser.userUUID!, notiUUID)
+                        }
+                    }
+                }
             }
 
             logger.info("End http.forum.upsertForum")
@@ -198,11 +212,19 @@ export class ForumHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
             }
 
+            const forum = await this.forumService.getForumDetailSrv(forumUUID, profile.userUUID, true)
+            if (!forumUUID) {
+                logger.error('forumUUID is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "forumUUID is not found" })
+            }
+
             await this.forumService.deleteForumSrv(forumUUID, profile.userUUID)
 
             await this.commentService.deleteCommentsByForumUUIDSrv(forumUUID)
 
             this.forumSocket.deleteForum(profile.sessionUUID, forumUUID)
+
+            this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID} as any, 'remove')
 
             logger.info("End http.forum.deleteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
