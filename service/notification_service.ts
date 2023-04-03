@@ -1,4 +1,4 @@
-import { filePath } from "@common/file_path";
+import { filePath } from "../common/file_path";
 import { CloudStorage } from "../cloud/google/storage";
 import { Pagination } from "../model/common";
 import { Notification, NotificationView, mapNotiLink } from "../model/notification";
@@ -30,7 +30,9 @@ export class NotificationService implements Service {
                 noti.notiUserUUID = "unknown"
             }
         }
-        if (noti.notiUserUUIDs && noti.notiUserUUIDs.length > 1) {
+        if (noti.announcementUUID) {
+            noti.notiBody = noti.notiBody + "โดย " + noti.notiUserDisplayName
+        } else if (noti.notiUserUUIDs && noti.notiUserUUIDs.length > 1) {
             noti.notiBody = noti.notiUserDisplayName + ` และคนอื่นๆอีก ${noti.notiUserUUIDs.length - 1}` + noti.notiBody
         } else {
             noti.notiBody = noti.notiUserDisplayName + ' ' + noti.notiBody
@@ -38,6 +40,10 @@ export class NotificationService implements Service {
         noti.notiUserImageURL = await this.storage.signedURL(noti.isAnonymous ? filePath.anonymousAvatar : noti.notiUserImageURL)
         noti.notiLink = mapNotiLink({replyCommentUUID: noti.replyCommentUUID, commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
         delete noti.followerUserUUID
+        delete noti.announcementUUID
+        delete noti.forumUUID
+        delete noti.commentUUID
+        delete noti.replyCommentUUID
         delete noti.notiUserUUIDs
         delete noti.isAnonymous
     }

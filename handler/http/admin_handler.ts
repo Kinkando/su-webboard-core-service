@@ -5,6 +5,7 @@ import { NotificationSocket } from '../../handler/socket/notification_socket';
 import { UserType } from '../../model/authen';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
+import { Notification, NotificationBody } from '../../model/notification';
 import { User, UserPagination } from '../../model/user';
 import { AnnouncementService } from '../../service/announcement_service';
 import { AuthenService } from '../../service/authen_service';
@@ -125,7 +126,7 @@ class AdminHandler {
                 logger.error('permission is denied')
                 return res.status(HTTP.StatusBadRequest).send({ error: "permission is denied" })
             }
-            const users = await this.userService.getUsersSrv(filter)
+            const users = await this.userService.getUsersPaginationSrv(filter)
             if (!users || !users.total) {
                 logger.error('users are not found')
                 return res.status(HTTP.StatusNoContent).send()
@@ -278,6 +279,7 @@ class AdminHandler {
                         await this.forumService.deleteForumSrv(forum.forumUUID!)
                         await this.commentService.deleteCommentsByForumUUIDSrv(forum.forumUUID!)
                         this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
+                        this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID!} as any, 'remove')
                     }
                 }
                 const comments = await this.commentService.getCommentsSrv({ commenterUUID: userUUID })
@@ -285,12 +287,14 @@ class AdminHandler {
                     for (const comment of comments) {
                         await this.commentService.deleteCommentSrv(comment.commentUUID!)
                         this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID!, comment.replyCommentUUID)
+                        await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID!, replyCommentUUID: comment.replyCommentUUID} as any, 'remove')
                     }
                 }
                 const announcements = await this.announcementService.getAnnouncementsByAuthorUUIDSrv(userUUID)
                 if (announcements) {
                     for (const announcement of announcements) {
                         await this.announcementService.deleteAnnouncementSrv(announcement.announcementUUID!)
+                        await this.notificationService.createUpdateDeleteNotificationSrv({announcementUUID: announcement.announcementUUID!} as any, 'remove')
                     }
                 }
 
@@ -299,6 +303,8 @@ class AdminHandler {
                 if (likeForums) {
                     for (const forum of likeForums) {
                         this.forumSocket.updateForum(profile.sessionUUID, forum.forumUUID!)
+                        const noti = {notiBody: NotificationBody.LikeForum, notiUserUUID: userUUID, userUUID: forum.authorUUID, forumUUID: forum.forumUUID}
+                        await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'pop')
                     }
                 }
                 const likeComments = await this.commentService.getCommentsSrv({ likeUserUUID: userUUID })
@@ -306,6 +312,15 @@ class AdminHandler {
                 if (likeComments) {
                     for (const comment of likeComments) {
                         this.forumSocket.updateComment(profile.sessionUUID, comment.forumUUID!, comment.commentUUID!, comment.replyCommentUUID)
+                        const noti: Notification = {
+                            notiBody: NotificationBody.LikeComment,
+                            notiUserUUID: userUUID,
+                            userUUID: comment.commenterUUID,
+                            forumUUID: comment.forumUUID,
+                            commentUUID: comment.commentUUID,
+                            replyCommentUUID: comment.replyCommentUUID,
+                        }
+                        await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'pop')
                     }
                 }
                 await this.announcementService.pullSeeCountUUIDFromAnnouncementSrv(userUUID)
@@ -430,6 +445,8 @@ class AdminHandler {
                             await this.forumService.deleteForumSrv(forum.forumUUID!)
                             await this.commentService.deleteCommentsByForumUUIDSrv(forum.forumUUID!)
                             this.forumSocket.deleteForum(profile.sessionUUID, forum.forumUUID!)
+                            this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID!} as any, 'remove')
+                            // remove all notification forums
                         } else {
                             await this.forumService.deleteCategoryIDToForumSrv(forum.forumUUID!, categoryID)
                         }

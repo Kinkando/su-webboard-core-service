@@ -133,11 +133,17 @@ export class NotificationRepository implements Repository {
         if (noti.userUUID) {
             filter.$and?.push({userUUID: noti.userUUID})
         }
+        if (noti.announcementUUID) {
+            filter.$and?.push({announcementUUID: noti.announcementUUID})
+        }
         if (noti.forumUUID) {
             filter.$and?.push({forumUUID: noti.forumUUID})
         }
         if (noti.commentUUID) {
             filter.$and?.push({commentUUID: noti.commentUUID})
+        }
+        if (noti.replyCommentUUID) {
+            filter.$and?.push({replyCommentUUID: noti.replyCommentUUID})
         }
         if (noti.followerUserUUID) {
             filter.$and?.push({followerUserUUID: noti.followerUserUUID})

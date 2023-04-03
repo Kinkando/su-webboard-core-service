@@ -9,8 +9,8 @@ import logger from "../util/logger";
 
 const storageFolder = "user"
 
-export function newUserService(repository: UserRepository, firebaseAuth: Auth, storage: CloudStorage, sendgrid: SendGrid) {
-    return new UserService(repository, firebaseAuth, storage, sendgrid)
+export function newUserService(defaultPassword: string, repository: UserRepository, firebaseAuth: Auth, storage: CloudStorage, sendgrid: SendGrid) {
+    return new UserService(defaultPassword, repository, firebaseAuth, storage, sendgrid)
 }
 
 interface Service {
@@ -20,7 +20,7 @@ interface Service {
     updateUserProfileSrv(user: User, image: File): void
     followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
     notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean): void
-    getUsersSrv(query: {userUUIDs?: string[], notiUserUUID?: string}): Promise<User[]>
+    getUsersSrv(query: {userUUIDs?: string[], notiUserUUID?: string, userType?: string}): Promise<User[]>
     resetPasswordSrv(tokenID: string): void
 
     getUsersPaginationSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
@@ -33,6 +33,7 @@ interface Service {
 
 export class UserService implements Service {
     constructor(
+        private defaultPassword: string,
         private repository: UserRepository,
         private firebaseAuth: Auth,
         private storage: CloudStorage,
@@ -150,7 +151,7 @@ export class UserService implements Service {
         logger.info(`End service.user.notiUserSrv`)
     }
 
-    async getUsersSrv(query: { userUUIDs?: string[], notiUserUUID?: string }) {
+    async getUsersSrv(query: { userUUIDs?: string[], notiUserUUID?: string, userType?: string }) {
         logger.info(`Start service.user.getUsersSrv, "input": ${JSON.stringify(query)}`)
 
         const users = await this.repository.getUsersRepo(query)
@@ -181,7 +182,7 @@ export class UserService implements Service {
         try {
             const firebaseUser = await this.firebaseAuth.createUser({
                 email: user.userEmail,
-                password: user.studentID || "test123!",
+                password: user.studentID || this.defaultPassword,
             })
             firebaseUserUID = firebaseUser.uid
 

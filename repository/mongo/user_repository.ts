@@ -11,7 +11,7 @@ export function newUserRepository(db: mongoDB.Db) {
 export const UserCollection = "User"
 
 interface Repository {
-    getUsersRepo(query: {userUUIDs?: string[], notiUserUUID?: string}): Promise<User[]>
+    getUsersRepo(query: {userUUIDs?: string[], notiUserUUID?: string, userType?: string}): Promise<User[]>
     getUsersPaginationRepo(query: UserPagination): Promise<{ total: number, data: User[] }>
     getUserRepo(filter: FilterUser): Promise<User>
     createUserRepo(user: User): Promise<string>
@@ -25,10 +25,19 @@ interface Repository {
 export class UserRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getUsersRepo(query: {userUUIDs?: string[], notiUserUUID?: string}) {
+    async getUsersRepo(query: {userUUIDs?: string[], notiUserUUID?: string, userType?: string}) {
         logger.info(`Start mongo.user.getUsersRepo, "input": ${JSON.stringify(query)}`)
 
-        const filter = query.userUUIDs ? { userUUID: { $in: query.userUUIDs } } : { notiUserUUIDs: { $elemMatch: { $eq: query.notiUserUUID } } }
+        const filter: mongoDB.Filter<User> = {}
+        if (query.userUUIDs) {
+            filter.userUUID = { $in: query.userUUIDs }
+        }
+        if (query.notiUserUUID) {
+            filter.notiUserUUIDs = { $elemMatch: { $eq: query.notiUserUUID } }
+        }
+        if (query.userType) {
+            filter.userType = query.userType as any
+        }
         const users = await this.db.collection<User>(UserCollection).find(filter).toArray()
 
         logger.info(`End mongo.user.getUsersRepo, "output": ${JSON.stringify(users)}`)

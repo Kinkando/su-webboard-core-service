@@ -8,11 +8,13 @@ import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
 import { NotificationService } from '../../service/notification_service';
 import { NotificationSocket } from '../socket/notification_socket';
+import { UserService } from '../../service/user_service';
+import { NotificationBody } from '../../model/notification';
 
 const upload = multer()
 
-export function newAnnouncementHandler(announcementService: AnnouncementService, notificationService: NotificationService, notificationSocket: NotificationSocket,) {
-    const announcementHandler = new AnnouncementHandler(announcementService, notificationService, notificationSocket)
+export function newAnnouncementHandler(announcementService: AnnouncementService, notificationService: NotificationService, userService: UserService, notificationSocket: NotificationSocket,) {
+    const announcementHandler = new AnnouncementHandler(announcementService, notificationService, userService, notificationSocket)
 
     const announcementRouter = Router()
     announcementRouter.get('', (req, res, next) => announcementHandler.getAnnouncements(req, res, next))
@@ -24,7 +26,7 @@ export function newAnnouncementHandler(announcementService: AnnouncementService,
 }
 
 export class AnnouncementHandler {
-    constructor(private announcementService: AnnouncementService, private notificationService: NotificationService, private notificationSocket: NotificationSocket) {}
+    constructor(private announcementService: AnnouncementService, private notificationService: NotificationService, private userService: UserService, private notificationSocket: NotificationSocket) {}
 
     async getAnnouncements(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.announcement.getAnnouncements")
@@ -132,7 +134,22 @@ export class AnnouncementHandler {
             announcement.authorUUID = profile.userUUID
             announcement.title = announcement.title.trim()
 
+            const isCreate = announcement.announcementUUID == undefined
+
             const response = await this.announcementService.upsertAnnouncementSrv(announcement, req.files as any, data.announcementImageUUIDs)
+
+            if (isCreate) {
+                const users = await this.userService.getUsersSrv({userType: 'std'})
+                if (users) {
+                    for (const user of users) {
+                        const noti = {notiBody: NotificationBody.NewAnnouncement, notiUserUUID: profile.userUUID, userUUID: user.userUUID!, announcementUUID: response.announcementUUID}
+                        const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti as any, 'push')
+                        if (mode === 'create') {
+                            this.notificationSocket.createNotification(user.userUUID!, notiUUID)
+                        }
+                    }
+                }
+            }
 
             logger.info("End http.announcement.upsertAnnouncement")
             return res.status(HTTP.StatusOK).send(response);
@@ -160,6 +177,8 @@ export class AnnouncementHandler {
             }
 
             await this.announcementService.deleteAnnouncementSrv(announcementUUID)
+
+            await this.notificationService.createUpdateDeleteNotificationSrv({announcementUUID} as any, 'remove')
 
             logger.info("End http.announcement.deleteAnnouncement")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

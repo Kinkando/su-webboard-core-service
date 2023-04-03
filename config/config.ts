@@ -15,6 +15,7 @@ export interface AppConfiguration {
     readonly jwtSecretKey: string
     readonly jwtAccessExpire: string
     readonly jwtRefreshExpire: string
+    readonly defaultPassword: string
 }
 
 export interface DatabaseConfiguration {
@@ -65,6 +66,7 @@ const config: Configuration = {
         jwtSecretKey: process.env.APP_JWT_SECRET_KEY!,
         jwtAccessExpire: process.env.APP_JWT_ACCESS_EXPIRE!,
         jwtRefreshExpire: process.env.APP_JWT_REFRESH_EXPIRE!,
+        defaultPassword: process.env.APP_DEFAULT_PASSWORD!,
     },
     mongo: {
         connectString: process.env.MONGO_CONNECTION_STRING!,

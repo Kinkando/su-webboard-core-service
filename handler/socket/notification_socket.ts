@@ -1,4 +1,4 @@
-import logger from '@util/logger';
+import logger from '../../util/logger';
 import { Namespace, Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 

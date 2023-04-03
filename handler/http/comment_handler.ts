@@ -3,7 +3,7 @@ import multer from 'multer'
 import HTTP from "../../common/http";
 import { Pagination } from '../../model/common';
 import { Comment } from '../../model/comment';
-import { Notification } from '../../model/notification';
+import { Notification, NotificationBody } from '../../model/notification';
 import { CommentService } from "../../service/comment_service";
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
@@ -173,13 +173,13 @@ export class CommentHandler {
                     const cm = await this.commentService.getCommentSrv(comment.replyCommentUUID, profile.userUUID, true)
                     if (cm) {
                         replyToUserUUID = cm.commenterUUID
-                        notiBody = "ตอบกลับความคิดเห็นของคุณ"
+                        notiBody = NotificationBody.NewReplyComment
                     }
                 } else {
                     const forum = await this.forumService.getForumDetailSrv(comment.forumUUID, profile.userUUID, true)
                     if (forum) {
                         replyToUserUUID = forum.authorUUID
-                        notiBody = "แสดงความคิดเห็นบนกระทู้ของคุณ"
+                        notiBody = NotificationBody.NewComment
                     }
                 }
 
@@ -279,7 +279,7 @@ export class CommentHandler {
             const action = isLike ? 'push' : 'pop'
             if (profile.userUUID !== comment.commenterUUID) {
                 const noti: Notification = {
-                    notiBody: `ถูกใจความคิดเห็นของคุณ`,
+                    notiBody: NotificationBody.LikeComment,
                     notiUserUUID: profile.userUUID,
                     userUUID: comment.commenterUUID,
                     forumUUID: comment.forumUUID,

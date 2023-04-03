@@ -97,7 +97,7 @@ export default async function init(config: Configuration) {
     const commentService = newCommentService(commentRepository, storage)
     const forumService = newForumService(forumRepository, storage)
     const notificationService = newNotificationService(notificationRepository, forumService, storage)
-    const userService = newUserService(userRepository, firebaseAuth, storage, sendgrid)
+    const userService = newUserService(config.app.defaultPassword, userRepository, firebaseAuth, storage, sendgrid)
 
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
@@ -112,7 +112,7 @@ export default async function init(config: Configuration) {
         forumSocket,
         notificationSocket,
     ))
-    api.use('/announcement', middleware, newAnnouncementHandler(announcementService, notificationService, notificationSocket))
+    api.use('/announcement', middleware, newAnnouncementHandler(announcementService, notificationService, userService, notificationSocket))
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', middleware, newCategoryHandler(categoryService))
     api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
