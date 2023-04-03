@@ -15,7 +15,9 @@ interface Service {
     getNotificationDetailSrv(notiUUID: string, userUUID: string, isRaw: boolean): Promise<NotificationView>
     createUpdateDeleteNotificationSrv(noti: Notification, action: 'push' | 'pop' | 'remove'): Promise<{mode: 'create' | 'update' | 'delete' | 'invalid', notiUUID: string}>
     readNotificationSrv(notiUUID: string, notiUserUUIDs: string[]): void
+    readAllNotificationSrv(userUUID: string): void
     countUnreadNotificationSrv(userUUID: string): Promise<number>
+    deleteNotificationSrv(notiUUID: string): void
 }
 
 export class NotificationService implements Service {
@@ -118,6 +120,20 @@ export class NotificationService implements Service {
         logger.info(`End service.notification.readNotificationSrv`)
     }
 
+    async readAllNotificationSrv(userUUID: string) {
+        logger.info(`Start service.notification.readAllNotificationSrv, "input": ${JSON.stringify({userUUID})}`)
+
+        const notifications = await this.repository.getNotificationsRepo(userUUID)
+
+        if(notifications) {
+            for (const noti of notifications) {
+                await this.repository.readNotificationRepo(noti.notiUUID, noti.notiUserUUIDs)
+            }
+        }
+
+        logger.info(`End service.notification.readAllNotificationSrv`)
+    }
+
     async countUnreadNotificationSrv(userUUID: string) {
         logger.info(`Start service.notification.countUnreadNotificationSrv, "input": ${JSON.stringify({userUUID})}`)
 
@@ -125,5 +141,13 @@ export class NotificationService implements Service {
 
         logger.info(`End service.notification.countUnreadNotificationSrv, "output": ${JSON.stringify({count})}`)
         return count
+    }
+
+    async deleteNotificationSrv(notiUUID: string) {
+        logger.info(`Start service.notification.deleteNotificationSrv, "input": ${JSON.stringify({notiUUID})}`)
+
+        await this.repository.deleteNotificationRepo({notiUUID} as any)
+
+        logger.info(`End service.notification.deleteNotificationSrv`)
     }
 }

@@ -12,9 +12,11 @@ export function newNotificationHandler(notificationService: NotificationService,
 
     const notificationRouter = Router()
     notificationRouter.get('', (req, res, next) => notificationHandler.getNotifications(req, res, next))
+    notificationRouter.patch('', (req, res, next) => notificationHandler.readAllNotification(req, res, next))
     notificationRouter.get('/count', (req, res, next) => notificationHandler.getUnreadNotificationCount(req, res, next))
     notificationRouter.get('/:notiUUID', (req, res, next) => notificationHandler.getNotificationDetail(req, res, next))
     notificationRouter.patch('/:notiUUID', (req, res, next) => notificationHandler.readNotification(req, res, next))
+    notificationRouter.delete('/:notiUUID', (req, res, next) => notificationHandler.deleteNotification(req, res, next))
 
     return notificationRouter
 }
@@ -142,6 +144,56 @@ export class NotificationHandler {
             this.notificationSocket.readNotification(profile.userUUID, notiUUID)
 
             logger.info("End http.notification.readNotification")
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async readAllNotification(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.notification.readAllNotification")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            await this.notificationService.readAllNotificationSrv(profile.userUUID)
+            this.notificationSocket.readNotification(profile.userUUID)
+
+            logger.info("End http.notification.readAllNotification")
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async deleteNotification(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.notification.deleteNotification")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const notiUUID = req.params['notiUUID'] as string
+            if (!notiUUID) {
+                logger.error('notiUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "notiUUID is required" })
+            }
+
+            await this.notificationService.deleteNotificationSrv(notiUUID)
+            this.notificationSocket.deleteNotification(profile.userUUID, notiUUID)
+
+            logger.info("End http.notification.deleteNotification")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
 
         } catch (error) {

@@ -17,6 +17,7 @@ export const NotificationCollection = "Notification"
 interface Repository {
     getNotificationsPaginationRepo(query: Pagination, userUUID: string): Promise<{ total: number, data: NotificationView[] }>
     getNotificationDetailRepo(notiUUID: string): Promise<NotificationView>
+    getNotificationsRepo(userUUID: string): Promise<NotificationModel[]>
     getNotificationRepo(noti: Notification): Promise<NotificationModel | null>
     createNotificationRepo(noti: Notification): Promise<string>
     updateNotificationRepo(noti: Notification, action: 'push' | 'pop'): void
@@ -124,6 +125,16 @@ export class NotificationRepository implements Repository {
 
         logger.info(`End mongo.notification.getNotificationDetailRepo, "output": ${JSON.stringify(res)}`)
         return res
+    }
+
+    async getNotificationsRepo(userUUID: string) {
+        logger.info(`Start mongo.notification.getNotificationsRepo, "input": ${JSON.stringify({userUUID})}`)
+
+        const notifications: NotificationModel[] = await notificationModel.find({ userUUID })
+
+        logger.info(`End mongo.notification.getNotificationsRepo, "output": ${JSON.stringify({total: notifications?.length || 0})}`)
+        return notifications
+
     }
 
     async getNotificationRepo(noti: Notification) {
