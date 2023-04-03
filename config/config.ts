@@ -34,6 +34,7 @@ export interface AuthConfiguration {
 export interface GoogleConfiguration {
     readonly storage: StorageConfiguration
     readonly firebaseCredential: FirebaseCredentialConfiguration
+    // readonly googleCredential: GoogleCredentialConfiguration
 }
 
 export interface StorageConfiguration {
@@ -53,6 +54,17 @@ export interface FirebaseCredentialConfiguration {
     readonly authProviderX509CertUrl: string
     readonly clientX509CertUrl: string
 }
+
+// export interface GoogleCredentialConfiguration {
+//     readonly clientId: string
+//     readonly projectId: string
+//     readonly authUri: string
+//     readonly tokenUri: string
+//     readonly authProviderX509CertUrl: string
+//     readonly clientSecret: string
+//     readonly redirectUris: string[]
+//     readonly javascriptOrigins: string[]
+// }
 
 export interface SendGridConfiguration {
     readonly apiKey: string
@@ -102,6 +114,25 @@ const config: Configuration = {
             authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL!,
             clientX509CertUrl: process.env.FIREBASE_CLIENT_CERT_URL!,
         },
+        // googleCredential: {
+        //     clientId: process.env.GOOGLE_PROJECT_ID!,
+        //     projectId: process.env.GOOGLE_CLIENT_ID!,
+        //     authUri: process.env.GOOGLE_CLIENT_SECRET!,
+        //     tokenUri: process.env.GOOGLE_AUTH_URI!,
+        //     authProviderX509CertUrl: process.env.GOOGLE_TOKEN_URI!,
+        //     clientSecret: process.env.GOOGLE_AUTH_PROVIDER_x509_CERT_URL!,
+        //     redirectUris: [
+        //         process.env.GOOGLE_REDIRECT_URIS1!,
+        //         process.env.GOOGLE_REDIRECT_URIS2!,
+        //         process.env.GOOGLE_REDIRECT_URIS3!,
+        //     ],
+        //     javascriptOrigins: [
+        //         process.env.GOOGLE_JAVASCRIPT_ORIGINS1!,
+        //         process.env.GOOGLE_JAVASCRIPT_ORIGINS2!,
+        //         process.env.GOOGLE_JAVASCRIPT_ORIGINS3!,
+        //         process.env.GOOGLE_JAVASCRIPT_ORIGINS4!,
+        //     ],
+        // }
     },
     sendgrid: {
         apiKey: process.env.SENDGRID_API_KEY!,
