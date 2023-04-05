@@ -12,6 +12,7 @@ interface Service {
     getReportsPaginationSrv(filter: FilterReport): Promise<{total: number, data: ReportView[]}>
     createReportSrv(report: Report): void
     updateReportStatusSrv(report: Report): void
+    invalidReportStatusSrv(report: Report): void
     deleteReportSrv(report: Report): void
 }
 
@@ -32,19 +33,15 @@ export class ReportService implements Service {
 
         const res = await this.repository.getReportsPaginationRepo(filter)
 
-        if (res?.data) {
-            for (const report of res.data) {
-                report.reporter.imageURL = await this.storage.signedURL(report.reporter.imageURL)
-                report.plaintiff.imageURL = await this.storage.signedURL(report.plaintiff.imageURL)
-            }
-        }
-
         logger.info(`End service.report.getReportsPaginationSrv, "output": ${JSON.stringify({total: res?.total || 0, length: res?.data?.length || 0})}`)
         return res
     }
 
     async createReportSrv(report: Report) {
         logger.info(`Start service.report.createReportSrv, "input": ${JSON.stringify(report)}`)
+
+        const reportCode = await this.repository.getReportCodeRepo()
+        report.reportCode = reportCode
 
         await this.repository.createReportRepo(report)
 
@@ -56,9 +53,24 @@ export class ReportService implements Service {
 
         await this.repository.updateReportStatusRepo(report.reportUUID!, report.reportStatus)
 
-        await this.repository.updateReportsStatusToInvalidRepo({forumUUID: report.forumUUID, commentUUID: report.commentUUID, replyCommentUUID: report.replyCommentUUID} as any)
+        if (report.reportStatus === ReportStatus.Resolved) {
+            await this.repository.updateReportsStatusRepo(
+                {forumUUID: report.forumUUID, commentUUID: report.commentUUID, replyCommentUUID: report.replyCommentUUID} as any,
+                ReportStatus.Pending,
+                ReportStatus.Closed,
+                report.reportUUID!,
+            );
+        }
 
         logger.info(`End service.report.updateReportStatusSrv`)
+    }
+
+    async invalidReportStatusSrv(report: Report) {
+        logger.info(`Start service.report.invalidReportStatusSrv, "input": ${JSON.stringify(report)}`)
+
+        await this.repository.updateReportsStatusRepo(report, ReportStatus.Pending, ReportStatus.Invalid);
+
+        logger.info(`End service.report.invalidReportStatusSrv`)
     }
 
     async deleteReportSrv(report: Report) {

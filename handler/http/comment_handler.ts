@@ -232,24 +232,18 @@ export class CommentHandler {
             }
 
             await this.commentService.deleteCommentSrv(commentUUID)
-
-            const notifications = await this.notificationService.getNotificationsSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
-
             this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID, comment.replyCommentUUID)
 
-            await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: comment.forumUUID, commentUUID, replyCommentUUID: comment.replyCommentUUID} as any, 'remove')
-
+            const noti: Notification = {forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as any
+            const notifications = await this.notificationService.getNotificationsSrv(noti)
+            await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'remove')
             if (notifications) {
-                const notiUserUUIDs = new Set<string>()
                 for(const noti of notifications) {
-                    notiUserUUIDs.add(noti.userUUID)
-                }
-                for (const userUUID of notiUserUUIDs) {
-                    this.notificationSocket.refreshNotification(userUUID)
+                    this.notificationSocket.refreshNotification(noti.userUUID)
                 }
             }
 
-            await this.reportService.deleteReportSrv({commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
+            await this.reportService.invalidReportStatusSrv({commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
 
             logger.info("End http.comment.deleteComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

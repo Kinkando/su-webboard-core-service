@@ -5,6 +5,7 @@ const reportCollection = "Report"
 
 interface IReport extends Document {
     reportUUID: string
+    reportCode: string
     reporterUUID: string
     plaintiffUUID: string
     reportReason: string
@@ -12,6 +13,7 @@ interface IReport extends Document {
     forumUUID: string
     commentUUID?: string
     replyCommentUUID?: string
+    refReportUUID?: string
     createdAt: Date
     updatedAt?: Date
 }
@@ -19,6 +21,7 @@ interface IReport extends Document {
 const reportSchema: Schema = new Schema(
     {
         reportUUID: { type: String, required: false, unique: true },
+        reportCode: { type: String, required: false, unique: true },
         reporterUUID: { type: String, required: false, unique: false },
         plaintiffUUID: { type: String, required: false, unique: false },
         reportReason: { type: String, required: false, unique: false },
@@ -26,6 +29,7 @@ const reportSchema: Schema = new Schema(
         forumUUID: { type: String, required: false, unique: false },
         commentUUID: { type: String, required: false, unique: false },
         replyCommentUUID: { type: String, required: false, unique: false },
+        refReportUUID: { type: String, required: false, unique: false },
         createdAt: { type: Date, required: false },
         updatedAt: { type: Date, required: false },
     },

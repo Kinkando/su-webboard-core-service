@@ -225,26 +225,18 @@ export class ForumHandler {
             }
 
             await this.forumService.deleteForumSrv(forumUUID, profile.userUUID)
-
             await this.commentService.deleteCommentsByForumUUIDSrv(forumUUID)
-
             this.forumSocket.deleteForum(profile.sessionUUID, forumUUID)
 
             const notifications = await this.notificationService.getNotificationsSrv({forumUUID: forum.forumUUID} as any)
-
-            this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID} as any, 'remove')
-
+            await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID} as any, 'remove')
             if (notifications) {
-                const notiUserUUIDs = new Set<string>()
                 for(const noti of notifications) {
-                    notiUserUUIDs.add(noti.userUUID)
-                }
-                for (const userUUID of notiUserUUIDs) {
-                    this.notificationSocket.refreshNotification(userUUID)
+                    this.notificationSocket.refreshNotification(noti.userUUID)
                 }
             }
 
-            await this.reportService.deleteReportSrv({forumUUID} as any)
+            await this.reportService.invalidReportStatusSrv({forumUUID} as any)
 
             logger.info("End http.forum.deleteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

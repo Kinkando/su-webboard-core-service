@@ -5,7 +5,8 @@ export enum ReportStatus {
     Pending = 'pending',
     Resolved = 'resolved',
     Rejected = 'rejected',
-    Invalid = 'invalid',
+    Invalid = 'invalid', // author/commenter is delete forum/comment him self before resolved by admin
+    Closed = 'closed', // related same forum/comment report that resolved before
 }
 
 export interface Report {
@@ -17,21 +18,16 @@ export interface Report {
     forumUUID: string
     commentUUID?: string
     replyCommentUUID?: string
+    reportCode?: string
 }
 
 export interface ReportView {
     reportUUID: string
-    reporter: PersonInfo
-    plaintiff: PersonInfo
     reportReason: string
     reportStatus: ReportStatus
+    reportCode: string
+    refReportCode?: string
     type: 'กระทู้' | 'ความคิดเห็น'
-}
-
-export interface PersonInfo {
-    uuid: string
-    name: string
-    imageURL: string
 }
 
 export interface ReportDetail {

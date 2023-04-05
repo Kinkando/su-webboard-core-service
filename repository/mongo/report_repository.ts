@@ -1,10 +1,9 @@
 import { v4 as uuid } from "uuid";
 import * as mongoDB from "mongodb";
+import { FilterQuery } from "mongoose";
 import reportModel from './model/report'
 import { FilterReport, Report, ReportStatus, ReportView } from "../../model/report";
 import logger from "../../util/logger";
-import { UserCollection } from "./user_repository";
-import { FilterQuery } from "mongoose";
 
 export function newReportRepository(db: mongoDB.Db) {
     return new ReportRepository(db)
@@ -13,16 +12,43 @@ export function newReportRepository(db: mongoDB.Db) {
 export const ReportCollection = "Report"
 
 interface Repository {
+    getReportCodeRepo(): Promise<string>
     getReportRepo(reportUUID: string): Promise<Report | null>
     getReportsPaginationRepo(query: FilterReport): Promise<{total: number, data: ReportView[]}>
     createReportRepo(report: Report): void
     updateReportStatusRepo(reportUUID: string, reportStatus: ReportStatus): void
-    updateReportsStatusToInvalidRepo(report: Report): void // update pending to invalid
+    updateReportsStatusRepo(report: Report, fromReportStatus: ReportStatus, toReportStatus: ReportStatus, refReportUUID?: string): void
     deleteReportRepo(report: Report): void
 }
 
 export class ReportRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
+
+    async getReportCodeRepo() {
+        logger.info(`Start mongo.report.getReportCodeRepo`)
+
+        const dateFormat = (date: Date): string => {
+            const twoDigit = (digit: number) => digit < 10 ? `0${digit}` : `${digit}`;
+            return `${date.getFullYear()}${twoDigit(date.getMonth()+1)}${twoDigit(date.getDate())}`
+        }
+        const fiveDigit = (count: number): string => {
+            let suffixCode = `${count}`
+            while (suffixCode.length < 5) {
+                suffixCode = `0${suffixCode}`
+            }
+            return suffixCode
+        }
+
+        const now = new Date()
+        const prefixCode = `RP-${dateFormat(now)}`
+
+        let count = await reportModel.find({ reportCode: { $regex: `${prefixCode}.*`, $options: "i" } }).count().exec()
+
+        const reportCode = `${prefixCode}${fiveDigit(count+1)}`
+
+        logger.info(`End mongo.report.getReportCodeRepo, "output": ${JSON.stringify({reportCode})}`)
+        return reportCode
+    }
 
     async getReportRepo(reportUUID: string) {
         logger.info(`Start mongo.report.getReportRepo, "input": ${JSON.stringify({reportUUID})}`)
@@ -43,10 +69,10 @@ export class ReportRepository implements Repository {
             $and: [
                 {
                     $or: [
-                        { 'reporterDetail.userDisplayName': search },
-                        { 'plaintiffDetail.userDisplayName': search },
                         { reportStatus: search },
-                        { description: search },
+                        { reportCode: search },
+                        { 'refReport.reportCode': search },
+                        { reportReason: search },
                     ]
                 }
             ]
@@ -54,7 +80,7 @@ export class ReportRepository implements Repository {
 
         if (query.search) {
             if ('กระทู้'.includes(query.search)) {
-                filter.$and![0].$or!.push(...queryTypeForum)
+                filter.$and![0].$or!.push({$and: [...queryTypeForum]})
             } else if ('ความคิดเห็น'.includes(query.search)) {
                 filter.$and![0].$or!.push(queryTypeComment)
             }
@@ -85,19 +111,15 @@ export class ReportRepository implements Repository {
 
         const res = (await reportModel.aggregate([
             {$lookup: {
-                from: UserCollection,
-                localField: 'reporterUUID',
-                foreignField: 'userUUID',
-                as: 'reporterDetail'
+                from: ReportCollection,
+                localField: 'reportUUID',
+                foreignField: 'reportUUID',
+                as: 'refReport'
             }},
-            {$unwind: "$reporterDetail"},
-            {$lookup: {
-                from: UserCollection,
-                localField: 'plaintiffUUID',
-                foreignField: 'userUUID',
-                as: 'plaintiffDetail'
+            {$unwind: {
+                path: "$refReport",
+                preserveNullAndEmptyArrays: true
             }},
-            {$unwind: "$plaintiffDetail"},
             {$match: filter},
             {$sort: sortBy},
             {$facet:{
@@ -119,16 +141,8 @@ export class ReportRepository implements Repository {
                     reportStatus: report.reportStatus,
                     reportReason: report.reportReason,
                     type: report.replyCommentUUID ? 'ความคิดเห็น' : report.commentUUID ? 'ความคิดเห็น' : 'กระทู้',
-                    reporter: {
-                        uuid: (report as any).reporterDetail.userUUID,
-                        name: (report as any).reporterDetail.userDisplayName,
-                        imageURL: (report as any).reporterDetail.userImageURL,
-                    },
-                    plaintiff: {
-                        uuid: (report as any).plaintiffDetail.userUUID,
-                        name: (report as any).plaintiffDetail.userDisplayName,
-                        imageURL: (report as any).plaintiffDetail.userImageURL,
-                    },
+                    reportCode: report.reportCode!,
+                    refReportCode: (report as any).refReport ? (report as any).refReport?.reportCode : undefined
                 })
                 delete (report as any)._id
                 delete (report as any).reporterDetail
@@ -156,24 +170,28 @@ export class ReportRepository implements Repository {
     async updateReportStatusRepo(reportUUID: string, reportStatus: ReportStatus) {
         logger.info(`Start mongo.report.updateReportRepo, "input": ${JSON.stringify({reportUUID, reportStatus})}`)
 
-        await reportModel.updateOne({reportUUID}, {reportStatus, updatedAt: new Date()})
+        await reportModel.updateOne({reportUUID}, { $set : {reportStatus, updatedAt: new Date()} })
 
         logger.info(`End mongo.report.updateReportRepo`)
     }
 
-    async updateReportsStatusToInvalidRepo(report: Report) {
-        logger.info(`Start mongo.report.updateReportsStatusToInvalidRepo, "input": ${JSON.stringify(report)}`)
+    async updateReportsStatusRepo(report: Report, fromReportStatus: ReportStatus, toReportStatus: ReportStatus, refReportUUID?: string) {
+        logger.info(`Start mongo.report.updateReportsStatusRepo, "input": ${JSON.stringify({report, fromReportStatus, toReportStatus, refReportUUID})}`)
 
-        report.reportStatus = ReportStatus.Pending
-        await reportModel.updateMany(report, { $set: { reportStatus: ReportStatus.Invalid, updatedAt: new Date()} })
+        const filter: FilterQuery<Report> = { reportStatus: fromReportStatus, forumUUID: report.forumUUID, commentUUID: report.commentUUID, replyCommentUUID: report.replyCommentUUID }
+        if (report.plaintiffUUID || report.reporterUUID) {
+            filter.$or = [ {plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID} ]
+        }
+        await reportModel.updateMany(report, { $set: { reportStatus: toReportStatus, updatedAt: new Date()} })
 
-        logger.info(`End mongo.report.updateReportsStatusToInvalidRepo`)
+        logger.info(`End mongo.report.updateReportsStatusRepo`)
     }
 
     async deleteReportRepo(report: Report) {
         logger.info(`Start mongo.report.deleteReportRepo, "input": ${JSON.stringify(report)}`)
 
-        await reportModel.deleteMany(report)
+        const result = await reportModel.deleteMany(report)
+        logger.warn(`deleted report successfully: ${result.deletedCount} item(s)`)
 
         logger.info(`End mongo.report.deleteReportRepo`)
     }
