@@ -1,21 +1,23 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import { ForumSocket } from '../socket/forum_socket';
+import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from '../../common/http';
-import { ForumSocket } from '../../handler/socket/forum_socket';
-import { NotificationSocket } from '../../handler/socket/notification_socket';
 import { UserType } from '../../model/authen';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
 import { User, UserPagination } from '../../model/user';
+import { FilterReport, ReportDetail } from '../../model/report';
 import { AnnouncementService } from '../../service/announcement_service';
 import { AuthenService } from '../../service/authen_service';
 import { CategoryService } from '../../service/category_service';
 import { CommentService } from '../../service/comment_service';
 import { ForumService } from '../../service/forum_service';
+import { NotificationService } from '../../service/notification_service';
+import { ReportService } from '../../service/report_service';
 import { UserService } from '../../service/user_service';
 import logger from '../../util/logger';
 import { getProfile } from '../../util/profile';
 import { bind, validate } from '../../util/validate';
-import { NotificationService } from '../../service/notification_service';
 
 export function newAdminHandler(
     announcementService: AnnouncementService,
@@ -23,8 +25,9 @@ export function newAdminHandler(
     categoryService: CategoryService,
     commentService: CommentService,
     forumService: ForumService,
-    userService: UserService,
     notificationService: NotificationService,
+    reportService: ReportService,
+    userService: UserService,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
@@ -34,8 +37,9 @@ export function newAdminHandler(
         categoryService,
         commentService,
         forumService,
-        userService,
         notificationService,
+        reportService,
+        userService,
         forumSocket,
         notificationSocket,
     )
@@ -52,6 +56,11 @@ export function newAdminHandler(
     adminRouter.put('/category', (req, res, next) => adminHandler.upsertCategory(req, res, next))
     adminRouter.delete('/category', (req, res, next) => adminHandler.deleteCategory(req, res, next))
 
+    adminRouter.get('/report', (req, res, next) => adminHandler.getReports(req, res, next))
+    adminRouter.get('/report/:reportUUID', (req, res, next) => adminHandler.getReportDetail(req, res, next))
+    adminRouter.patch('/report/:reportUUID', (req, res, next) => adminHandler.updateReportStatus(req, res, next))
+    adminRouter.delete('/report', (req, res, next) => adminHandler.deleteReport(req, res, next))
+
     return adminRouter
 }
 
@@ -62,8 +71,9 @@ class AdminHandler {
         private categoryService: CategoryService,
         private commentService: CommentService,
         private forumService: ForumService,
-        private userService: UserService,
         private notificationService: NotificationService,
+        private reportService: ReportService,
+        private userService: UserService,
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}
@@ -528,6 +538,165 @@ class AdminHandler {
             }
 
             logger.info("End http.admin.deleteCategory")
+            return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async getReports(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.getReports")
+        try {
+
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const schemas = [
+                {field: "search", type: "string", required: false},
+                {field: "offset", type: "number", required: false},
+                {field: "limit", type: "number", required: false},
+                {field: "sortBy", type: "string", required: false},
+                {field: "reportStatus", type: "string", required: false},
+                {field: "type", type: "string", required: false},
+            ]
+
+            try {
+                validate(schemas, req.query)
+            } catch (error) {
+                logger.error(error)
+                return res.status(HTTP.StatusBadRequest).send({ error: (error as Error).message })
+            }
+
+            const query: FilterReport = bind(req.query, schemas)
+
+            const data = await this.reportService.getReportsPaginationSrv(query)
+            if (!data || !data.total) {
+                logger.error('reports are not found')
+                return res.status(HTTP.StatusNoContent).send()
+            }
+
+            logger.info("End http.admin.getReports")
+            return res.status(HTTP.StatusOK).send(data);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async getReportDetail(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.getReportDetail")
+        try {
+
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const reportUUID = req.params['reportUUID'] as string
+            if (!reportUUID) {
+                logger.error('reportUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "reportUUID is required" })
+            }
+
+            const report = await this.reportService.getReportSrv(reportUUID)
+            if (!report) {
+                logger.error('reportUUID is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: 'reportUUID is not found' })
+            }
+
+            let result: ReportDetail = {
+                reportUUID: report.reportUUID,
+                createdAt: (report as any).createdAt,
+                updatedAt: (report as any).updatedAt,
+            };
+            if (report.commentUUID) {
+                const comment = await this.commentService.getCommentSrv(report.commentUUID, profile.userUUID)
+                result.description = comment.commentText
+                result.imageURLs = comment.commentImages?.map(image => image.url)
+                result.userDisplayName = comment.commenterName
+                result.userUUID = comment.commenterUUID
+                result.userImageURL = comment.commenterImageURL
+            } else {
+                const forum = await this.forumService.getForumDetailSrv(report.forumUUID, profile.userUUID)
+                result.categories = forum.categories
+                result.title = forum.title
+                result.description = forum.description
+                result.imageURLs = forum.forumImages?.map(image => image.url)
+                result.userDisplayName = forum.authorName
+                result.userUUID = forum.authorUUID
+                result.userImageURL = forum.authorImageURL
+            }
+
+            logger.info("End http.admin.getReportDetail")
+            return res.status(HTTP.StatusOK).send(result);
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async updateReportStatus(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.updateReportStatus")
+        try {
+
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const reportUUID = req.params['reportUUID'] as string
+            if (!reportUUID) {
+                logger.error('reportUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "reportUUID is required" })
+            }
+
+            const reportStatus = req.body.reportStatus
+            if (!reportStatus) {
+                logger.error('reportStatus is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "reportStatus is required" })
+            }
+
+            await this.reportService.updateReportStatusSrv(reportUUID, reportStatus)
+
+            logger.info("End http.admin.updateReportStatus")
+            return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async deleteReport(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.deleteReport")
+        try {
+
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const reportUUIDs = req.body.reportUUIDs as string[]
+            if (!reportUUIDs) {
+                logger.error('reportUUIDs is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "reportUUIDs is required" })
+            }
+
+            for (const reportUUID of reportUUIDs) {
+                await this.reportService.deleteReportSrv({reportUUID} as any)
+            }
+
+            logger.info("End http.admin.deleteReport")
             return res.status(HTTP.StatusOK).send({ message: "success" });
 
         } catch (error) {

@@ -41,6 +41,8 @@ import { newCommentRepository } from '../repository/mongo/comment_repository';
 import { newNotificationRepository } from '../repository/mongo/notification_repository';
 import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCacheRepository } from '../repository/redis/cache_repository';
+import { newReportRepository } from '@repository/mongo/report_repository';
+import { newReportService } from '@service/report_service';
 
 export default async function init(config: Configuration) {
     const PORT = process.env.PORT || config.app.port;
@@ -88,6 +90,7 @@ export default async function init(config: Configuration) {
     const commentRepository = newCommentRepository(mongoDB)
     const forumRepository = newForumRepository(mongoDB)
     const notificationRepository = newNotificationRepository(mongoDB)
+    const reportRepository = newReportRepository(mongoDB)
     const userRepository = newUserRepository(mongoDB)
 
     // define service
@@ -97,6 +100,7 @@ export default async function init(config: Configuration) {
     const commentService = newCommentService(commentRepository, storage)
     const forumService = newForumService(forumRepository, storage)
     const notificationService = newNotificationService(notificationRepository, forumService, storage)
+    const reportService = newReportService(reportRepository, storage)
     const userService = newUserService(config.app.defaultPassword, userRepository, firebaseAuth, storage, sendgrid)
 
     // define handler
@@ -107,8 +111,9 @@ export default async function init(config: Configuration) {
         categoryService,
         commentService,
         forumService,
-        userService,
         notificationService,
+        reportService,
+        userService,
         forumSocket,
         notificationSocket,
     ))
@@ -116,8 +121,8 @@ export default async function init(config: Configuration) {
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', middleware, newCategoryHandler(categoryService))
     api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
-    api.use('/forum', middleware, newForumHandler(forumService, commentService, notificationService, userService, forumSocket, notificationSocket))
-    api.use('/comment', middleware, newCommentHandler(commentService, forumService, notificationService, forumSocket, notificationSocket))
+    api.use('/forum', middleware, newForumHandler(forumService, commentService, notificationService, reportService, userService, forumSocket, notificationSocket))
+    api.use('/comment', middleware, newCommentHandler(commentService, forumService, notificationService, reportService, forumSocket, notificationSocket))
     api.use('/user', middleware, newUserHandler(userService, notificationService, notificationSocket))
     api.use('/notification', middleware, newNotificationHandler(notificationService, notificationSocket))
 

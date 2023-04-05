@@ -1,17 +1,18 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
+import { ForumSocket } from '../socket/forum_socket';
+import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from "../../common/http";
 import { Pagination } from '../../model/common';
 import { Comment } from '../../model/comment';
 import { Notification, NotificationBody } from '../../model/notification';
 import { CommentService } from "../../service/comment_service";
+import { ForumService } from '../../service/forum_service';
+import { NotificationService } from '../../service/notification_service';
+import { ReportService } from '../../service/report_service';
 import logger from "../../util/logger";
 import { getProfile } from '../../util/profile';
 import { bind, validate } from "../../util/validate";
-import { ForumSocket } from '../../handler/socket/forum_socket';
-import { ForumService } from '../../service/forum_service';
-import { NotificationService } from '../../service/notification_service';
-import { NotificationSocket } from '../socket/notification_socket';
 
 const upload = multer()
 
@@ -19,10 +20,11 @@ export function newCommentHandler(
     commentService: CommentService,
     forumService: ForumService,
     notificationService: NotificationService,
+    reportService: ReportService,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
-    const commentHandler = new CommentHandler(commentService, forumService, notificationService, forumSocket, notificationSocket)
+    const commentHandler = new CommentHandler(commentService, forumService, notificationService, reportService, forumSocket, notificationSocket)
 
     const commentRouter = Router()
     commentRouter.get('/:forumUUID', (req, res, next) => commentHandler.getComments(req, res, next))
@@ -39,6 +41,7 @@ export class CommentHandler {
         private commentService: CommentService,
         private forumService: ForumService,
         private notificationService: NotificationService,
+        private reportService: ReportService,
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}
