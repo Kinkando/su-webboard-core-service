@@ -249,6 +249,8 @@ export class CommentHandler {
                 }
             }
 
+            await this.reportService.deleteReportSrv({commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
+
             logger.info("End http.comment.deleteComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
 

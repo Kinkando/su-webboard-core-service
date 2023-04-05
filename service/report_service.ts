@@ -11,7 +11,7 @@ interface Service {
     getReportSrv(reportUUID: string): Promise<Report | null>
     getReportsPaginationSrv(filter: FilterReport): Promise<{total: number, data: ReportView[]}>
     createReportSrv(report: Report): void
-    updateReportStatusSrv(reportUUID: string, reportStatus: ReportStatus): void
+    updateReportStatusSrv(report: Report): void
     deleteReportSrv(report: Report): void
 }
 
@@ -51,10 +51,12 @@ export class ReportService implements Service {
         logger.info(`End service.report.createReportSrv`)
     }
 
-    async updateReportStatusSrv(reportUUID: string, reportStatus: ReportStatus) {
-        logger.info(`Start service.report.updateReportStatusSrv, "input": ${JSON.stringify({reportUUID, reportStatus})}`)
+    async updateReportStatusSrv(report: Report) {
+        logger.info(`Start service.report.updateReportStatusSrv, "input": ${JSON.stringify(report)}`)
 
-        await this.repository.updateReportStatusRepo(reportUUID, reportStatus)
+        await this.repository.updateReportStatusRepo(report.reportUUID!, report.reportStatus)
+
+        await this.repository.updateReportsStatusToInvalidRepo({forumUUID: report.forumUUID, commentUUID: report.commentUUID, replyCommentUUID: report.replyCommentUUID} as any)
 
         logger.info(`End service.report.updateReportStatusSrv`)
     }

@@ -244,6 +244,8 @@ export class ForumHandler {
                 }
             }
 
+            await this.reportService.deleteReportSrv({forumUUID} as any)
+
             logger.info("End http.forum.deleteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
 
