@@ -5,7 +5,6 @@ import { NotificationSocket } from '../../handler/socket/notification_socket';
 import { UserType } from '../../model/authen';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
-import { Notification, NotificationBody } from '../../model/notification';
 import { User, UserPagination } from '../../model/user';
 import { AnnouncementService } from '../../service/announcement_service';
 import { AuthenService } from '../../service/authen_service';
@@ -333,7 +332,12 @@ class AdminHandler {
                                 notiUserUUIDs.add(noti.userUUID)
                             }
                         }
-                        const noti = {notiBody: NotificationBody.LikeForum, notiUserUUID: userUUID, userUUID: forum.authorUUID, forumUUID: forum.forumUUID}
+                        const noti: any = {
+                            // notiBody: NotificationBody.LikeForum,
+                            notiUserUUID: userUUID,
+                            userUUID: forum.authorUUID,
+                            forumUUID: forum.forumUUID,
+                        }
                         await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'pop')
                     }
                 }
@@ -349,8 +353,8 @@ class AdminHandler {
                                 notiUserUUIDs.add(noti.userUUID)
                             }
                         }
-                        const noti: Notification = {
-                            notiBody: NotificationBody.LikeComment,
+                        const noti: any = {
+                            // notiBody: NotificationBody.LikeComment,
                             notiUserUUID: userUUID,
                             userUUID: comment.commenterUUID,
                             forumUUID: comment.forumUUID,
@@ -361,6 +365,17 @@ class AdminHandler {
                     }
                 }
                 await this.announcementService.pullSeeCountUUIDFromAnnouncementSrv(userUUID)
+
+                await this.notificationService.createUpdateDeleteNotificationSrv({userUUID} as any, 'remove')
+
+                // delete noti for user that this deleted user is following
+                const notifications = await this.notificationService.getNotificationsSrv({followerUserUUID: userUUID} as any)
+                if (notifications) {
+                    for(const noti of notifications) {
+                        notiUserUUIDs.add(noti.userUUID)
+                    }
+                }
+                await this.notificationService.createUpdateDeleteNotificationSrv({followerUserUUID: userUUID} as any, 'remove')
 
                 if (notiUserUUIDs) {
                     for (const userUUID of notiUserUUIDs) {

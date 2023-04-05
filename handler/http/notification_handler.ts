@@ -52,7 +52,6 @@ export class NotificationHandler {
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
-            console.log(req.query.isRead, filter)
 
             const notification = await this.notificationService.getNotificationsPaginationSrv(filter, profile.userUUID)
             if (!notification || !notification.total) {
