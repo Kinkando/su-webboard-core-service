@@ -7,7 +7,7 @@ interface IReport extends Document {
     reportUUID: string
     reporterUUID: string
     plaintiffUUID: string
-    description: string
+    reportReason: string
     reportStatus: ReportStatus
     forumUUID: string
     commentUUID?: string
@@ -21,7 +21,7 @@ const reportSchema: Schema = new Schema(
         reportUUID: { type: String, required: false, unique: true },
         reporterUUID: { type: String, required: false, unique: false },
         plaintiffUUID: { type: String, required: false, unique: false },
-        description: { type: String, required: false, unique: false },
+        reportReason: { type: String, required: false, unique: false },
         reportStatus: { type: String, required: false, unique: false },
         forumUUID: { type: String, required: false, unique: false },
         commentUUID: { type: String, required: false, unique: false },

@@ -9,10 +9,10 @@ export enum ReportStatus {
 }
 
 export interface Report {
-    reportUUID: string
+    reportUUID?: string
     reporterUUID: string
     plaintiffUUID: string
-    description: string
+    reportReason: string
     reportStatus: ReportStatus
     forumUUID: string
     commentUUID?: string
@@ -23,7 +23,7 @@ export interface ReportView {
     reportUUID: string
     reporter: PersonInfo
     plaintiff: PersonInfo
-    description: string
+    reportReason: string
     reportStatus: ReportStatus
     type: 'กระทู้' | 'ความคิดเห็น'
 }

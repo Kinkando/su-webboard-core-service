@@ -612,7 +612,7 @@ class AdminHandler {
             }
 
             let result: ReportDetail = {
-                reportUUID: report.reportUUID,
+                reportUUID,
                 createdAt: (report as any).createdAt,
                 updatedAt: (report as any).updatedAt,
             };

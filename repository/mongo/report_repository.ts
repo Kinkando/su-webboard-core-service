@@ -61,14 +61,14 @@ export class ReportRepository implements Repository {
         }
 
         if (query.reportStatus) {
-            filter.$and![0].push({reportStatus: query.reportStatus})
+            filter.$and!.push({reportStatus: query.reportStatus})
         }
 
         if (query.type) {
             if (query.type === 'forum') {
-                filter.$and![0].push(...queryTypeForum)
+                filter.$and!.push(...queryTypeForum)
             } else if (query.type === 'comment') {
-                filter.$and![0].push(queryTypeComment)
+                filter.$and!.push(queryTypeComment)
             }
         }
 
@@ -115,9 +115,9 @@ export class ReportRepository implements Repository {
             const data: ReportView[] = []
             doc?.data?.forEach((report: Report) => {
                 data.push({
-                    reportUUID: report.reportUUID,
+                    reportUUID: report.reportUUID!,
                     reportStatus: report.reportStatus,
-                    description: report.description,
+                    reportReason: report.reportReason,
                     type: report.replyCommentUUID ? 'ความคิดเห็น' : report.commentUUID ? 'ความคิดเห็น' : 'กระทู้',
                     reporter: {
                         uuid: (report as any).reporterDetail.userUUID,

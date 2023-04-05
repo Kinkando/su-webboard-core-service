@@ -4,6 +4,7 @@ import { ForumSocket } from '../socket/forum_socket';
 import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from "../../common/http";
 import { FilterForum, Forum } from '../../model/forum';
+import { Report, ReportStatus } from '../../model/report';
 import { NotificationBody } from '../../model/notification';
 import { CommentService } from '../../service/comment_service';
 import { ForumService } from "../../service/forum_service";
@@ -34,6 +35,7 @@ export function newForumHandler(
     forumRouter.delete('', (req, res, next) => forumHandler.deleteForum(req, res, next))
     forumRouter.patch('/like', (req, res, next) => forumHandler.likeForum(req, res, next))
     forumRouter.patch('/favorite', (req, res, next) => forumHandler.favoriteForum(req, res, next))
+    forumRouter.post('/report/:forumUUID', (req, res, next) => forumHandler.reportForum(req, res, next))
 
     return forumRouter
 }
@@ -334,6 +336,58 @@ export class ForumHandler {
             const isFavorite = Boolean(req.body.isFavorite)
 
             await this.forumService.favoriteForumSrv(forumUUID, profile.userUUID, isFavorite)
+
+            logger.info("End http.forum.favoriteForum")
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status((error as Error).message.endsWith(" not found") ? HTTP.StatusNotFound : HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async reportForum(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.forum.reportForum")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const forumUUID = req.params['forumUUID'] as string
+            if (!forumUUID) {
+                logger.error('forumUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "forumUUID is required" })
+            }
+
+            const reportReason = req.body.reportReason
+            if (!reportReason) {
+                logger.error('reportReason is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "reportReason is required" })
+            }
+
+            const forum = await this.forumService.getForumDetailSrv(forumUUID, profile.userUUID, true)
+            if (!forum || !forum.forumUUID) {
+                logger.error('forum is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "forum is not found" })
+            }
+
+            if (profile.userUUID === forum.authorUUID) {
+                logger.error('unable to create report: forum author unable to create self report')
+                return res.status(HTTP.StatusBadRequest).send({ error: "unable to create report: forum author unable to create self report" })
+            }
+
+            const report: Report = {
+                forumUUID,
+                reportReason,
+                reporterUUID: profile.userUUID,
+                reportStatus: ReportStatus.Pending,
+                plaintiffUUID: forum.authorUUID
+            }
+
+            await this.reportService.createReportSrv(report)
 
             logger.info("End http.forum.favoriteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

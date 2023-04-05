@@ -6,6 +6,7 @@ import HTTP from "../../common/http";
 import { Pagination } from '../../model/common';
 import { Comment } from '../../model/comment';
 import { Notification, NotificationBody } from '../../model/notification';
+import { Report, ReportStatus } from '../../model/report';
 import { CommentService } from "../../service/comment_service";
 import { ForumService } from '../../service/forum_service';
 import { NotificationService } from '../../service/notification_service';
@@ -32,6 +33,7 @@ export function newCommentHandler(
     commentRouter.put('', upload.array("files"), (req, res, next) => commentHandler.upsertComment(req, res, next))
     commentRouter.delete('', (req, res, next) => commentHandler.deleteComment(req, res, next))
     commentRouter.patch('/like', (req, res, next) => commentHandler.likeComment(req, res, next))
+    commentRouter.post('/report/:commentUUID', (req, res, next) => commentHandler.reportComment(req, res, next))
 
     return commentRouter
 }
@@ -312,6 +314,60 @@ export class CommentHandler {
             }
 
             logger.info("End http.comment.likeComment")
+            return res.status(HTTP.StatusOK).send({ message: 'success' });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status((error as Error).message.endsWith(" not found") ? HTTP.StatusNotFound : HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
+
+    async reportComment(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.comment.reportComment")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType === 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            const commentUUID = req.params['commentUUID'] as string
+            if (!commentUUID) {
+                logger.error('commentUUID is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "commentUUID is required" })
+            }
+
+            const reportReason = req.body.reportReason
+            if (!reportReason) {
+                logger.error('reportReason is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "reportReason is required" })
+            }
+
+            const comment = await this.commentService.getCommentSrv(commentUUID, profile.userUUID, true)
+            if (!comment || !comment.commentUUID) {
+                logger.error('comment is not found')
+                return res.status(HTTP.StatusNotFound).send({ error: "comment is not found" })
+            }
+
+            if (profile.userUUID === comment.commenterUUID) {
+                logger.error('unable to create report: commenter unable to create self report')
+                return res.status(HTTP.StatusBadRequest).send({ error: "unable to create report: commenter unable to create self report" })
+            }
+
+            const report: Report = {
+                forumUUID: comment.forumUUID,
+                commentUUID,
+                replyCommentUUID: comment.replyCommentUUID,
+                reportReason,
+                reporterUUID: profile.userUUID,
+                reportStatus: ReportStatus.Pending,
+                plaintiffUUID: comment.commenterUUID,
+            }
+
+            await this.reportService.createReportSrv(report)
+
+            logger.info("End http.comment.reportComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });
 
         } catch (error) {
