@@ -47,6 +47,8 @@ export function newAdminHandler(
 
     const adminRouter = Router()
 
+    adminRouter.get('/home', (req, res, next) => adminHandler.home(req, res, next))
+
     adminRouter.post('/user/revoke', (req, res, next) => adminHandler.revokeUsers(req, res, next))
     adminRouter.get('/user', (req, res, next) => adminHandler.getUsers(req, res, next))
     adminRouter.post('/user/:userType', (req, res, next) => adminHandler.createUser(req, res, next))
@@ -78,6 +80,25 @@ class AdminHandler {
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}
+
+    async home(req: Request, res: Response, next: NextFunction) {
+        logger.info("Start http.admin.home")
+
+        try {
+            const profile = getProfile(req)
+            if (profile.userType !== 'adm') {
+                logger.error('permission is denied')
+                return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
+            }
+
+            logger.info("End http.admin.home")
+            return res.status(HTTP.StatusOK).send({ message: "success" });
+
+        } catch (error) {
+            logger.error(error)
+            return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
+        }
+    }
 
     async revokeUsers(req: Request, res: Response, next: NextFunction) {
         logger.info("Start http.admin.revokeUsers")
@@ -117,6 +138,7 @@ class AdminHandler {
                 {field: "search", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
+                {field: "sortBy", type: "string", required: false},
             ]
 
             try {
@@ -131,6 +153,7 @@ class AdminHandler {
                 search: req.query.search?.toString() || "",
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
+                sortBy: req.query.sortBy?.toString(),
             }
             if (filter.userType === 'adm') {
                 logger.error('permission is denied')
@@ -422,6 +445,7 @@ class AdminHandler {
                 {field: "search", type: "string", required: false},
                 {field: "limit", type: "number", required: false},
                 {field: "offset", type: "number", required: false},
+                {field: "sortBy", type: "string", required: false},
             ]
 
             try {
@@ -433,6 +457,7 @@ class AdminHandler {
 
             const filter: Pagination = {
                 search: req.query.search?.toString() || "",
+                sortBy: req.query.sortBy?.toString(),
                 limit: Number(req.query.limit) || 10,
                 offset: Number(req.query.offset) || 0,
             }
@@ -723,6 +748,8 @@ class AdminHandler {
                         }
                     }
                 }
+
+                // sendgrid send email
             }
 
             logger.info("End http.admin.updateReportStatus")

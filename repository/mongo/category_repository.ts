@@ -15,6 +15,7 @@ interface Repository {
     getCategoryDetailsRepo(): Promise<CategoryDetail[]>
     getCategoriesPaginationRepo(query: Pagination): Promise<{ total: number, data: Category[] }>
     getCategoriesRepo(): Promise<Category[]>
+    getCategoryRepo(categoryID: number): Promise<Category | null>
     createCategoryRepo(category: Category): void
     updateCategoryRepo(category: Category): void
     deleteCategoryRepo(categoryID: number): void
@@ -53,7 +54,7 @@ export class CategoryRepository implements Repository {
     async getCategoriesPaginationRepo(query: Pagination) {
         logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify(query)}`)
 
-        let sort!: Record<string, 1 | -1>
+        let sort: Record<string, 1 | -1> = {}
         if (query.sortBy) {
             for(let sortField of query.sortBy.split(',')) {
                 sortField = sortField.trim()
@@ -118,6 +119,15 @@ export class CategoryRepository implements Repository {
 
         logger.info(`End mongo.category.getCategoriesRepo, "output": ${JSON.stringify(categories)}`)
         return categories
+    }
+
+    async getCategoryRepo(categoryID: number) {
+        logger.info(`Start mongo.category.getCategoryRepo, "input": ${JSON.stringify({categoryID})}`)
+
+        const category = await this.db.collection<Category>(CategoryCollection).findOne({categoryID})
+
+        logger.info(`End mongo.category.getCategoryRepo, "output": ${JSON.stringify(category)}`)
+        return category as Category
     }
 
     async createCategoryRepo(category: Category) {

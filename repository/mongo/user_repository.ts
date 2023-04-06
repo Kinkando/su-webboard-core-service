@@ -47,7 +47,7 @@ export class UserRepository implements Repository {
     async getUsersPaginationRepo(query: UserPagination) {
         logger.info(`Start mongo.user.getUsersPaginationRepo, "input": ${JSON.stringify(query)}`)
 
-        let sort!: Record<string, 1 | -1>
+        let sort: Record<string, 1 | -1> = {}
         if (query.sortBy) {
             for(let sortField of query.sortBy.split(',')) {
                 sortField = sortField.trim()

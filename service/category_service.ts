@@ -8,6 +8,7 @@ export function newCategoryService(repository: CategoryRepository) {
 }
 
 interface Service {
+    getCategorySrv(categoryID: number): Promise<Category | null>
     getCategoryDetailsSrv(): Promise<CategoryDetail[]>
     getCategoriesPaginationSrv(query: Pagination): Promise<{ total: number, data: Category[] }>
     getCategoriesSrv(): Promise<Category[]>
@@ -17,6 +18,15 @@ interface Service {
 
 export class CategoryService implements Service {
     constructor(private repository: CategoryRepository) {}
+
+    async getCategorySrv(categoryID: number) {
+        logger.info(`Start service.category.getCategorySrv, "input": ${JSON.stringify({categoryID})}`)
+
+        const category = await this.repository.getCategoryRepo(categoryID)
+
+        logger.info(`End service.category.getCategorySrv, "output": ${JSON.stringify(category)}`)
+        return category
+    }
 
     async getCategoryDetailsSrv() {
         logger.info(`Start service.category.getCategoryDetailsSrv`)
