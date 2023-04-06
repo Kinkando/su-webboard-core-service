@@ -300,7 +300,7 @@ class AdminHandler {
                         }
                         this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID!} as any, 'remove')
 
-                        // delete forum report (except resolved, rejected)
+                        await this.reportService.invalidReportStatusSrv({forumUUID: forum.forumUUID!} as any)
                     }
                 }
                 const comments = await this.commentService.getCommentsSrv({ commenterUUID: userUUID })
@@ -309,15 +309,16 @@ class AdminHandler {
                         await this.commentService.deleteCommentSrv(comment.commentUUID!)
                         this.forumSocket.deleteComment(profile.sessionUUID, comment.forumUUID, comment.commentUUID!, comment.replyCommentUUID)
 
-                        const notifications = await this.notificationService.getNotificationsSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as any)
+                        const noti: any = {forumUUID: comment.forumUUID, commentUUID: comment.commentUUID, replyCommentUUID: comment.replyCommentUUID} as Notification
+                        const notifications = await this.notificationService.getNotificationsSrv(noti)
                         if (notifications) {
                             for(const noti of notifications) {
                                 notiUserUUIDs.add(noti.userUUID)
                             }
                         }
-                        await this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: comment.forumUUID, commentUUID: comment.commentUUID!, replyCommentUUID: comment.replyCommentUUID} as any, 'remove')
+                        await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'remove')
 
-                        // delete comment report (except resolved, rejected)
+                        await this.reportService.invalidReportStatusSrv(noti)
                     }
                 }
                 const announcements = await this.announcementService.getAnnouncementsByAuthorUUIDSrv(userUUID)
@@ -634,6 +635,8 @@ class AdminHandler {
                 result.userDisplayName = comment.commenterName
                 result.userUUID = comment.commenterUUID
                 result.userImageURL = comment.commenterImageURL
+                result.createdAt = comment.createdAt
+                result.updatedAt = comment.updatedAt as any
             } else {
                 const forum = await this.forumService.getForumDetailSrv(report.forumUUID, profile.userUUID)
                 result.categories = forum.categories
@@ -643,6 +646,8 @@ class AdminHandler {
                 result.userDisplayName = forum.authorName
                 result.userUUID = forum.authorUUID
                 result.userImageURL = forum.authorImageURL
+                result.createdAt = forum.createdAt!
+                result.updatedAt = forum.updatedAt as any
             }
 
             logger.info("End http.admin.getReportDetail")
@@ -690,6 +695,7 @@ class AdminHandler {
                 return res.status(HTTP.StatusBadRequest).send({ error: `unable to update report status: expect: 'pending', but get: '${report.reportStatus}'` })
             }
 
+            report.reportStatus = reportStatus
             await this.reportService.updateReportStatusSrv(report)
 
             if (reportStatus === ReportStatus.Resolved) {
@@ -717,11 +723,6 @@ class AdminHandler {
                         }
                     }
                 }
-                // save or copy temp/draft image from forum/comment before delete its
-                // update invalid status to other
-                // delete forum/comment/replyComment
-                // delete notification realtime socket
-                // send email to author/commenter with sendgrid
             }
 
             logger.info("End http.admin.updateReportStatus")

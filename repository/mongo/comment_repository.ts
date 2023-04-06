@@ -236,7 +236,8 @@ export class CommentRepository implements Repository {
     async deleteCommentsByForumUUIDRepo(forumUUID: string) {
         logger.info(`Start mongo.comment.deleteCommentsByForumUUIDRepo, "input": ${JSON.stringify({ forumUUID })}`)
 
-        await this.db.collection(CommentCollection).deleteMany({ forumUUID })
+        const result = await this.db.collection(CommentCollection).deleteMany({ forumUUID })
+        logger.warn(`delete comments by forum uuid total: ${result.deletedCount} comment(s)`)
 
         logger.info(`End mongo.comment.deleteCommentsByForumUUIDRepo`)
     }

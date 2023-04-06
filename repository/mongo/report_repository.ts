@@ -112,7 +112,7 @@ export class ReportRepository implements Repository {
         const res = (await reportModel.aggregate([
             {$lookup: {
                 from: ReportCollection,
-                localField: 'reportUUID',
+                localField: 'refReportUUID',
                 foreignField: 'reportUUID',
                 as: 'refReport'
             }},
@@ -142,7 +142,9 @@ export class ReportRepository implements Repository {
                     reportReason: report.reportReason,
                     type: report.replyCommentUUID ? 'ความคิดเห็น' : report.commentUUID ? 'ความคิดเห็น' : 'กระทู้',
                     reportCode: report.reportCode!,
-                    refReportCode: (report as any).refReport ? (report as any).refReport?.reportCode : undefined
+                    refReportCode: (report as any).refReport && (report as any).refReport?.reportCode !== report.reportCode ? (report as any).refReport?.reportCode : undefined,
+                    createdAt: (report as any).createdAt,
+                    updatedAt: (report as any).updatedAt,
                 })
                 delete (report as any)._id
                 delete (report as any).reporterDetail
@@ -182,7 +184,7 @@ export class ReportRepository implements Repository {
         if (report.plaintiffUUID || report.reporterUUID) {
             filter.$or = [ {plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID} ]
         }
-        await reportModel.updateMany(report, { $set: { reportStatus: toReportStatus, updatedAt: new Date()} })
+        await reportModel.updateMany(filter, { $set: { refReportUUID: refReportUUID || undefined, reportStatus: toReportStatus, updatedAt: new Date()} })
 
         logger.info(`End mongo.report.updateReportsStatusRepo`)
     }

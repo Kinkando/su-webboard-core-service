@@ -28,6 +28,8 @@ export interface ReportView {
     reportCode: string
     refReportCode?: string
     type: 'กระทู้' | 'ความคิดเห็น'
+    createdAt: Date
+    updatedAt?: Date
 }
 
 export interface ReportDetail {

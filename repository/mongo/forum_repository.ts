@@ -270,7 +270,8 @@ export class ForumRepository implements Repository {
     async deleteForumRepo(forumUUID: string) {
         logger.info(`Start mongo.forum.deleteForumRepo, "input": ${JSON.stringify(forumUUID)}`)
 
-        await this.db.collection(ForumCollection).deleteOne({ forumUUID })
+        const result = await this.db.collection(ForumCollection).deleteOne({ forumUUID })
+        logger.warn(`delete forum total: ${result.deletedCount} comment`)
 
         logger.info(`End mongo.forum.deleteForumRepo`)
     }
