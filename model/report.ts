@@ -49,3 +49,12 @@ export interface FilterReport extends Pagination {
     reportStatus: ReportStatus
     type: 'forum' | 'comment'
 }
+
+export interface CountReport {
+    pending: number
+    resolved: number
+    rejected: number
+    closed: number
+    invalid: number
+    total: number
+}

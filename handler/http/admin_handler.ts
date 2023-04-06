@@ -91,8 +91,10 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
+            const count = await this.reportService.countReportStatusSrv()
+
             logger.info("End http.admin.home")
-            return res.status(HTTP.StatusOK).send({ message: "success" });
+            return res.status(HTTP.StatusOK).send(count);
 
         } catch (error) {
             logger.error(error)

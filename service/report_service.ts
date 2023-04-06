@@ -1,5 +1,5 @@
 import { CloudStorage } from '../cloud/google/storage';
-import { FilterReport, Report, ReportStatus, ReportView } from "../model/report";
+import { CountReport, FilterReport, Report, ReportStatus, ReportView } from "../model/report";
 import { ReportRepository } from "../repository/mongo/report_repository";
 import logger from "../util/logger";
 
@@ -14,6 +14,7 @@ interface Service {
     updateReportStatusSrv(report: Report): void
     invalidReportStatusSrv(report: Report): void
     deleteReportSrv(report: Report): void
+    countReportStatusSrv(): Promise<CountReport>
 }
 
 export class ReportService implements Service {
@@ -77,5 +78,14 @@ export class ReportService implements Service {
         await this.repository.deleteReportRepo(report)
 
         logger.info(`End service.report.deleteReportSrv`)
+    }
+
+    async countReportStatusSrv() {
+        logger.info(`Start service.report.countReportStatusSrv`)
+
+        const res = await this.repository.countReportStatusRepo()
+
+        logger.info(`End service.report.countReportStatusSrv, "output": ${JSON.stringify(res)}`)
+        return res
     }
 }

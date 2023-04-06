@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import * as mongoDB from "mongodb";
 import { FilterQuery } from "mongoose";
 import reportModel from './model/report'
-import { FilterReport, Report, ReportStatus, ReportView } from "../../model/report";
+import { CountReport, FilterReport, Report, ReportStatus, ReportView } from "../../model/report";
 import logger from "../../util/logger";
 
 export function newReportRepository(db: mongoDB.Db) {
@@ -19,6 +19,7 @@ interface Repository {
     updateReportStatusRepo(reportUUID: string, reportStatus: ReportStatus): void
     updateReportsStatusRepo(report: Report, fromReportStatus: ReportStatus, toReportStatus: ReportStatus, refReportUUID?: string): void
     deleteReportRepo(report: Report): void
+    countReportStatusRepo(): Promise<CountReport>
 }
 
 export class ReportRepository implements Repository {
@@ -205,5 +206,41 @@ export class ReportRepository implements Repository {
         logger.warn(`deleted report successfully: ${result.deletedCount} item(s)`)
 
         logger.info(`End mongo.report.deleteReportRepo`)
+    }
+
+    async countReportStatusRepo() {
+        logger.info(`Start mongo.report.countReportStatusRepo`)
+
+        const res = (await reportModel.aggregate<CountReport>([
+            {
+                $facet: {
+                    "pendingStatus": [ { $match: { "reportStatus": ReportStatus.Pending } } ],
+                    "resolvedStatus": [ { $match: { "reportStatus": ReportStatus.Resolved } } ],
+                    "rejectedStatus": [ { $match: { "reportStatus": ReportStatus.Rejected } } ],
+                    "closedStatus": [ { $match: { "reportStatus": ReportStatus.Closed } } ],
+                    "invalidStatus": [ { $match: { "reportStatus": ReportStatus.Invalid } } ],
+                    "total" : [ { $group: { _id: null, count: { $sum: 1 } } } ],
+                }
+            },
+            {
+                $unwind: "$total"
+            },
+            {
+                $project: {
+                    "pending": { $size: "$pendingStatus" },
+                    "resolved": { $size: "$resolvedStatus" },
+                    "rejected": { $size: "$rejectedStatus" },
+                    "closed": { $size: "$closedStatus" },
+                    "invalid": { $size: "$invalidStatus" },
+                    "total": '$total.count',
+                }
+            }
+        ])).map(doc => {
+            delete (doc as any)._id
+            return doc
+        })[0]
+
+        logger.info(`End mongo.report.countReportStatusRepo, "output": ${JSON.stringify(res)}`)
+        return res
     }
 }
