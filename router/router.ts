@@ -32,6 +32,7 @@ import { newCategoryService } from '../service/category_service';
 import { newCommentService } from '../service/comment_service';
 import { newForumService } from '../service/forum_service';
 import { newNotificationService } from '../service/notification_service';
+import { newReportService } from '../service/report_service';
 import { newUserService } from '../service/user_service';
 
 import { newAnnouncementRepository } from '../repository/mongo/announcement_repository';
@@ -39,10 +40,9 @@ import { newCategoryRepository } from '../repository/mongo/category_repository';
 import { newForumRepository } from '../repository/mongo/forum_repository';
 import { newCommentRepository } from '../repository/mongo/comment_repository';
 import { newNotificationRepository } from '../repository/mongo/notification_repository';
+import { newReportRepository } from '../repository/mongo/report_repository';
 import { newUserRepository } from '../repository/mongo/user_repository';
 import { newCacheRepository } from '../repository/redis/cache_repository';
-import { newReportRepository } from '@repository/mongo/report_repository';
-import { newReportService } from '@service/report_service';
 
 export default async function init(config: Configuration) {
     const PORT = process.env.PORT || config.app.port;
