@@ -12,7 +12,7 @@ export function newReportRepository(db: mongoDB.Db) {
 export const ReportCollection = "Report"
 
 interface Repository {
-    getReportCodeRepo(): Promise<string>
+    getReportCodeRepo(type: 'forum' | 'comment'): Promise<string>
     getReportRepo(reportUUID: string): Promise<Report | null>
     getReportsPaginationRepo(query: FilterReport): Promise<{total: number, data: ReportView[]}>
     createReportRepo(report: Report): void
@@ -24,8 +24,8 @@ interface Repository {
 export class ReportRepository implements Repository {
     constructor(private db: mongoDB.Db) {}
 
-    async getReportCodeRepo() {
-        logger.info(`Start mongo.report.getReportCodeRepo`)
+    async getReportCodeRepo(type: 'forum' | 'comment') {
+        logger.info(`Start mongo.report.getReportCodeRepo, "input": ${JSON.stringify({type})}`)
 
         const dateFormat = (date: Date): string => {
             const twoDigit = (digit: number) => digit < 10 ? `0${digit}` : `${digit}`;
@@ -40,7 +40,7 @@ export class ReportRepository implements Repository {
         }
 
         const now = new Date()
-        const prefixCode = `RP-${dateFormat(now)}`
+        const prefixCode = `RP${type === 'forum' ? 'FR' : 'CM'}-${dateFormat(now)}`
 
         let count = await reportModel.find({ reportCode: { $regex: `${prefixCode}.*`, $options: "i" } }).count().exec()
 
@@ -62,8 +62,6 @@ export class ReportRepository implements Repository {
     async getReportsPaginationRepo(query: FilterReport) {
         logger.info(`Start mongo.report.getReportsPaginationRepo, "input": ${JSON.stringify(query)}`)
 
-        const queryTypeForum = [{commentUUID: {$eq: null}}, {replyCommentUUID: {$eq: null}}]
-        const queryTypeComment = {commentUUID: {$ne: null}}
         const search = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const filter: FilterQuery<Report> = {
             $and: [
@@ -71,8 +69,8 @@ export class ReportRepository implements Repository {
                     $or: [
                         { reportStatus: search },
                         { reportCode: search },
-                        { 'refReport.reportCode': search },
                         { reportReason: search },
+                        { refReportCode: search },
                     ]
                 }
             ]
@@ -80,21 +78,21 @@ export class ReportRepository implements Repository {
 
         if (query.search) {
             if ('กระทู้'.includes(query.search)) {
-                filter.$and![0].$or!.push({$and: [...queryTypeForum]})
+                filter.$and![0].$or!.push({ commentUUID: null })
             } else if ('ความคิดเห็น'.includes(query.search)) {
-                filter.$and![0].$or!.push(queryTypeComment)
+                filter.$and![0].$or!.push({ commentUUID: { $ne: null } })
             }
         }
 
         if (query.reportStatus) {
-            filter.$and!.push({reportStatus: query.reportStatus})
+            filter.$and!.push({reportStatus: { $in: [...query.reportStatus.split(',').map(reportStatus => reportStatus.trim())] }})
         }
 
         if (query.type) {
             if (query.type === 'forum') {
-                filter.$and!.push(...queryTypeForum)
+                filter.$and!.push({ commentUUID: null })
             } else if (query.type === 'comment') {
-                filter.$and!.push(queryTypeComment)
+                filter.$and!.push({ commentUUID: { $ne: null } })
             }
         }
 
@@ -122,7 +120,6 @@ export class ReportRepository implements Repository {
                 preserveNullAndEmptyArrays: true
             }},
             {$addFields: {
-                type : { $cond: [ { $eq: [ "$commentUUID", null ] }, "กระทู้", "ความคิดเห็น" ] },
                 refReportCode : { $cond: [ { $eq: [ "$refReport", null ] }, 0, "$refReport.reportCode" ] },
             }},
             {$match: filter},
@@ -146,17 +143,11 @@ export class ReportRepository implements Repository {
                     reportStatus: report.reportStatus,
                     reportReason: report.reportReason,
                     reportCode: report.reportCode!,
-                    type: (report as any).type,
+                    type: report.replyCommentUUID?.length ? 'ความคิดเห็น' : report.commentUUID?.length ? 'ความคิดเห็น' : 'กระทู้',
                     refReportCode: (report as any).refReportCode,
                     createdAt: (report as any).createdAt,
                     updatedAt: (report as any).updatedAt,
                 })
-                delete (report as any)._id
-                delete (report as any).reporterDetail
-                delete (report as any).plaintiffDetail
-                delete (report as any).forumUUID
-                delete report.commentUUID
-                delete report.replyCommentUUID
             })
             return { total: Number(doc.total), data }
         })[0]

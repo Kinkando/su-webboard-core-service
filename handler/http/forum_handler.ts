@@ -381,7 +381,7 @@ export class ForumHandler {
                 plaintiffUUID: forum.authorUUID
             }
 
-            await this.reportService.createReportSrv(report)
+            await this.reportService.createReportSrv(report, 'forum')
 
             logger.info("End http.forum.favoriteForum")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

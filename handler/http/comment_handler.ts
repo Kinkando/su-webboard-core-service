@@ -361,7 +361,7 @@ export class CommentHandler {
                 plaintiffUUID: comment.commenterUUID,
             }
 
-            await this.reportService.createReportSrv(report)
+            await this.reportService.createReportSrv(report, 'comment')
 
             logger.info("End http.comment.reportComment")
             return res.status(HTTP.StatusOK).send({ message: 'success' });

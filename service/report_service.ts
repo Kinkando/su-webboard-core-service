@@ -10,7 +10,7 @@ export function newReportService(repository: ReportRepository, storage: CloudSto
 interface Service {
     getReportSrv(reportUUID: string): Promise<Report | null>
     getReportsPaginationSrv(filter: FilterReport): Promise<{total: number, data: ReportView[]}>
-    createReportSrv(report: Report): void
+    createReportSrv(report: Report, type: 'forum' | 'comment'): void
     updateReportStatusSrv(report: Report): void
     invalidReportStatusSrv(report: Report): void
     deleteReportSrv(report: Report): void
@@ -37,12 +37,10 @@ export class ReportService implements Service {
         return res
     }
 
-    async createReportSrv(report: Report) {
-        logger.info(`Start service.report.createReportSrv, "input": ${JSON.stringify(report)}`)
+    async createReportSrv(report: Report, type: 'forum' | 'comment') {
+        logger.info(`Start service.report.createReportSrv, "input": ${JSON.stringify({report, type})}`)
 
-        const reportCode = await this.repository.getReportCodeRepo()
-        report.reportCode = reportCode
-
+        report.reportCode = await this.repository.getReportCodeRepo(type)
         await this.repository.createReportRepo(report)
 
         logger.info(`End service.report.createReportSrv`)
