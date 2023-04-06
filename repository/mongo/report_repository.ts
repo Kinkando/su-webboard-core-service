@@ -40,11 +40,17 @@ export class ReportRepository implements Repository {
         }
 
         const now = new Date()
-        const prefixCode = `RP${type === 'forum' ? 'FR' : 'CM'}-${dateFormat(now)}`
+        const suffixCode = dateFormat(now)
+        const prefixCode = `RP${type === 'forum' ? 'FR' : 'CM'}-${suffixCode}`
 
-        let count = await reportModel.find({ reportCode: { $regex: `${prefixCode}.*`, $options: "i" } }).count().exec()
+        let count = 1;
+        await reportModel.find({ reportCode: { $regex: `${prefixCode}.*`, $options: "i" } }).then(async(docs) => {
+            while(docs.find(doc => doc.reportCode.substring(doc.reportCode.indexOf('-') + suffixCode.length + 1) === fiveDigit(count))) {
+                count++;
+            }
+        })
 
-        const reportCode = `${prefixCode}${fiveDigit(count+1)}`
+        const reportCode = `${prefixCode}${fiveDigit(count)}`
 
         logger.info(`End mongo.report.getReportCodeRepo, "output": ${JSON.stringify({reportCode})}`)
         return reportCode
@@ -176,9 +182,16 @@ export class ReportRepository implements Repository {
     async updateReportsStatusRepo(report: Report, fromReportStatus: ReportStatus, toReportStatus: ReportStatus, refReportUUID?: string) {
         logger.info(`Start mongo.report.updateReportsStatusRepo, "input": ${JSON.stringify({report, fromReportStatus, toReportStatus, refReportUUID})}`)
 
-        const filter: FilterQuery<Report> = { reportStatus: fromReportStatus, forumUUID: report.forumUUID, commentUUID: report.commentUUID, replyCommentUUID: report.replyCommentUUID }
+        const filter: FilterQuery<Report> = {
+            reportStatus: fromReportStatus,
+            forumUUID: report.forumUUID,
+            $or: [
+                { commentUUID: report.commentUUID },
+                { replyCommentUUID: report.commentUUID },
+            ]
+        }
         if (report.plaintiffUUID || report.reporterUUID) {
-            filter.$or = [ {plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID} ]
+            filter.$or!.push({plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID})
         }
         await reportModel.updateMany(filter, { $set: { refReportUUID: refReportUUID || undefined, reportStatus: toReportStatus, updatedAt: new Date()} })
 
