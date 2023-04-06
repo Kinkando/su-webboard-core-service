@@ -99,11 +99,12 @@ export class ReportRepository implements Repository {
         }
 
         let sortBy: Record<string, 1 | -1> = {}
-        if (filter.sortBy) {
-            for(let sortField of filter.sortBy.split(',')) {
+        if (query.sortBy) {
+            for(let sortField of query.sortBy.split(',')) {
                 sortField = sortField.trim()
                 const sortOption = sortField.split("@")
-                sortBy[sortOption[0].trim()] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+                const field = sortOption[0].trim()
+                sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
             }
         } else {
             sortBy.createdAt = -1
@@ -119,6 +120,10 @@ export class ReportRepository implements Repository {
             {$unwind: {
                 path: "$refReport",
                 preserveNullAndEmptyArrays: true
+            }},
+            {$addFields: {
+                type : { $cond: [ { $eq: [ "$commentUUID", null ] }, "กระทู้", "ความคิดเห็น" ] },
+                refReportCode : { $cond: [ { $eq: [ "$refReport", null ] }, 0, "$refReport.reportCode" ] },
             }},
             {$match: filter},
             {$sort: sortBy},
@@ -140,9 +145,9 @@ export class ReportRepository implements Repository {
                     reportUUID: report.reportUUID!,
                     reportStatus: report.reportStatus,
                     reportReason: report.reportReason,
-                    type: report.replyCommentUUID ? 'ความคิดเห็น' : report.commentUUID ? 'ความคิดเห็น' : 'กระทู้',
                     reportCode: report.reportCode!,
-                    refReportCode: (report as any).refReport && (report as any).refReport?.reportCode !== report.reportCode ? (report as any).refReport?.reportCode : undefined,
+                    type: (report as any).type,
+                    refReportCode: (report as any).refReportCode,
                     createdAt: (report as any).createdAt,
                     updatedAt: (report as any).updatedAt,
                 })
