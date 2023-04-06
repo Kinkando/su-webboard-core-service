@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { filePath } from "../common/file_path";
 import { CloudStorage, File } from '../cloud/google/storage';
+import { Occurrence } from "../model/category";
 import { Document } from "../model/common";
 import { FilterForum, Forum, ForumView, RankingForum } from "../model/forum";
 import { ForumRepository } from "../repository/mongo/forum_repository";
@@ -22,6 +23,7 @@ interface Service {
     favoriteForumSrv(forumUUID: string, userUUID: string, isFavorite: boolean): void
     pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID: string): void
     deleteCategoryIDToForumSrv(forumUUID: string, categoryID: number): void
+    countOccurrenceByCategorySrv(): Promise<Occurrence>
 }
 
 export class ForumService implements Service {
@@ -222,5 +224,14 @@ export class ForumService implements Service {
         await this.repository.deleteCategoryIDToForumRepo(forumUUID, categoryID)
 
         logger.info(`End service.forum.deleteCategoryIDToForumSrv`)
+    }
+
+    async countOccurrenceByCategorySrv() {
+        logger.info(`Start service.forum.countOccurrenceByCategorySrv`)
+
+        const res = await this.repository.countOccurrencesByCategoryRepo()
+
+        logger.info(`End service.forum.countOccurrenceByCategorySrv, "input": ${JSON.stringify(res)}`)
+        return res
     }
 }

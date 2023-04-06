@@ -213,30 +213,56 @@ export class ReportRepository implements Repository {
 
         const res = (await reportModel.aggregate<CountReport>([
             {
-                $facet: {
-                    "pendingStatus": [ { $match: { "reportStatus": ReportStatus.Pending } } ],
-                    "resolvedStatus": [ { $match: { "reportStatus": ReportStatus.Resolved } } ],
-                    "rejectedStatus": [ { $match: { "reportStatus": ReportStatus.Rejected } } ],
-                    "closedStatus": [ { $match: { "reportStatus": ReportStatus.Closed } } ],
-                    "invalidStatus": [ { $match: { "reportStatus": ReportStatus.Invalid } } ],
-                    "total" : [ { $group: { _id: null, count: { $sum: 1 } } } ],
+                $group: {
+                    _id: "$reportStatus",
+                    count: { $sum: 1 }
                 }
             },
             {
-                $unwind: "$total"
+                $sort: { "_id": 1 }
             },
             {
-                $project: {
-                    "pending": { $size: "$pendingStatus" },
-                    "resolved": { $size: "$resolvedStatus" },
-                    "rejected": { $size: "$rejectedStatus" },
-                    "closed": { $size: "$closedStatus" },
-                    "invalid": { $size: "$invalidStatus" },
-                    "total": '$total.count',
+                $group: {
+                    "_id": null,
+                    "counts": {
+                        $push: {
+                            "k": "$_id",
+                            "v": "$count"
+                        }
+                    }
+                }
+            },
+            {
+                $replaceRoot: {
+                    "newRoot": { $arrayToObject: "$counts" }
                 }
             }
+            // {
+            //     $facet: {
+            //         "pendingStatus": [ { $match: { "reportStatus": ReportStatus.Pending } } ],
+            //         "resolvedStatus": [ { $match: { "reportStatus": ReportStatus.Resolved } } ],
+            //         "rejectedStatus": [ { $match: { "reportStatus": ReportStatus.Rejected } } ],
+            //         "closedStatus": [ { $match: { "reportStatus": ReportStatus.Closed } } ],
+            //         "invalidStatus": [ { $match: { "reportStatus": ReportStatus.Invalid } } ],
+            //         "total" : [ { $group: { _id: null, count: { $sum: 1 } } } ],
+            //     }
+            // },
+            // {
+            //     $unwind: "$total"
+            // },
+            // {
+            //     $project: {
+            //         "pending": { $size: "$pendingStatus" },
+            //         "resolved": { $size: "$resolvedStatus" },
+            //         "rejected": { $size: "$rejectedStatus" },
+            //         "closed": { $size: "$closedStatus" },
+            //         "invalid": { $size: "$invalidStatus" },
+            //         "total": '$total.count',
+            //     }
+            // }
         ])).map(doc => {
             delete (doc as any)._id
+            doc.total = Object.values(doc).reduce((pre, cur) => pre+cur, 0)
             return doc
         })[0]
 

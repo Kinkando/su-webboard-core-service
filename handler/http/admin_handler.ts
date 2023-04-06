@@ -3,7 +3,7 @@ import { ForumSocket } from '../socket/forum_socket';
 import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from '../../common/http';
 import { UserType } from '../../model/authen';
-import { Category } from '../../model/category';
+import { Category, CategoryOccurrence } from '../../model/category';
 import { Pagination } from '../../model/common';
 import { Notification } from '../../model/notification';
 import { User, UserPagination } from '../../model/user';
@@ -91,10 +91,27 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            const count = await this.reportService.countReportStatusSrv()
+            const countReportStatus = await this.reportService.countReportStatusSrv()
+
+            const countCategoryOccurrence = await this.forumService.countOccurrenceByCategorySrv()
+
+            const categories = await this.categoryService.getCategoriesSrv() as CategoryOccurrence[]
+
+            categories.forEach(category => {
+                category.total = countCategoryOccurrence[category.categoryID!]
+            })
+
+            const resp = {
+                reportStatus: countReportStatus,
+                categories,
+            }
+
+            // count forum that created lastest behind 7 days
+
+            // cal top 3 of the most created category forum
 
             logger.info("End http.admin.home")
-            return res.status(HTTP.StatusOK).send(count);
+            return res.status(HTTP.StatusOK).send(resp);
 
         } catch (error) {
             logger.error(error)

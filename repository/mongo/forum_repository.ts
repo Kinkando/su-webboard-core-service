@@ -2,6 +2,7 @@ import * as mongoDB from "mongodb";
 import { CategoryCollection } from "./category_repository";
 import { UserCollection } from "./user_repository";
 import { FilterForum, Forum, ForumView, RankingForum } from "../../model/forum";
+import { Occurrence } from "../../model/category";
 import logger from "../../util/logger";
 import { CommentCollection } from "./comment_repository";
 import forumModel from './model/forum'
@@ -26,6 +27,7 @@ interface Repository {
     favoriteForumRepo(forumUUID: string, userUUID: string, isFavorite: boolean): void
     pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string): void
     deleteCategoryIDToForumRepo(forumUUID: string, categoryID: number): void
+    countOccurrencesByCategoryRepo(): Promise<Occurrence>
 }
 
 export class ForumRepository implements Repository {
@@ -342,5 +344,32 @@ export class ForumRepository implements Repository {
         logger.info(`delete category: ${categoryID} out of forum to forumUUID: ${forumUUID} successfully: ${result.upsertedCount} item`)
 
         logger.info(`End mongo.forum.deleteCategoryIDToForumRepo`)
+    }
+
+    async countOccurrencesByCategoryRepo() {
+        logger.info(`Start mongo.forum.countOccurrencesByCategoryRepo`)
+
+        const result = (await this.db.collection<Occurrence>(ForumCollection).aggregate([
+            { $unwind : "$categoryIDs" },
+            { $group: { "_id": "$categoryIDs", "count": { $sum: 1} } },
+            { $group: {
+                "_id": null,
+                    "counts": {
+                        $push: {
+                            "k": { $convert: { input: "$_id", to: "string" } },
+                            "v": "$count"
+                        }
+                    }
+                }
+            },
+            {
+                $replaceRoot: {
+                    "newRoot": { $arrayToObject: "$counts" }
+                }
+            },
+        ]).map(doc => doc as Occurrence).toArray())[0]
+
+        logger.info(`End mongo.forum.countOccurrencesByCategoryRepo, "input": ${JSON.stringify(result)}`)
+        return result
     }
 }
