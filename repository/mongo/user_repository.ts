@@ -47,7 +47,17 @@ export class UserRepository implements Repository {
     async getUsersPaginationRepo(query: UserPagination) {
         logger.info(`Start mongo.user.getUsersPaginationRepo, "input": ${JSON.stringify(query)}`)
 
-        const sort = query.userType ? { studentID: 1, userFullName: 1 } : { userDisplayName: 1 }
+        let sort!: Record<string, 1 | -1>
+        if (query.sortBy) {
+            for(let sortField of query.sortBy.split(',')) {
+                sortField = sortField.trim()
+                const sortOption = sortField.split("@")
+                const field = sortOption[0].trim()
+                sort[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+            }
+        } else {
+            sort = query.userType ? { studentID: 1, userFullName: 1 } : { userDisplayName: 1 }
+        }
 
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const users = (await this.db.collection(UserCollection).aggregate([

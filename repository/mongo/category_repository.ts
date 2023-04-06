@@ -53,9 +53,21 @@ export class CategoryRepository implements Repository {
     async getCategoriesPaginationRepo(query: Pagination) {
         logger.info(`Start mongo.category.getCategoriesPaginationRepo, "input": ${JSON.stringify(query)}`)
 
+        let sort!: Record<string, 1 | -1>
+        if (query.sortBy) {
+            for(let sortField of query.sortBy.split(',')) {
+                sortField = sortField.trim()
+                const sortOption = sortField.split("@")
+                const field = sortOption[0].trim()
+                sort[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+            }
+        } else {
+            sort = { categoryID: 1 }
+        }
+
         const filter = { $regex: `.*${query.search ?? ''}.*`, $options: "i" }
         const data = (await this.db.collection(CategoryCollection).aggregate([
-            {$sort: { categoryID: 1 }},
+            {$sort: sort},
             {$match:{
                 $and: [
                     { $or: [
