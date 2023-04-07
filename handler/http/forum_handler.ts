@@ -190,7 +190,7 @@ export class ForumHandler {
 
             if (isUpdate) {
                 this.forumSocket.updateForum(profile.sessionUUID, response.forumUUID)
-            } else {
+            } else if (!forum.isAnonymous) {
                 const notiUsers = await this.userService.getUsersSrv({notiUserUUID: profile.userUUID})
                 if (notiUsers) {
                     for(const notiUser of notiUsers) {

@@ -197,7 +197,15 @@ export class NotificationRepository implements Repository {
     async deleteNotificationRepo(noti: Notification) {
         logger.info(`Start mongo.notification.deleteNotificationRepo, "input": ${JSON.stringify(noti)}`)
 
-        await notificationModel.deleteMany(noti)
+        if (noti.commentUUID) {
+            if (!noti.replyCommentUUID) {
+                (noti as any).$or = [{ commentUUID: noti.commentUUID }, { replyCommentUUID: noti.commentUUID }]
+                delete noti.commentUUID
+                delete noti.replyCommentUUID
+            }
+        }
+        const result = await notificationModel.deleteMany(noti)
+        logger.warn(`delete notification total: ${result.deletedCount} item(s)`)
 
         logger.info(`End mongo.notification.deleteNotificationRepo`)
     }

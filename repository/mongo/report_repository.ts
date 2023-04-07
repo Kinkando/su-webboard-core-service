@@ -109,7 +109,11 @@ export class ReportRepository implements Repository {
                 sortField = sortField.trim()
                 const sortOption = sortField.split("@")
                 const field = sortOption[0].trim()
-                sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+                if (field === 'type') {
+                    sortBy.commentUUID = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+                } else {
+                    sortBy[field] = sortOption.length > 1 && sortOption[1].toLowerCase().trim() === 'desc' ? -1 : 1
+                }
             }
         } else {
             sortBy.createdAt = -1

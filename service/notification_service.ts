@@ -41,7 +41,7 @@ export class NotificationService implements Service {
             noti.notiBody = noti.notiUserDisplayName + ' ' + noti.notiBody
         }
         noti.notiUserImageURL = await this.storage.signedURL(noti.isAnonymous ? filePath.anonymousAvatar : noti.notiUserImageURL)
-        noti.notiLink = mapNotiLink({replyCommentUUID: noti.replyCommentUUID, commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
+        noti.notiLink = mapNotiLink({announcementUUID: noti.announcementUUID, replyCommentUUID: noti.replyCommentUUID, commentUUID: noti.commentUUID, forumUUID: noti.forumUUID, followerUserUUID: noti.followerUserUUID})
         delete noti.followerUserUUID
         delete noti.announcementUUID
         delete noti.forumUUID
