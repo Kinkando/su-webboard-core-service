@@ -6,6 +6,7 @@ import HTTP from "../../common/http";
 import { FilterForum, Forum } from '../../model/forum';
 import { Report, ReportStatus } from '../../model/report';
 import { NotificationBody } from '../../model/notification';
+import { CategoryService } from '../../service/category_service';
 import { CommentService } from '../../service/comment_service';
 import { ForumService } from "../../service/forum_service";
 import { NotificationService } from '../../service/notification_service';
@@ -18,15 +19,16 @@ import { bind, validate } from "../../util/validate";
 const upload = multer()
 
 export function newForumHandler(
-    forumService: ForumService,
+    categoryService: CategoryService,
     commentService: CommentService,
+    forumService: ForumService,
     notificationService: NotificationService,
     reportService: ReportService,
     userService: UserService,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
-    const forumHandler = new ForumHandler(forumService, commentService, notificationService, reportService, userService, forumSocket, notificationSocket)
+    const forumHandler = new ForumHandler(categoryService, commentService, forumService, notificationService, reportService, userService, forumSocket, notificationSocket)
 
     const forumRouter = Router()
     forumRouter.get('', (req, res, next) => forumHandler.getForums(req, res, next))
@@ -42,8 +44,9 @@ export function newForumHandler(
 
 export class ForumHandler {
     constructor(
-        private forumService: ForumService,
+        private categoryService: CategoryService,
         private commentService: CommentService,
+        private forumService: ForumService,
         private notificationService: NotificationService,
         private reportService: ReportService,
         private userService: UserService,
@@ -174,6 +177,13 @@ export class ForumHandler {
             if (forum.categoryIDs.length > 5) {
                 logger.error('categoryIDs is limit at 5')
                 return res.status(HTTP.StatusBadRequest).send({ error: "categoryIDs is limit at 5" })
+            }
+
+            const categories = await this.categoryService.getCategoriesSrv()
+            const categoryList = categories.filter(category => forum.categoryIDs.includes(category.categoryID!))
+            if (categoryList.length !== forum.categoryIDs.length) {
+                logger.error('some categoryID is not found')
+                return res.status(HTTP.StatusBadRequest).send({ error: "some categoryID is not found" })
             }
 
             const response = await this.forumService.upsertForumSrv(profile.userUUID, forum, req.files as any, data.forumImageUUIDs)

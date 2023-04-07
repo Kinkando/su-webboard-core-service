@@ -121,7 +121,7 @@ export default async function init(config: Configuration) {
     api.use('/authen', newAuthenHandler(config.app.apiKey, googleService, authenService, userService))
     api.use('/category', middleware, newCategoryHandler(categoryService))
     api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
-    api.use('/forum', middleware, newForumHandler(forumService, commentService, notificationService, reportService, userService, forumSocket, notificationSocket))
+    api.use('/forum', middleware, newForumHandler(categoryService, commentService, forumService, notificationService, reportService, userService, forumSocket, notificationSocket))
     api.use('/comment', middleware, newCommentHandler(commentService, forumService, notificationService, reportService, forumSocket, notificationSocket))
     api.use('/user', middleware, newUserHandler(userService, notificationService, notificationSocket))
     api.use('/notification', middleware, newNotificationHandler(notificationService, notificationSocket))

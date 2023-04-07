@@ -233,11 +233,17 @@ export class UserService implements Service {
                 throw Error('user is not found')
             }
 
-            await this.storage.deleteFile(u.userImageURL!)
+            try {
+                await this.storage.deleteFile(u.userImageURL!)
+            } catch (error) {}
 
-            await this.firebaseAuth.deleteUser(u.firebaseID!)
+            try {
+                await this.firebaseAuth.deleteUser(u.firebaseID!)
+            } catch (error) {}
 
-            await this.repository.deleteUserRepo(userUUID);
+            try {
+                await this.repository.deleteUserRepo(userUUID);
+            } catch (error) {}
 
         } catch (error) {
             logger.error(error)
