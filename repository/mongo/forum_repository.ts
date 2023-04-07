@@ -28,6 +28,8 @@ interface Repository {
     pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string): void
     deleteCategoryIDToForumRepo(forumUUID: string, categoryID: number): void
     countOccurrencesByCategoryRepo(): Promise<Occurrence>
+    countForumBackToLatestRepo(day: number): Promise<{ [day: string]: number }>
+    countForumDocumentsRepo(): Promise<number>
 }
 
 export class ForumRepository implements Repository {
@@ -371,5 +373,37 @@ export class ForumRepository implements Repository {
 
         logger.info(`End mongo.forum.countOccurrencesByCategoryRepo, "input": ${JSON.stringify(result)}`)
         return result
+    }
+
+    async countForumBackToLatestRepo(day: number) {
+        logger.info(`Start mongo.forum.countForumBackToLatestRepo, "input": ${JSON.stringify({day})}`)
+
+        let now = new Date()
+        const aggregate: mongoDB.BSON.Document[] = [{$facet: {}}, {$project: {}}]
+        for (let i=1; i<=day; i++) {
+            const current = new Date(now)
+            const tomorrow = new Date(now)
+            current.setDate(current.getDate() - i)
+            tomorrow.setDate(tomorrow.getDate() - i + 1)
+            const key = current.toISOString().substring(0, 10)
+            aggregate[0].$facet[key] = [ { $match: { createdAt: { $gte: current, $lt: tomorrow } } } ]
+            aggregate[1].$project[key] = { $size: `$${key}` }
+        }
+        // aggregate[0].$facet['all'] = [ { $match: { createdAt: { $gte: new Date('2000-01-01'), $lt: now } } } ]
+        // aggregate[1].$project['all'] = { $size: '$all' }
+
+        const result: { [day: string]: number } = (await this.db.collection(ForumCollection).aggregate(aggregate).toArray())[0]
+
+        logger.info(`End mongo.forum.countForumBackToLatestRepo, "input": ${JSON.stringify(result)}`)
+        return result
+    }
+
+    async countForumDocumentsRepo() {
+        logger.info(`Start mongo.forum.countForumDocumentsRepo`)
+
+        const count = await this.db.collection(ForumCollection).countDocuments({})
+
+        logger.info(`End mongo.forum.countForumDocumentsRepo, "input": ${JSON.stringify({count})}`)
+        return count
     }
 }

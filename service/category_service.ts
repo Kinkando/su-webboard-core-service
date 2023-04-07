@@ -1,5 +1,5 @@
 import { Pagination } from "../model/common";
-import { Category, CategoryDetail } from "../model/category";
+import { Category, CategoryDetail, CategoryOccurrence } from "../model/category";
 import { CategoryRepository } from "../repository/mongo/category_repository";
 import logger from "../util/logger";
 

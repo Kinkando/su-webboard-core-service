@@ -7,6 +7,8 @@ export interface Category {
 export interface CategoryDetail extends Category {
     lastActive: Date
     forumCount: number
+    total?: number
+    ranking?: number
 }
 
 export interface CategoryOccurrence extends Category {

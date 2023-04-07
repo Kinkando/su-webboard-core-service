@@ -1,4 +1,4 @@
-import { Category, CategoryDetail } from "../../model/category";
+import { Category, CategoryDetail, CategoryOccurrence } from "../../model/category";
 import logger from "../../util/logger";
 import * as mongoDB from "mongodb";
 import categoryModel from './model/category'
@@ -41,8 +41,9 @@ export class CategoryRepository implements Repository {
             {$sort: { categoryName: 1 }},
         ]).map(doc => {
             delete doc._id
-            delete doc._createdAt
-            delete doc._updatedAt
+            delete doc.createdAt
+            delete doc.updatedAt
+            delete doc.forums
             delete doc.categories
             return doc as CategoryDetail
         }).toArray()

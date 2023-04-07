@@ -93,22 +93,21 @@ class AdminHandler {
 
             const countReportStatus = await this.reportService.countReportStatusSrv()
 
-            const countCategoryOccurrence = await this.forumService.countOccurrenceByCategorySrv()
-
-            const categories = await this.categoryService.getCategoriesSrv() as CategoryOccurrence[]
-
-            categories.forEach(category => {
-                category.total = countCategoryOccurrence[category.categoryID!]
+            const countForumDocs = await this.forumService.countForumDocumentsSrv()
+            const countCategoryOccurrence = await this.categoryService.getCategoryDetailsSrv()
+            const uniqueOccurrence = [... new Set(countCategoryOccurrence.map(category => category.forumCount))].sort((a, b) => b-a)
+            countCategoryOccurrence.forEach(category => {
+                category.total = countForumDocs
+                category.ranking = uniqueOccurrence.findIndex(oc => oc === category.forumCount)+1
             })
+
+            const countForumOccurrence = await this.forumService.countForumBackToLatestSrv(7)
 
             const resp = {
                 reportStatus: countReportStatus,
-                categories,
+                categories: countCategoryOccurrence.sort((a, b) => a.ranking! - b.ranking!),
+                forums: countForumOccurrence,
             }
-
-            // count forum that created lastest behind 7 days
-
-            // cal top 3 of the most created category forum
 
             logger.info("End http.admin.home")
             return res.status(HTTP.StatusOK).send(resp);
