@@ -3,7 +3,7 @@ import { ForumSocket } from '../socket/forum_socket';
 import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from '../../common/http';
 import { UserType } from '../../model/authen';
-import { Category, CategoryOccurrence } from '../../model/category';
+import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
 import { Notification } from '../../model/notification';
 import { User, UserPagination } from '../../model/user';
@@ -128,9 +128,14 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
-            if (req.body?.userUUIDs) {
-                await this.authenService.revokeTokensByAdminSrv(req.body?.userUUIDs)
+            const userUUIDs = req.body?.userUUIDs as string[]
+            if (!userUUIDs || !userUUIDs.length) {
+                logger.error('userUUIDs is required')
+                return res.status(HTTP.StatusBadRequest).send({ error: "userUUIDs is required" })
             }
+
+            await this.authenService.revokeTokensByAdminSrv(userUUIDs)
+            userUUIDs.forEach(userUUID => this.notificationSocket.refreshNotification(userUUID))
 
             logger.info("End http.admin.revokeUsers")
             return res.status(HTTP.StatusOK).send({ message: "success" });

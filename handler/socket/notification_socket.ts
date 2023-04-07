@@ -22,6 +22,7 @@ export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEvents
         })
         socket.on('refresh', (userUUID: string) => notificationNamespace.to(userUUID).emit(NotificationEvent.RefreshNotification))
         socket.on('read', (data: {userUUID: string, notiUUID?: string}) => notificationNamespace.to(data.userUUID).emit(NotificationEvent.ReadNotification, data.notiUUID))
+        socket.once('disconnect', reason => adminSocket.userDisconnected(socket.id))
     })
 
     return new NotificationSocket(notificationNamespace)

@@ -39,37 +39,13 @@ export function newForumSocket(io: Server<DefaultEventsMap, DefaultEventsMap, De
                 socketID: socket.id,
             })
             socket.join(data.room)
-            // uniqueSessionUUIDs.add(data.sessionUUID)
             logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room}, sessionUUID: ${data.sessionUUID}`)
-
-            // if (!uniqueSessionUUIDs.has(data.sessionUUID)) {
-            //     uniqueSessionUUIDs.add(data.sessionUUID)
-            //     forumSocketClients.push({
-            //         room: data.room,
-            //         sessionUUID: data.sessionUUID,
-            //         socketID: socket.id,
-            //     })
-            //     socket.join(data.room)
-            //     logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room}, sessionUUID: ${data.sessionUUID}`)
-            // }
-
-            // if (!forumSocketClients.find(socket => socket.sessionUUID !== data.sessionUUID)) {
-            //     forumSocketClients.push({
-            //         room: data.room,
-            //         sessionUUID: data.sessionUUID,
-            //         socketID: socket.id,
-            //     })
-            //     socket.join(data.room)
-            //     logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room}, sessionUUID: ${data.sessionUUID}`)
-            //     console.log('$$$$$$$ SOCKET COUNTS:',forumSocketClients.length)
-            // }
         })
         socket.on('disconnect', reason => {
             logger.warn(`Client is disconnected to socket with id: ${socket.id}`)
             const socketClient = forumSocketClients.find(client => client.socketID === socket.id)
             if (socketClient) {
                 forumSocketClients = forumSocketClients.filter(client => client.socketID !== socket.id)
-                // uniqueSessionUUIDs.delete(socketClient.sessionUUID)
                 socket.leave(socketClient.room)
                 logger.warn(`Client is disconnected to socket with id: ${socket.id}, room: ${socketClient.room}, sessionUUID: ${socketClient.sessionUUID}, reason: ${JSON.stringify(reason)}`)
             }

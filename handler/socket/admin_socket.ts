@@ -54,16 +54,16 @@ export class AdminSocket {
             studentID: userProfile.studentID,
         }
         userConnectedList.push(user)
-        this.sockets.emit(AdminEvent.UserConnect, user)
+        this.sockets.emit(AdminEvent.UserConnect, {user, socketID})
 
         logger.info(`End socket.admin.userConnected`)
     }
 
-    async userDisconnected(userUUID: string, socketID: string) {
-        logger.info(`Start socket.admin.userDisconnected, "input": ${JSON.stringify({ userUUID, socketID })}`)
+    async userDisconnected(socketID: string) {
+        logger.info(`Start socket.admin.userDisconnected, "input": ${JSON.stringify({ socketID })}`)
 
         userConnectedList = userConnectedList.filter(user => user.socketID !== socketID)
-        this.sockets.emit(AdminEvent.UserDisconnect, { userUUID, socketID })
+        this.sockets.emit(AdminEvent.UserDisconnect, socketID)
 
         logger.info(`End socket.admin.userDisconnected`)
     }
