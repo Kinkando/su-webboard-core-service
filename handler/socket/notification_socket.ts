@@ -1,6 +1,7 @@
-import logger from '../../util/logger';
 import { Namespace, Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
+import logger from '../../util/logger';
+import { AdminSocket } from './admin_socket';
 
 enum NotificationEvent {
     CreateNotification = 'createNotification',
@@ -10,13 +11,14 @@ enum NotificationEvent {
     RefreshNotification = 'refreshNotification',
 }
 
-export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
+export function newNotificationSocket(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, adminSocket: AdminSocket) {
     const notificationNamespace = io.of('/notification')
     notificationNamespace.on('connection', socket => {
         socket.on('ping', () => socket.emit('pong', { message: 'pong' }))
-        socket.on('join', (data: {room: string}) => {
+        socket.on('join', async (data: {room: string}) => {
             socket.join(data.room)
-            logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room} (same with userUUID)`)
+            logger.debug(`Client is connected to socket with id: ${socket.id}, room: ${data.room} as userUUID`)
+            adminSocket.userConnected(data.room, socket.id)
         })
         socket.on('refresh', (userUUID: string) => notificationNamespace.to(userUUID).emit(NotificationEvent.RefreshNotification))
         socket.on('read', (data: {userUUID: string, notiUUID?: string}) => notificationNamespace.to(data.userUUID).emit(NotificationEvent.ReadNotification, data.notiUUID))

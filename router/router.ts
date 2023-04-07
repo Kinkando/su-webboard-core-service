@@ -22,8 +22,9 @@ import { newCommentHandler } from '../handler/http/comment_handler';
 import { newForumHandler } from '../handler/http/forum_handler';
 import { newNotificationHandler } from '../handler/http/notification_handler';
 import { newUserHandler } from '../handler/http/user_handler';
-import { newNotificationSocket } from '../handler/socket/notification_socket';
+import { newAdminSocket } from '../handler/socket/admin_socket';
 import { newForumSocket } from '../handler/socket/forum_socket';
+import { newNotificationSocket } from '../handler/socket/notification_socket';
 import { newSocket } from '../handler/socket/socket';
 
 import { newAuthenService } from '../service/authen_service';
@@ -78,10 +79,6 @@ export default async function init(config: Configuration) {
 
     const server = api.listen(PORT, () => logger.debug(`Server is listening on port :${PORT}`));
 
-    // initialize socket
-    const socketServer = newSocket(server)
-    const notificationSocket = newNotificationSocket(socketServer)
-    const forumSocket = newForumSocket(socketServer)
 
     // define repo
     const announcementRepository = newAnnouncementRepository(mongoDB)
@@ -102,6 +99,12 @@ export default async function init(config: Configuration) {
     const notificationService = newNotificationService(notificationRepository, forumService, storage)
     const reportService = newReportService(reportRepository, storage)
     const userService = newUserService(config.app.defaultPassword, userRepository, firebaseAuth, storage, sendgrid)
+
+    // initialize socket
+    const socketServer = newSocket(server)
+    const adminSocket = newAdminSocket(socketServer, userService)
+    const notificationSocket = newNotificationSocket(socketServer, adminSocket)
+    const forumSocket = newForumSocket(socketServer)
 
     // define handler
     api.use('', newHealthHandler(mongoDB, redis as any))
