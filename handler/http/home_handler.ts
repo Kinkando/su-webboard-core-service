@@ -35,14 +35,14 @@ export class HomeHandler {
             const filter = {
                 offset: 0,
                 limit: 10,
-                sortBy: 'ranking@DESC'
             }
             const announcement = await this.announcementService.getAnnouncementsSrv(filter, true)
-            const popularForum = await this.forumService.getForumsPaginationSrv(filter, true, profile.userUUID)
+            const popularForum = await this.forumService.getForumsPaginationSrv({...filter, sortBy: 'ranking@DESC'}, true, profile.userUUID)
+            const latestForum = await this.forumService.getForumsPaginationSrv({...filter, sortBy: 'createdAt@DESC'}, true, profile.userUUID)
             const categories = await this.categoryService.getCategoryDetailsSrv()
 
             logger.info("End http.home.home")
-            return res.status(HTTP.StatusOK).send({ announcements: announcement.data, popularTopics: popularForum.data, categories: categories });
+            return res.status(HTTP.StatusOK).send({ announcements: announcement.data, popularTopics: popularForum.data, latestTopics: latestForum.data, categories: categories });
 
         } catch (error) {
             logger.error(error)
