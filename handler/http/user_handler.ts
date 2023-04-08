@@ -10,10 +10,11 @@ import { NotificationService } from '../../service/notification_service';
 import logger from '../../util/logger';
 import { getProfile } from '../../util/profile';
 import { NotificationSocket } from '../socket/notification_socket';
+import { AdminSocket } from '../../handler/socket/admin_socket';
 const upload = multer()
 
-export function newUserHandler(userService: UserService, notificationService: NotificationService, notificationSocket: NotificationSocket) {
-    const userHandler = new UserHandler(userService, notificationService, notificationSocket)
+export function newUserHandler(userService: UserService, notificationService: NotificationService, adminSocket: AdminSocket, notificationSocket: NotificationSocket) {
+    const userHandler = new UserHandler(userService, notificationService, adminSocket, notificationSocket)
 
     const userRouter = Router()
     userRouter.get('', (req, res, next) => userHandler.searchUsers(req, res, next))
@@ -30,6 +31,7 @@ class UserHandler {
     constructor(
         private userService: UserService,
         private notificationService: NotificationService,
+        private adminSocket: AdminSocket,
         private notificationSocket: NotificationSocket,
     ) {}
 
@@ -296,6 +298,8 @@ class UserHandler {
                 user.userDisplayName = data.userDisplayName.trim()
             }
             await this.userService.updateUserProfileSrv(user, (req.files as any)[0] as File)
+
+            this.adminSocket.userUpdated(profile.userUUID)
 
             logger.info("End http.user.updateProfile")
             return res.status(HTTP.StatusCreated).send({ message: 'success' });

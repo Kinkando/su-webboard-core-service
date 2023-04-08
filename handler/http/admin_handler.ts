@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import { ForumSocket } from '../socket/forum_socket';
 import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from '../../common/http';
+import { AdminSocket } from '../../handler/socket/admin_socket';
 import { UserType } from '../../model/authen';
 import { Category } from '../../model/category';
 import { Pagination } from '../../model/common';
@@ -29,6 +30,7 @@ export function newAdminHandler(
     notificationService: NotificationService,
     reportService: ReportService,
     userService: UserService,
+    adminSocket: AdminSocket,
     forumSocket: ForumSocket,
     notificationSocket: NotificationSocket,
 ) {
@@ -41,6 +43,7 @@ export function newAdminHandler(
         notificationService,
         reportService,
         userService,
+        adminSocket,
         forumSocket,
         notificationSocket,
     )
@@ -77,6 +80,7 @@ class AdminHandler {
         private notificationService: NotificationService,
         private reportService: ReportService,
         private userService: UserService,
+        private adminSocket: AdminSocket,
         private forumSocket: ForumSocket,
         private notificationSocket: NotificationSocket,
     ) {}
@@ -91,21 +95,23 @@ class AdminHandler {
                 return res.status(HTTP.StatusUnauthorized).send({ error: "permission is denied" })
             }
 
+            const fromDate = req.query.fromDate ? new Date(req.query.fromDate.toString()) : new Date();
+
             const countReportStatus = await this.reportService.countReportStatusSrv()
 
-            const countForumDocs = await this.forumService.countForumDocumentsSrv()
-            const countCategoryOccurrence = await this.categoryService.getCategoryDetailsSrv()
-            const uniqueOccurrence = [... new Set(countCategoryOccurrence.map(category => category.forumCount))].sort((a, b) => b-a)
-            countCategoryOccurrence.forEach(category => {
-                category.total = countForumDocs
-                category.ranking = uniqueOccurrence.findIndex(oc => oc === category.forumCount)+1
-            })
+            // const countForumDocs = await this.forumService.countForumDocumentsSrv()
+            // const countCategoryOccurrence = await this.categoryService.getCategoryDetailsSrv()
+            // const uniqueOccurrence = [... new Set(countCategoryOccurrence.map(category => category.forumCount))].sort((a, b) => b-a)
+            // countCategoryOccurrence.forEach(category => {
+            //     category.total = countForumDocs
+            //     category.ranking = uniqueOccurrence.findIndex(oc => oc === category.forumCount)+1
+            // })
 
-            const countForumOccurrence = await this.forumService.countForumBackToLatestSrv(7)
+            const countForumOccurrence = await this.forumService.countForumBackToLatestSrv(fromDate, 7)
 
             const resp = {
                 reportStatus: countReportStatus,
-                categories: countCategoryOccurrence.sort((a, b) => a.ranking! - b.ranking!),
+                // categories: countCategoryOccurrence.sort((a, b) => a.ranking! - b.ranking!),
                 forums: countForumOccurrence,
             }
 
@@ -135,7 +141,10 @@ class AdminHandler {
             }
 
             await this.authenService.revokeTokensByAdminSrv(userUUIDs)
-            userUUIDs.forEach(userUUID => this.notificationSocket.refreshNotification(userUUID))
+            userUUIDs.forEach(userUUID => {
+                this.notificationSocket.refreshNotification(userUUID)
+                this.adminSocket.userDisconnected({userUUID})
+            })
 
             logger.info("End http.admin.revokeUsers")
             return res.status(HTTP.StatusOK).send({ message: "success" });
@@ -298,6 +307,8 @@ class AdminHandler {
 
             await this.userService.updateUserSrv(user)
 
+            this.adminSocket.userUpdated(user.userUUID!)
+
             logger.info("End http.admin.updateUser")
             return res.status(HTTP.StatusOK).send({ message: "success" });
 
@@ -438,6 +449,8 @@ class AdminHandler {
                     }
                 }
                 await this.notificationService.createUpdateDeleteNotificationSrv({followerUserUUID: userUUID} as any, 'remove')
+
+                this.adminSocket.userDisconnected({userUUID})
 
                 if (notiUserUUIDs) {
                     for (const userUUID of notiUserUUIDs) {

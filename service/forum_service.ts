@@ -24,7 +24,7 @@ interface Service {
     pullFavoriteAndLikeUserUUIDFromForumSrv(userUUID: string): void
     deleteCategoryIDToForumSrv(forumUUID: string, categoryID: number): void
     countOccurrenceByCategorySrv(): Promise<Occurrence>
-    countForumBackToLatestSrv(day: number): Promise<{ [day: string]: number }>
+    countForumBackToLatestSrv(fromDate: Date, day: number): Promise<{ [day: string]: number }>
     countForumDocumentsSrv(): Promise<number>
 }
 
@@ -237,10 +237,10 @@ export class ForumService implements Service {
         return res
     }
 
-    async countForumBackToLatestSrv(day: number) {
-        logger.info(`Start service.forum.countForumBackToLatestSrv, "input": ${JSON.stringify({day})}`)
+    async countForumBackToLatestSrv(fromDate: Date, day: number) {
+        logger.info(`Start service.forum.countForumBackToLatestSrv, "input": ${JSON.stringify({fromDate, day})}`)
 
-        const res = await this.repository.countForumBackToLatestRepo(day)
+        const res = await this.repository.countForumBackToLatestRepo(fromDate, day)
 
         logger.info(`End service.forum.countForumBackToLatestSrv, "output": ${JSON.stringify(res)}`)
         return res

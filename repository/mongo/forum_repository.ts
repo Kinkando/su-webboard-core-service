@@ -28,7 +28,7 @@ interface Repository {
     pullFavoriteAndLikeUserUUIDFromForumRepo(userUUID: string): void
     deleteCategoryIDToForumRepo(forumUUID: string, categoryID: number): void
     countOccurrencesByCategoryRepo(): Promise<Occurrence>
-    countForumBackToLatestRepo(day: number): Promise<{ [day: string]: number }>
+    countForumBackToLatestRepo(fromDate: Date, day: number): Promise<{ [day: string]: number }>
     countForumDocumentsRepo(): Promise<number>
 }
 
@@ -375,14 +375,13 @@ export class ForumRepository implements Repository {
         return result
     }
 
-    async countForumBackToLatestRepo(day: number) {
-        logger.info(`Start mongo.forum.countForumBackToLatestRepo, "input": ${JSON.stringify({day})}`)
+    async countForumBackToLatestRepo(fromDate: Date, day: number) {
+        logger.info(`Start mongo.forum.countForumBackToLatestRepo, "input": ${JSON.stringify({fromDate, day})}`)
 
-        let now = new Date()
         const aggregate: mongoDB.BSON.Document[] = [{$facet: {}}, {$project: {}}]
         for (let i=1; i<=day; i++) {
-            const current = new Date(now)
-            const tomorrow = new Date(now)
+            const current = new Date(fromDate)
+            const tomorrow = new Date(fromDate)
             current.setDate(current.getDate() - i)
             tomorrow.setDate(tomorrow.getDate() - i + 1)
             const key = current.toISOString().substring(0, 10)

@@ -5,6 +5,7 @@ import logger from '../../util/logger';
 
 enum AdminEvent {
     UserConnect = 'userConnected',
+    UserUpdate = 'userUpdated',
     UserDisconnect = 'userDisconnected',
     AdminConnect = 'adminConnected'
 }
@@ -17,6 +18,7 @@ interface User {
     userFullName: string
     userImageURL: string
     studentID?: string
+    loginAt: Date
 }
 
 let userConnectedList: User[] = []
@@ -52,6 +54,7 @@ export class AdminSocket {
             userFullName: userProfile.userFullName!,
             userImageURL: userProfile.userImageURL!,
             studentID: userProfile.studentID,
+            loginAt: new Date(),
         }
         userConnectedList.push(user)
         this.sockets.emit(AdminEvent.UserConnect, {user, socketID})
@@ -59,11 +62,43 @@ export class AdminSocket {
         logger.info(`End socket.admin.userConnected`)
     }
 
-    async userDisconnected(socketID: string) {
-        logger.info(`Start socket.admin.userDisconnected, "input": ${JSON.stringify({ socketID })}`)
+    async userUpdated(userUUID: string) {
+        logger.info(`Start socket.admin.userUpdated, "input": ${JSON.stringify({ userUUID })}`)
 
-        userConnectedList = userConnectedList.filter(user => user.socketID !== socketID)
-        this.sockets.emit(AdminEvent.UserDisconnect, socketID)
+        const findIndex = userConnectedList.findIndex(user => user.userUUID === userUUID)
+        if (findIndex !== -1) {
+            const userProfile = await this.userService.getUserProfileSrv({userUUID})
+            if (!userProfile || !userProfile.userUUID) {
+                logger.error(`userUUID: ${userUUID} is not found`)
+                return
+            }
+
+            userConnectedList.forEach((user, index) => {
+                if (user.userUUID === userUUID) {
+                    userConnectedList[index].userDisplayName = userProfile.userDisplayName!
+                    userConnectedList[index].userFullName = userProfile.userFullName!
+                    userConnectedList[index].userImageURL = userProfile.userImageURL!
+                    if (userConnectedList[index].userType === 'std') {
+                        userConnectedList[index].studentID = userProfile.studentID!
+                    }
+                }
+            })
+            this.sockets.emit(AdminEvent.UserUpdate, userProfile)
+        }
+
+        logger.info(`End socket.admin.userUpdated`)
+    }
+
+    async userDisconnected(data: {socketID?: string, userUUID?: string}) {
+        logger.info(`Start socket.admin.userDisconnected, "input": ${JSON.stringify(data)}`)
+
+        userConnectedList = userConnectedList.filter(user => {
+            if (data.socketID) {
+                return user.socketID !== data.socketID
+            }
+            return user.userUUID !== data.userUUID
+        })
+        this.sockets.emit(AdminEvent.UserDisconnect, data)
 
         logger.info(`End socket.admin.userDisconnected`)
     }

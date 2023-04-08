@@ -117,6 +117,7 @@ export default async function init(config: Configuration) {
         notificationService,
         reportService,
         userService,
+        adminSocket,
         forumSocket,
         notificationSocket,
     ))
@@ -126,7 +127,7 @@ export default async function init(config: Configuration) {
     api.use('/home', middleware, newHomeHandler(categoryService, forumService, announcementService))
     api.use('/forum', middleware, newForumHandler(categoryService, commentService, forumService, notificationService, reportService, userService, forumSocket, notificationSocket))
     api.use('/comment', middleware, newCommentHandler(commentService, forumService, notificationService, reportService, forumSocket, notificationSocket))
-    api.use('/user', middleware, newUserHandler(userService, notificationService, notificationSocket))
+    api.use('/user', middleware, newUserHandler(userService, notificationService, adminSocket, notificationSocket))
     api.use('/notification', middleware, newNotificationHandler(notificationService, notificationSocket))
 
     return api
