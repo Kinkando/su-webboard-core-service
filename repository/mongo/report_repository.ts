@@ -187,16 +187,31 @@ export class ReportRepository implements Repository {
     async updateReportsStatusRepo(report: Report, fromReportStatus: ReportStatus, toReportStatus: ReportStatus, refReportUUID?: string) {
         logger.info(`Start mongo.report.updateReportsStatusRepo, "input": ${JSON.stringify({report, fromReportStatus, toReportStatus, refReportUUID})}`)
 
-        const filter: FilterQuery<Report> = {
-            reportStatus: fromReportStatus,
-            forumUUID: report.forumUUID,
-            $or: [
+        const filter: FilterQuery<Report> = { reportStatus: fromReportStatus }
+
+        if (report.forumUUID) {
+            filter.forumUUID = report.forumUUID
+        }
+        if (report.commentUUID && !report.replyCommentUUID) {
+            filter.$or = [
                 { commentUUID: report.commentUUID },
                 { replyCommentUUID: report.commentUUID },
             ]
+        } else {
+            if (report.commentUUID) {
+                filter.commentUUID = report.commentUUID
+            }
+            if (report.replyCommentUUID) {
+                filter.replyCommentUUID = report.replyCommentUUID
+            }
         }
+
         if (report.plaintiffUUID || report.reporterUUID) {
-            filter.$or!.push({plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID})
+            if (filter.$or) {
+                filter.$or.push({plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID})
+            } else {
+                filter.$or = [{plaintiffUUID: report.plaintiffUUID}, {reporterUUID: report.reporterUUID}]
+            }
         }
         await reportModel.updateMany(filter, { $set: { refReportUUID: refReportUUID || undefined, reportStatus: toReportStatus, updatedAt: new Date()} })
 
@@ -206,6 +221,13 @@ export class ReportRepository implements Repository {
     async deleteReportRepo(report: Report) {
         logger.info(`Start mongo.report.deleteReportRepo, "input": ${JSON.stringify(report)}`)
 
+        if (report.commentUUID) {
+            if (!report.replyCommentUUID) {
+                (report as any).$or = [{ commentUUID: report.commentUUID }, { replyCommentUUID: report.commentUUID }]
+                delete report.commentUUID
+                delete report.replyCommentUUID
+            }
+        }
         const result = await reportModel.deleteMany(report)
         logger.warn(`deleted report successfully: ${result.deletedCount} item(s)`)
 

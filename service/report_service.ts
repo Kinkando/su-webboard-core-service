@@ -54,7 +54,7 @@ export class ReportService implements Service {
 
         if ([ReportStatus.Resolved, ReportStatus.Rejected].includes(report.reportStatus)) {
             await this.repository.updateReportsStatusRepo(
-                {forumUUID: report.forumUUID, commentUUID: report.commentUUID} as any,
+                {forumUUID: report.forumUUID, commentUUID: report.commentUUID, replyCommentUUID: report.replyCommentUUID} as any,
                 ReportStatus.Pending,
                 ReportStatus.Closed,
                 report.reportUUID!,
