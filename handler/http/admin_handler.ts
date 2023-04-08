@@ -340,8 +340,9 @@ class AdminHandler {
 
             for(const userUUID of userUUIDs) {
                 await this.authenService.revokeTokensByAdminSrv(req.body?.userUUIDs)
-
                 await this.userService.deleteUserSrv(userUUID)
+                this.notificationSocket.refreshNotification(userUUID)
+
                 const forums = await this.forumService.getForumsSrv({ authorUUID: userUUID })
                 if (forums) {
                     for(const forum of forums) {
