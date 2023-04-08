@@ -73,12 +73,11 @@ export default async function init(config: Configuration) {
 
     const storage = newCloudStorage(firebaseApp, config.google.storage)
 
-    const sendgrid = newSendGrid(config.sendgrid)
+    // const sendgrid = newSendGrid(config.sendgrid)
 
     const middleware = useJWT(config.app.jwtSecretKey, redis as any)
 
     const server = api.listen(PORT, () => logger.debug(`Server is listening on port :${PORT}`));
-
 
     // define repo
     const announcementRepository = newAnnouncementRepository(mongoDB)
@@ -98,7 +97,7 @@ export default async function init(config: Configuration) {
     const forumService = newForumService(forumRepository, storage)
     const notificationService = newNotificationService(notificationRepository, forumService, storage)
     const reportService = newReportService(reportRepository, storage)
-    const userService = newUserService(config.app.defaultPassword, userRepository, firebaseAuth, storage, sendgrid)
+    const userService = newUserService(config.app.defaultPassword, userRepository, firebaseAuth, storage)
 
     // initialize socket
     const socketServer = newSocket(server)

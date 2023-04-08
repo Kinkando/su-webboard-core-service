@@ -12,7 +12,6 @@ export function newAuthenHandler(apiKey: string, googleService: GoogleService, a
 
     const authRouter = Router()
     authRouter.post('/user', (req, res, next) => authenHandler.createUser(req, res, next))
-    // authRouter.post('/reset-password', (req, res, next) => authenHandler.resetPassword(req, res, next))
 
     const tokenRouter = authRouter.use('/token', authRouter)
     tokenRouter.post('/google', (req, res, next) => authenHandler.verifyGoogle(req, res, next))
@@ -247,21 +246,6 @@ class AuthenHandler {
         } catch (error) {
             logger.error(error)
             return res.status(HTTP.StatusInternalServerError).send({ error: (error as Error).message })
-        }
-    }
-
-    async resetPassword(req: Request, res: Response, next: NextFunction) {
-        logger.info("Start http.authen.resetPassword")
-
-        try {
-            await this.userService.resetPasswordSrv("tokenID ???")
-
-            logger.info("End http.authen.resetPassword")
-            return res.status(HTTP.StatusOK).send({ message: "success" })
-
-        } catch (error) {
-            logger.error(error)
-            return res.status(HTTP.StatusUnauthorized).send({ error: (error as Error).message })
         }
     }
 }

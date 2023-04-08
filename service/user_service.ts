@@ -2,15 +2,14 @@ import { Auth } from 'firebase-admin/lib/auth/auth';
 import { v4 as uuid } from 'uuid';
 import { filePath } from '../common/file_path';
 import { CloudStorage, File } from '../cloud/google/storage';
-import { SendGrid } from "../cloud/sendgrid/sendgrid";
 import { FilterUser, FollowUserPagination, User, UserPagination } from "../model/user";
 import { UserRepository } from "../repository/mongo/user_repository";
 import logger from "../util/logger";
 
 const storageFolder = "user"
 
-export function newUserService(defaultPassword: string, repository: UserRepository, firebaseAuth: Auth, storage: CloudStorage, sendgrid: SendGrid) {
-    return new UserService(defaultPassword, repository, firebaseAuth, storage, sendgrid)
+export function newUserService(defaultPassword: string, repository: UserRepository, firebaseAuth: Auth, storage: CloudStorage) {
+    return new UserService(defaultPassword, repository, firebaseAuth, storage)
 }
 
 interface Service {
@@ -21,7 +20,6 @@ interface Service {
     followingUserSrv(followingByUserUUID: string, followingToUserUUID: string, isFollowing: boolean): void
     notiUserSrv(userUUID: string, notiUserUUID: string, isNoti: boolean): void
     getUsersSrv(query: {userUUIDs?: string[], notiUserUUID?: string, userType?: string}): Promise<User[]>
-    resetPasswordSrv(tokenID: string): void
 
     getUsersPaginationSrv(query: UserPagination): Promise<{ total: number, data: User[] }>
     createUserSrv(user: User): void
@@ -37,7 +35,6 @@ export class UserService implements Service {
         private repository: UserRepository,
         private firebaseAuth: Auth,
         private storage: CloudStorage,
-        private sendgrid: SendGrid,
     ) {}
 
     async getFollowUsersSrv(query: FollowUserPagination, userUUID: string) {
@@ -259,14 +256,6 @@ export class UserService implements Service {
 
         logger.info(`End service.user.isExistEmailSrv, "output": ${isExist}`)
         return isExist
-    }
-
-    async resetPasswordSrv(tokenID: string) {
-        logger.info(`Start service.user.resetPasswordSrv, "input": {"tokenID": "${tokenID}"}`)
-
-        this.sendgrid.sendEmailTemplate("")
-
-        logger.info(`End service.user.resetPasswordSrv`)
     }
 
     async registerUserSrv(user: User) {

@@ -1,3 +1,4 @@
+import logger from '@util/logger';
 import { SendGridConfiguration } from '../../config/config';
 import sendgrid, { MailService } from '@sendgrid/mail'
 
@@ -7,26 +8,24 @@ export function newSendGrid(config: SendGridConfiguration) {
 }
 
 interface Service {
-    sendEmailTemplate(to: string): void
+    sendEmailTemplate(subject: string, html: string, ...to: string[]): void
 }
 
 export class SendGrid implements Service {
     constructor(private senderEmail: string, private sendgrid: MailService) {}
 
-    sendEmailTemplate(to: string) {
+    sendEmailTemplate(subject: string, html: string, ...to: string[]) {
+        logger.info(`Start cloud.sendgrid.sendEmailTemplate, "input": ${JSON.stringify({subject, html, to})}`)
         const msg = {
-            to: 'noreply.suwebboard@gmail.com', // Change to your recipient
-            from: this.senderEmail, // Change to your verified sender
-            subject: 'Sending with SendGrid is Fun',
-            text: 'and easy to do anywhere, even with Node.js',
-            html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+            to,
+            from: this.senderEmail,
+            subject,
+            // text: 'and easy to do anywhere, even with Node.js',
+            html,
         }
         this.sendgrid.send(msg)
-            .then(() => {
-                console.log('Email sent')
-            })
-            .catch((error) => {
-                console.error(error)
-            })
+            .then(data => logger.info(`send email template to ${to} successfully: ${data?.length || 0} email(s)`))
+            .catch((error) => console.error(error))
+        logger.info(`End cloud.sendgrid.sendEmailTemplate`)
     }
 }
