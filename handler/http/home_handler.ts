@@ -42,7 +42,12 @@ export class HomeHandler {
             const categories = await this.categoryService.getCategoryDetailsSrv()
 
             logger.info("End http.home.home")
-            return res.status(HTTP.StatusOK).send({ announcements: announcement.data, popularTopics: popularForum.data, latestTopics: latestForum.data, categories: categories });
+            return res.status(HTTP.StatusOK).send({
+                announcements: announcement?.data || [],
+                popularTopics: popularForum?.data || [],
+                latestTopics: latestForum?.data || [],
+                categories: categories,
+            });
 
         } catch (error) {
             logger.error(error)
