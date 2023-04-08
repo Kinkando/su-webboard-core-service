@@ -73,7 +73,7 @@ export class CategoryRepository implements Repository {
             {$match:{
                 $and: [
                     { $or: [
-                        { categoryID: filter },
+                        { categoryID: Number(query.search ?? '') },
                         { categoryName: filter },
                         { categoryHexColor: filter },
                     ]}
