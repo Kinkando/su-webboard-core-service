@@ -111,7 +111,7 @@ class AdminHandler {
 
             const resp = {
                 reportStatus: countReportStatus,
-                categories: countCategoryOccurrence.sort((a, b) => a.ranking! - b.ranking!),
+                categories: countCategoryOccurrence,
                 forums: countForumOccurrence,
             }
 
