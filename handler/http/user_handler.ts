@@ -2,6 +2,7 @@ import { validate } from '../../util/validate';
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer'
 import { Pagination } from '../../model/common';
+import { NotificationType } from '../../model/notification';
 import { File } from '../../cloud/google/storage';
 import HTTP from '../../common/http';
 import { FollowUserPagination, User } from '../../model/user';
@@ -176,7 +177,7 @@ class UserHandler {
             const isFollowing = req.body.isFollowing as boolean
             await this.userService.followingUserSrv(profile.userUUID, followingUserUUID, isFollowing)
 
-            const noti = {notiBody: `กำลังติดตามคุณ`, notiUserUUID: profile.userUUID, userUUID: followingUserUUID, followerUserUUID: profile.userUUID}
+            const noti = {notiType: NotificationType.FollowingUser, notiUserUUID: profile.userUUID, userUUID: followingUserUUID, followerUserUUID: profile.userUUID}
             const { notiUUID } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, isFollowing ? 'push' : 'pop')
             if (isFollowing) {
                 this.notificationSocket.createNotification(followingUserUUID, notiUUID)

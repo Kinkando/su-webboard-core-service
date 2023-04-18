@@ -5,7 +5,7 @@ import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from "../../common/http";
 import { FilterForum, Forum } from '../../model/forum';
 import { Report, ReportStatus } from '../../model/report';
-import { NotificationBody } from '../../model/notification';
+import { NotificationType } from '../../model/notification';
 import { CategoryService } from '../../service/category_service';
 import { CommentService } from '../../service/comment_service';
 import { ForumService } from "../../service/forum_service";
@@ -194,7 +194,7 @@ export class ForumHandler {
                 const notiUsers = await this.userService.getUsersSrv({notiUserUUID: profile.userUUID})
                 if (notiUsers) {
                     for(const notiUser of notiUsers) {
-                        const noti = {notiBody: NotificationBody.NewForum, notiUserUUID: profile.userUUID, userUUID: notiUser.userUUID!, forumUUID: response.forumUUID}
+                        const noti = {notiType: NotificationType.NewForum, notiUserUUID: profile.userUUID, userUUID: notiUser.userUUID!, forumUUID: response.forumUUID}
                         const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti as any, 'push')
                         if (mode === 'create') {
                             this.notificationSocket.createNotification(notiUser.userUUID!, notiUUID)
@@ -294,7 +294,7 @@ export class ForumHandler {
 
             const action = isLike ? 'push' : 'pop'
             if (profile.userUUID !== forum.authorUUID) {
-                const noti = {notiBody: NotificationBody.LikeForum, notiUserUUID: profile.userUUID, userUUID: forum.authorUUID, forumUUID: forum.forumUUID}
+                const noti = {notiType: NotificationType.LikeForum, notiUserUUID: profile.userUUID, userUUID: forum.authorUUID, forumUUID: forum.forumUUID}
                 const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, action)
                 if (mode === 'create') {
                     this.notificationSocket.createNotification(forum.authorUUID, notiUUID)

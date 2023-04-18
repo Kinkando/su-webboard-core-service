@@ -5,7 +5,7 @@ import { NotificationSocket } from '../socket/notification_socket';
 import HTTP from "../../common/http";
 import { Pagination } from '../../model/common';
 import { Comment } from '../../model/comment';
-import { Notification, NotificationBody } from '../../model/notification';
+import { Notification, NotificationType } from '../../model/notification';
 import { Report, ReportStatus } from '../../model/report';
 import { CommentService } from "../../service/comment_service";
 import { ForumService } from '../../service/forum_service';
@@ -173,23 +173,23 @@ export class CommentHandler {
                 this.forumSocket.createComment(profile.sessionUUID, comment.forumUUID, response.commentUUID, comment.replyCommentUUID)
 
                 let replyToUserUUID = ""
-                let notiBody = ""
+                let notiType = 0
                 if (comment.replyCommentUUID) {
                     const cm = await this.commentService.getCommentSrv(comment.replyCommentUUID, profile.userUUID, true)
                     if (cm) {
                         replyToUserUUID = cm.commenterUUID
-                        notiBody = NotificationBody.NewReplyComment
+                        notiType = NotificationType.NewReplyComment
                     }
                 } else {
                     const forum = await this.forumService.getForumDetailSrv(comment.forumUUID, profile.userUUID, true)
                     if (forum) {
                         replyToUserUUID = forum.authorUUID
-                        notiBody = NotificationBody.NewComment
+                        notiType = NotificationType.NewComment
                     }
                 }
 
-                if (replyToUserUUID !== profile.userUUID && replyToUserUUID && notiBody) {
-                    const noti = {notiBody, notiUserUUID: profile.userUUID, userUUID: replyToUserUUID, forumUUID: comment.forumUUID, commentUUID: response.commentUUID, replyCommentUUID: comment.replyCommentUUID}
+                if (replyToUserUUID !== profile.userUUID && replyToUserUUID && notiType) {
+                    const noti = {notiType, notiUserUUID: profile.userUUID, userUUID: replyToUserUUID, forumUUID: comment.forumUUID, commentUUID: response.commentUUID, replyCommentUUID: comment.replyCommentUUID}
                     const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti, 'push')
                     if (mode === 'create') {
                         this.notificationSocket.createNotification(replyToUserUUID, notiUUID)
@@ -292,7 +292,7 @@ export class CommentHandler {
             const action = isLike ? 'push' : 'pop'
             if (profile.userUUID !== comment.commenterUUID) {
                 const noti: Notification = {
-                    notiBody: NotificationBody.LikeComment,
+                    notiType: NotificationType.LikeComment,
                     notiUserUUID: profile.userUUID,
                     userUUID: comment.commenterUUID,
                     forumUUID: comment.forumUUID,

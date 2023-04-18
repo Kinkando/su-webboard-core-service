@@ -99,19 +99,19 @@ class AdminHandler {
 
             const countReportStatus = await this.reportService.countReportStatusSrv()
 
-            // const countForumDocs = await this.forumService.countForumDocumentsSrv()
-            // const countCategoryOccurrence = await this.categoryService.getCategoryDetailsSrv()
-            // const uniqueOccurrence = [... new Set(countCategoryOccurrence.map(category => category.forumCount))].sort((a, b) => b-a)
-            // countCategoryOccurrence.forEach(category => {
-            //     category.total = countForumDocs
-            //     category.ranking = uniqueOccurrence.findIndex(oc => oc === category.forumCount)+1
-            // })
+            const countForumDocs = await this.forumService.countForumDocumentsSrv()
+            const countCategoryOccurrence = await this.categoryService.getCategoryDetailsSrv()
+            const uniqueOccurrence = [... new Set(countCategoryOccurrence.map(category => category.forumCount))].sort((a, b) => b-a)
+            countCategoryOccurrence.forEach(category => {
+                category.total = countForumDocs
+                category.ranking = uniqueOccurrence.findIndex(oc => oc === category.forumCount)+1
+            })
 
             const countForumOccurrence = await this.forumService.countForumBackToLatestSrv(fromDate, 7)
 
             const resp = {
                 reportStatus: countReportStatus,
-                // categories: countCategoryOccurrence.sort((a, b) => a.ranking! - b.ranking!),
+                categories: countCategoryOccurrence.sort((a, b) => a.ranking! - b.ranking!),
                 forums: countForumOccurrence,
             }
 
@@ -407,7 +407,6 @@ class AdminHandler {
                             }
                         }
                         const noti: any = {
-                            // notiBody: NotificationBody.LikeForum,
                             notiUserUUID: userUUID,
                             userUUID: forum.authorUUID,
                             forumUUID: forum.forumUUID,
@@ -428,7 +427,6 @@ class AdminHandler {
                             }
                         }
                         const noti: any = {
-                            // notiBody: NotificationBody.LikeComment,
                             notiUserUUID: userUUID,
                             userUUID: comment.commenterUUID,
                             forumUUID: comment.forumUUID,
@@ -590,8 +588,7 @@ class AdminHandler {
                             }
                             this.notificationService.createUpdateDeleteNotificationSrv({forumUUID: forum.forumUUID!} as any, 'remove')
 
-                            // delete report
-                            // this.reportService.deleteReportSrv({forumUUID: forum.forumUUID!} as any)
+                            await this.reportService.invalidReportStatusSrv({forumUUID: forum.forumUUID!} as any)
                         } else {
                             await this.forumService.deleteCategoryIDToForumSrv(forum.forumUUID!, categoryID)
                         }

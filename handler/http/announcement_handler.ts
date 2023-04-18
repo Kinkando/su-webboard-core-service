@@ -9,7 +9,7 @@ import { bind, validate } from "../../util/validate";
 import { NotificationService } from '../../service/notification_service';
 import { NotificationSocket } from '../socket/notification_socket';
 import { UserService } from '../../service/user_service';
-import { NotificationBody } from '../../model/notification';
+import { NotificationType } from '../../model/notification';
 
 const upload = multer()
 
@@ -142,7 +142,7 @@ export class AnnouncementHandler {
                 const users = await this.userService.getUsersSrv({userType: 'std'})
                 if (users) {
                     for (const user of users) {
-                        const noti = {notiBody: NotificationBody.NewAnnouncement, notiUserUUID: profile.userUUID, userUUID: user.userUUID!, announcementUUID: response.announcementUUID}
+                        const noti = {notiType: NotificationType.NewAnnouncement, notiUserUUID: profile.userUUID, userUUID: user.userUUID!, announcementUUID: response.announcementUUID}
                         const { notiUUID, mode } = await this.notificationService.createUpdateDeleteNotificationSrv(noti as any, 'push')
                         if (mode === 'create') {
                             this.notificationSocket.createNotification(user.userUUID!, notiUUID)

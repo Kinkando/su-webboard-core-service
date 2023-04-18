@@ -5,7 +5,7 @@ const notificationCollection = "Notification"
 
 export interface NotificationModel {
     notiUUID: string
-    notiBody: string
+    notiType: number
     forumUUID?: string
     commentUUID?: string
     replyCommentUUID?: string
@@ -20,7 +20,7 @@ export interface NotificationModel {
 
 interface INotification extends Document {
     notiUUID: string
-    notiBody: string
+    notiType: number
     forumUUID?: string
     commentUUID?: string
     replyCommentUUID?: string
@@ -36,7 +36,7 @@ interface INotification extends Document {
 const notificationSchema: Schema = new Schema(
     {
         notiUUID: { type: String, unique: true, required: true },
-        notiBody: { type: String, unique: false, required: true },
+        notiType: { type: Number, unique: false, required: true },
         forumUUID: { type: String, unique: false, required: false },
         commentUUID: { type: String, unique: false, required: false },
         replyCommentUUID: { type: String, unique: false, required: false },
@@ -60,7 +60,7 @@ export default notification
 export function newNotificationModel(noti: Notification): NotificationModel {
     return {
         notiUUID: noti.notiUUID!,
-        notiBody: noti.notiBody,
+        notiType: noti.notiType,
         forumUUID: noti.forumUUID,
         commentUUID: noti.commentUUID,
         replyCommentUUID: noti.replyCommentUUID,

@@ -1,6 +1,6 @@
 import { filePath } from "../common/file_path";
 import { CloudStorage } from "../cloud/google/storage";
-import { FilterNotification, Notification, NotificationView, mapNotiLink } from "../model/notification";
+import { FilterNotification, Notification, NotificationView, mapNotiBody, mapNotiLink } from "../model/notification";
 import { NotificationRepository } from "../repository/mongo/notification_repository";
 import logger from "../util/logger";
 import { ForumService } from "./forum_service";
@@ -33,6 +33,7 @@ export class NotificationService implements Service {
                 noti.notiUserUUID = "unknown"
             }
         }
+        noti.notiBody = mapNotiBody(noti.notiType!)
         if (noti.announcementUUID) {
             noti.notiBody = noti.notiBody + "โดย " + noti.notiUserDisplayName
         } else if (noti.notiUserUUIDs && noti.notiUserUUIDs.length > 1) {
@@ -49,6 +50,7 @@ export class NotificationService implements Service {
         delete noti.replyCommentUUID
         delete noti.notiUserUUIDs
         delete noti.isAnonymous
+        delete noti.notiType
     }
 
     async getNotificationsPaginationSrv(query: FilterNotification, userUUID: string) {
