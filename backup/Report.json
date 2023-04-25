@@ -1,0 +1,137 @@
+[{
+  "_id": {
+    "$oid": "6432393105bcae565b65d84f"
+  },
+  "reportUUID": "c1d48f52-1404-4804-a78f-c7f6badc6156",
+  "reportCode": "RPFR-2023040900004",
+  "reporterUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "plaintiffUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "reportReason": "รบกวนผู้อื่น",
+  "reportStatus": "rejected",
+  "forumUUID": "a2251197-53d3-408c-a4fd-694544c9361d",
+  "createdAt": {
+    "$date": "2023-04-09T04:04:01.355Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T04:05:59.202Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432394205bcae565b65d853"
+  },
+  "reportUUID": "7b1b47f4-d30c-447b-b8af-035ed4d981ec",
+  "reportCode": "RPCM-2023040900001",
+  "reporterUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "plaintiffUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "reportReason": "รบกวนผู้อื่น",
+  "reportStatus": "closed",
+  "forumUUID": "a2251197-53d3-408c-a4fd-694544c9361d",
+  "commentUUID": "af6f0451-639d-456c-a2eb-f7e110c40664",
+  "createdAt": {
+    "$date": "2023-04-09T04:04:18.770Z"
+  },
+  "refReportUUID": "c196457d-d2f8-4613-974a-5f635d096899",
+  "updatedAt": {
+    "$date": "2023-04-09T04:05:50.538Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432394805bcae565b65d856"
+  },
+  "reportUUID": "c196457d-d2f8-4613-974a-5f635d096899",
+  "reportCode": "RPCM-2023040900002",
+  "reporterUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "plaintiffUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "reportReason": "test",
+  "reportStatus": "resolved",
+  "forumUUID": "a2251197-53d3-408c-a4fd-694544c9361d",
+  "commentUUID": "af6f0451-639d-456c-a2eb-f7e110c40664",
+  "createdAt": {
+    "$date": "2023-04-09T04:04:24.534Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T04:05:50.371Z"
+  }
+},{
+  "_id": {
+    "$oid": "643239ce05bcae565b65d881"
+  },
+  "reportUUID": "2d690889-ea60-4507-b70c-06d0180537a8",
+  "reportCode": "RPCM-2023040900003",
+  "reporterUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "plaintiffUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "reportReason": "มีการใช้คำเชิงสบประมาท หรือหลอกหลวงผู้อื่น",
+  "reportStatus": "invalid",
+  "forumUUID": "a2251197-53d3-408c-a4fd-694544c9361d",
+  "commentUUID": "5735b453-6098-4bef-a8f7-c6063a019c0c",
+  "createdAt": {
+    "$date": "2023-04-09T04:06:38.506Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T06:18:16.983Z"
+  }
+},{
+  "_id": {
+    "$oid": "64323b1705bcae565b65d89d"
+  },
+  "reportUUID": "59640bbe-9900-4473-9a53-ba0a28bea462",
+  "reportCode": "RPCM-2023040900004",
+  "reporterUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "plaintiffUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "reportReason": "มีการใช้คำที่ไม่สุภาพหรือไม่เหมาะสม",
+  "reportStatus": "invalid",
+  "forumUUID": "a2251197-53d3-408c-a4fd-694544c9361d",
+  "commentUUID": "dd21a074-2c42-4d2b-9969-37efc4c8fcb1",
+  "createdAt": {
+    "$date": "2023-04-09T04:12:07.670Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T04:12:11.768Z"
+  }
+},{
+  "_id": {
+    "$oid": "64325b8005bcae565b65d9f8"
+  },
+  "reportUUID": "856691ac-f93a-4579-99a1-e3a24ce1cd9d",
+  "reportCode": "RPCM-2023040900005",
+  "reporterUUID": "51c456bc-7c70-446f-ab34-711892976eff",
+  "plaintiffUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "reportReason": "มีการใช้คำที่สื่อถึงการดูถูก ดูหมิ่น หรือเหยียดหยามผู้อื่น",
+  "reportStatus": "resolved",
+  "forumUUID": "fe88dd2f-d688-474c-98d6-3ee33931b20b",
+  "commentUUID": "c597b20e-69ad-482c-92f3-16f9540ffddb",
+  "createdAt": {
+    "$date": "2023-04-09T06:30:24.249Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T06:42:45.156Z"
+  }
+},{
+  "_id": {
+    "$oid": "643bbb8405bcae565b65dac2"
+  },
+  "reportUUID": "5e1eb6b9-9750-45bd-b78f-e0c9ccca383d",
+  "reportCode": "RPFR-2023041600001",
+  "reporterUUID": "ef1201df-3814-43de-8122-d3f531e02a27",
+  "plaintiffUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "reportReason": "รบกวนผู้อื่น",
+  "reportStatus": "pending",
+  "forumUUID": "614abde0-eeb0-4a09-a48d-bb404bf62fac",
+  "createdAt": {
+    "$date": "2023-04-16T09:10:28.958Z"
+  }
+},{
+  "_id": {
+    "$oid": "643bc07c05bcae565b65dacf"
+  },
+  "reportUUID": "561e7200-55db-4629-9250-e0a24f36cfae",
+  "reportCode": "RPFR-2023041600002",
+  "reporterUUID": "ef1201df-3814-43de-8122-d3f531e02a27",
+  "plaintiffUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "reportReason": "มีการใช้คำที่ไม่สุภาพหรือไม่เหมาะสม",
+  "reportStatus": "pending",
+  "forumUUID": "a2251197-53d3-408c-a4fd-694544c9361d",
+  "createdAt": {
+    "$date": "2023-04-16T09:31:40.102Z"
+  }
+}]

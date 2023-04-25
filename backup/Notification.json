@@ -1,0 +1,232 @@
+[{
+  "_id": {
+    "$oid": "6432373e05bcae565b65d7f8"
+  },
+  "notiUUID": "65cc28e6-4804-442f-ae27-6c0886171bcd",
+  "notiType": 1,
+  "forumUUID": "0a41cb78-3bd6-4cc2-966b-35bef6a7f069",
+  "notiUserUUIDs": [
+    "fe27ca15-c8f0-4adf-a112-aa76ef6fabac"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T03:55:42.273Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432379505bcae565b65d800"
+  },
+  "notiUUID": "0dc0df6b-6b03-4861-b1c6-81d497350ade",
+  "notiType": 6,
+  "announcementUUID": "7280feed-9c87-4ac1-82df-c61d430371a0",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:09.888Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432379605bcae565b65d803"
+  },
+  "notiUUID": "56f519aa-b7a5-4778-babd-d484e7b61593",
+  "notiType": 6,
+  "announcementUUID": "7280feed-9c87-4ac1-82df-c61d430371a0",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:10.212Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237a305bcae565b65d80a"
+  },
+  "notiUUID": "ab104a59-cda9-4ccf-9080-6b14f030860b",
+  "notiType": 6,
+  "announcementUUID": "a6c512b4-4e63-4289-9278-2470861eec8c",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:23.994Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237a405bcae565b65d80d"
+  },
+  "notiUUID": "8621f940-e0bc-4b64-ba5e-35903923a481",
+  "notiType": 6,
+  "announcementUUID": "a6c512b4-4e63-4289-9278-2470861eec8c",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:24.318Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237ab05bcae565b65d813"
+  },
+  "notiUUID": "ae094273-73a8-47c0-be27-17bc9c03e7e1",
+  "notiType": 6,
+  "announcementUUID": "e93c477b-ba21-4093-887a-6cfd458ceae1",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:31.165Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237ab05bcae565b65d816"
+  },
+  "notiUUID": "b8073f94-22eb-46ca-bfec-c10dcd76f3ed",
+  "notiType": 6,
+  "announcementUUID": "e93c477b-ba21-4093-887a-6cfd458ceae1",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:31.491Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237b305bcae565b65d81c"
+  },
+  "notiUUID": "6d81a0f7-4db0-4442-9e57-5ce56ea69316",
+  "notiType": 6,
+  "announcementUUID": "daf8c108-6b9a-4d7a-a46a-b75a83462499",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:39.363Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237b305bcae565b65d81f"
+  },
+  "notiUUID": "21d0f857-c363-441a-a712-a6996523374c",
+  "notiType": 6,
+  "announcementUUID": "daf8c108-6b9a-4d7a-a46a-b75a83462499",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:39.687Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237c605bcae565b65d826"
+  },
+  "notiUUID": "767ec39f-dfb2-49f1-9fdb-83ad9b640559",
+  "notiType": 6,
+  "announcementUUID": "2bd91931-01c4-482b-97eb-ae41fb53f088",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:58.772Z"
+  }
+},{
+  "_id": {
+    "$oid": "643237c705bcae565b65d829"
+  },
+  "notiUUID": "a618d6d2-32a5-4da0-b150-92ed3e554f68",
+  "notiType": 6,
+  "announcementUUID": "2bd91931-01c4-482b-97eb-ae41fb53f088",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "createdAt": {
+    "$date": "2023-04-09T03:57:59.095Z"
+  }
+},{
+  "_id": {
+    "$oid": "64325c4705bcae565b65da2c"
+  },
+  "notiUUID": "bb9f9981-6f99-41d0-b09d-d168ecfd965d",
+  "notiType": 6,
+  "announcementUUID": "c9b97d63-8214-4fda-8a01-fcd080c4aa57",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-09T06:33:43.665Z"
+  }
+},{
+  "_id": {
+    "$oid": "64325c4705bcae565b65da2f"
+  },
+  "notiUUID": "6fb62c48-41fa-493d-9858-7f9714182bfa",
+  "notiType": 6,
+  "announcementUUID": "c9b97d63-8214-4fda-8a01-fcd080c4aa57",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "createdAt": {
+    "$date": "2023-04-09T06:33:43.989Z"
+  }
+},{
+  "_id": {
+    "$oid": "64325c4805bcae565b65da32"
+  },
+  "notiUUID": "00027e26-4a0e-4f04-86e6-f94e5d343fda",
+  "notiType": 6,
+  "announcementUUID": "c9b97d63-8214-4fda-8a01-fcd080c4aa57",
+  "notiUserUUIDs": [
+    "ef1201df-3814-43de-8122-d3f531e02a27"
+  ],
+  "notiReadUserUUIDs": [],
+  "userUUID": "e4001501-2c7e-4fd3-aa52-4e6c56f3418a",
+  "createdAt": {
+    "$date": "2023-04-09T06:33:44.312Z"
+  }
+},{
+  "_id": {
+    "$oid": "643ba49c05bcae565b65daa8"
+  },
+  "notiUUID": "9317d01c-f798-46b4-8c78-3837b69dddf2",
+  "notiType": 4,
+  "forumUUID": "0a41cb78-3bd6-4cc2-966b-35bef6a7f069",
+  "commentUUID": "bf5ed44a-f9c6-46ea-8061-28b19ab8b086",
+  "notiUserUUIDs": [
+    "5ea199aa-dfad-43df-b520-39b0d592fed9"
+  ],
+  "notiReadUserUUIDs": [
+    "5ea199aa-dfad-43df-b520-39b0d592fed9"
+  ],
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "createdAt": {
+    "$date": "2023-04-16T07:32:44.804Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-18T14:58:49.633Z"
+  }
+}]

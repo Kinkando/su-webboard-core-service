@@ -1,0 +1,177 @@
+[{
+  "_id": {
+    "$oid": "6411b2f82cde3b4b70038518"
+  },
+  "userUUID": "a598a6b5-84b5-38b1-a9f5-b22d93c642d2",
+  "userDisplayName": "Kinkando",
+  "userFullName": "Tanawat Yuwansiri",
+  "firebaseID": "PcT3XYnt5EW82NBtZnPh4eeBGEk2",
+  "createdAt": {
+    "$date": "2023-03-15T12:00:00.000Z"
+  },
+  "userType": "adm",
+  "userEmail": "kinkandojester@gmail.com",
+  "lastLogin": {
+    "$date": "2023-04-09T05:21:21.765Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T05:21:21.924Z"
+  }
+},{
+  "_id": {
+    "$oid": "640eb9c56382cf99340e30ba"
+  },
+  "userUUID": "ac0f40ae-89ba-35e3-88fc-ba3e5c399c24",
+  "userType": "adm",
+  "userDisplayName": "Super Admin",
+  "userFullName": "Super Admin",
+  "userEmail": "superadmin@su-webboard.com",
+  "firebaseID": "rvEAHvjrtyUTqTQrO5Unhe7kkT42",
+  "createdAt": {
+    "$date": "2023-03-13T12:00:00.000Z"
+  },
+  "lastLogin": {
+    "$date": "2023-03-15T12:05:37.295Z"
+  },
+  "updatedAt": {
+    "$date": "2023-03-15T12:05:37.456Z"
+  }
+},{
+  "_id": {
+    "$oid": "6417d72a4150476de7b35220"
+  },
+  "userUUID": "33ef75de-b424-3647-936a-7a13ddbcf427",
+  "userType": "adm",
+  "userDisplayName": "MoeMondays",
+  "userFullName": "Thanakorn Hemsart",
+  "userEmail": "im.hemsart@gmail.com",
+  "firebaseID": "ZKf6zecNlsN4mFGPu11sXzAx0ev2",
+  "createdAt": {
+    "$date": "2023-03-20T10:49:16.038Z"
+  },
+  "lastLogin": {
+    "$date": "2023-04-16T06:54:10.451Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-16T06:54:10.609Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432367105bcae565b65d7c8"
+  },
+  "userUUID": "9886f63c-b2e9-4f28-a660-bddca4cacac3",
+  "userType": "std",
+  "userDisplayName": "Kungfu Panda",
+  "userFullName": "Tanawat Yuwansiri",
+  "userEmail": "yuwansiri_t@silpakorn.edu",
+  "studentID": "620710117",
+  "userImageURL": "user/7052303b-58a4-4b22-b829-4f59e78ec0b8.jpg",
+  "firebaseID": "AWYBo1cxC7YKRwLYUHFUJtVQtGr2",
+  "followerUserUUIDs": [],
+  "followingUserUUIDs": [],
+  "notiUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-09T03:52:17.798Z"
+  },
+  "lastLogin": {
+    "$date": "2023-04-21T14:56:04.245Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-21T14:56:04.404Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432368f05bcae565b65d7cd"
+  },
+  "userUUID": "ef1201df-3814-43de-8122-d3f531e02a27",
+  "userType": "tch",
+  "userDisplayName": "กองบริหารงานวิชาการ",
+  "userFullName": "กองบริหารงานวิชาการ",
+  "userEmail": "academic-admin@su-webboard.com",
+  "userImageURL": "user/6e7371b5-3bb3-4edc-b678-08c51c17464d.png",
+  "firebaseID": "KMbNhoVIkjQ9uKQPNV452cKcN823",
+  "followerUserUUIDs": [],
+  "followingUserUUIDs": [],
+  "notiUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-09T03:52:47.174Z"
+  },
+  "lastLogin": {
+    "$date": "2023-04-16T08:57:11.598Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-16T08:57:11.755Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432370205bcae565b65d7f2"
+  },
+  "userUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "userType": "std",
+  "userDisplayName": "Kook Kai",
+  "userFullName": "Kook Kai",
+  "userEmail": "kook-kai@silpakorn.edu",
+  "studentID": "620710001",
+  "userImageURL": "user/dc2365d9-0840-4d81-9b8a-25988df263ce.png",
+  "firebaseID": "fKb8PS4hh8bMWXmnZNyTbDYW4iZ2",
+  "followerUserUUIDs": [],
+  "followingUserUUIDs": [],
+  "notiUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-09T03:54:42.771Z"
+  },
+  "lastLogin": {
+    "$date": "2023-04-09T03:55:26.282Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T03:55:26.440Z"
+  }
+},{
+  "_id": {
+    "$oid": "643252b405bcae565b65d94c"
+  },
+  "userUUID": "e4001501-2c7e-4fd3-aa52-4e6c56f3418a",
+  "userType": "std",
+  "userDisplayName": "Natthavut Apinantakun",
+  "userFullName": "Natthavut Apinantakun",
+  "userEmail": "apinantakun_n@silpakorn.edu",
+  "studentID": "620710657",
+  "userImageURL": "user/67021c0b-ffbe-499b-8b14-7cbe09bc3a18.png",
+  "firebaseID": "TJmLgNtQnvOjvjxP9ulOfq8bGvh2",
+  "followerUserUUIDs": [],
+  "followingUserUUIDs": [],
+  "notiUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-09T05:52:52.488Z"
+  },
+  "lastLogin": {
+    "$date": "2023-04-09T05:52:52.662Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T05:52:52.821Z"
+  }
+},{
+  "_id": {
+    "$oid": "643b9dc205bcae565b65daa1"
+  },
+  "userUUID": "5ea199aa-dfad-43df-b520-39b0d592fed9",
+  "userType": "std",
+  "userDisplayName": "Thanakorn Hemsart",
+  "userFullName": "Thanakorn Hemsart",
+  "userEmail": "hemsart_t@silpakorn.edu",
+  "studentID": "620710115",
+  "userImageURL": "user/e3028fd4-4366-40ea-a787-d2d0efaf0d1d.png",
+  "firebaseID": "uZYfQrDopeWGRdva29EW8ICNBdf1",
+  "followerUserUUIDs": [],
+  "followingUserUUIDs": [],
+  "notiUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-16T07:03:30.249Z"
+  },
+  "lastLogin": {
+    "$date": "2023-04-16T07:03:30.419Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-16T07:03:30.578Z"
+  }
+}]

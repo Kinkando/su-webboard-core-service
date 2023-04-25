@@ -1,0 +1,101 @@
+[{
+  "_id": {
+    "$oid": "6432368f05bcae565b65d7d0"
+  },
+  "categoryID": 1,
+  "categoryName": "ชีวิตประจำวัน",
+  "categoryHexColor": "#86D97F",
+  "createdAt": {
+    "$date": "2023-04-09T03:52:47.787Z"
+  }
+},{
+  "_id": {
+    "$oid": "6432369a05bcae565b65d7d3"
+  },
+  "categoryID": 2,
+  "categoryName": "กีฬา",
+  "categoryHexColor": "#4C52E0",
+  "createdAt": {
+    "$date": "2023-04-09T03:52:58.808Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236a505bcae565b65d7d6"
+  },
+  "categoryID": 3,
+  "categoryName": "อาหาร",
+  "categoryHexColor": "#857800",
+  "createdAt": {
+    "$date": "2023-04-09T03:53:09.697Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236b105bcae565b65d7d9"
+  },
+  "categoryID": 4,
+  "categoryName": "การศึกษา",
+  "categoryHexColor": "#E04C6F",
+  "createdAt": {
+    "$date": "2023-04-09T03:53:21.568Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236bc05bcae565b65d7dd"
+  },
+  "categoryID": 5,
+  "categoryName": "โปรแกรมมิ่ง",
+  "categoryHexColor": "#48D7E0",
+  "createdAt": {
+    "$date": "2023-04-09T03:53:32.332Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236c505bcae565b65d7e2"
+  },
+  "categoryID": 6,
+  "categoryName": "เกม",
+  "categoryHexColor": "#AD4343",
+  "createdAt": {
+    "$date": "2023-04-09T03:53:41.360Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236cd05bcae565b65d7e6"
+  },
+  "categoryID": 7,
+  "categoryName": "การทำงาน",
+  "categoryHexColor": "#92C6DD",
+  "createdAt": {
+    "$date": "2023-04-09T03:53:49.747Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236d705bcae565b65d7e9"
+  },
+  "categoryID": 8,
+  "categoryName": "การท่องเที่ยว",
+  "categoryHexColor": "#79B027",
+  "createdAt": {
+    "$date": "2023-04-09T03:53:59.955Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236e105bcae565b65d7ec"
+  },
+  "categoryID": 9,
+  "categoryName": "หนังสือ",
+  "categoryHexColor": "#CF9DF0",
+  "createdAt": {
+    "$date": "2023-04-09T03:54:09.547Z"
+  }
+},{
+  "_id": {
+    "$oid": "643236e905bcae565b65d7ef"
+  },
+  "categoryID": 10,
+  "categoryName": "วิดีโอ",
+  "categoryHexColor": "#FC9C69",
+  "createdAt": {
+    "$date": "2023-04-09T03:54:17.391Z"
+  }
+}]

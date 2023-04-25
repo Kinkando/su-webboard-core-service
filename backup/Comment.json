@@ -1,0 +1,40 @@
+[{
+  "_id": {
+    "$oid": "643237c705bcae565b65d82b"
+  },
+  "forumUUID": "06162644-6013-4a83-8f52-802ef6305b22",
+  "commentText": "สุดๆ",
+  "commenterUUID": "fe27ca15-c8f0-4adf-a112-aa76ef6fabac",
+  "commentUUID": "73f9f3ed-9915-4fb5-bd75-a0724f8dade5",
+  "commentImages": [],
+  "likeUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-09T03:57:59.205Z"
+  }
+},{
+  "_id": {
+    "$oid": "643ba49c05bcae565b65daa6"
+  },
+  "forumUUID": "0a41cb78-3bd6-4cc2-966b-35bef6a7f069",
+  "commentText": "ความคิดเห็น",
+  "commenterUUID": "5ea199aa-dfad-43df-b520-39b0d592fed9",
+  "commentUUID": "bf5ed44a-f9c6-46ea-8061-28b19ab8b086",
+  "commentImages": [],
+  "likeUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-16T07:32:44.317Z"
+  }
+},{
+  "_id": {
+    "$oid": "643ba6c505bcae565b65daab"
+  },
+  "forumUUID": "90cc639e-a6ec-4ff2-87cf-a969cb0031f5",
+  "commentText": "แสดงความคิดเห็น",
+  "commenterUUID": "5ea199aa-dfad-43df-b520-39b0d592fed9",
+  "commentUUID": "d5e1988c-22db-4473-8df3-2d58f136e513",
+  "commentImages": [],
+  "likeUserUUIDs": [],
+  "createdAt": {
+    "$date": "2023-04-16T07:41:57.321Z"
+  }
+}]
